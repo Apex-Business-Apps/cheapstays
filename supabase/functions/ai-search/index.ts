@@ -23,14 +23,16 @@ Deno.serve(async (req) => {
     const rl = rateLimit(`ai-search:${ip}`, 20, 60_000);
     if (!rl.ok) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) {
       return new Response(JSON.stringify({ error: parsed.error.flatten() }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -103,7 +105,8 @@ Match listings to the user query using FUZZY, SEMANTIC matching:
       aiJson = JSON.parse(raw);
     } catch {
       return new Response(JSON.stringify({ error: "AI returned invalid JSON" }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -138,7 +141,8 @@ Match listings to the user query using FUZZY, SEMANTIC matching:
     });
   } catch (err) {
     return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
