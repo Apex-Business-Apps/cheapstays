@@ -221,13 +221,16 @@ export default function Search() {
     setBrowseLoading(true);
     supabase
       .from("listings")
-      .select("id, slug, host_id, title, city, province, type, bedrooms, bathrooms, max_guests, nightly_php, min_nights, amenities, images, is_owner_direct, instant_book, avg_rating, review_count, why_its_a_deal, score")
+      .select("id, slug, host_id, title, city, province, type, bedrooms, bathrooms, max_guests, nightly_php, min_nights, amenities, images, is_owner_direct, instant_book, avg_rating, review_count")
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(12)
       .then(({ data }) => {
-        setBrowseListings((data as Listing[]) ?? []);
+        setBrowseListings(
+          (data ?? []).map((l) => ({ ...l, why_its_a_deal: "", score: 0 })) as Listing[]
+        );
       })
+      .catch(() => { /* silent — browse listings are non-critical */ })
       .finally(() => setBrowseLoading(false));
   }, []);
 
