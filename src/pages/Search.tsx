@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -214,6 +214,22 @@ export default function Search() {
   const [sort, setSort] = useState<SortKey>("score");
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [browseListings, setBrowseListings] = useState<Listing[]>([]);
+  const [browseLoading, setBrowseLoading] = useState(false);
+
+  useEffect(() => {
+    setBrowseLoading(true);
+    supabase
+      .from("listings")
+      .select("id, slug, host_id, title, city, province, type, bedrooms, bathrooms, max_guests, nightly_php, min_nights, amenities, images, is_owner_direct, instant_book, avg_rating, review_count, why_its_a_deal, score")
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(12)
+      .then(({ data }) => {
+        setBrowseListings((data as Listing[]) ?? []);
+      })
+      .finally(() => setBrowseLoading(false));
+  }, []);
 
   async function run(e: React.FormEvent) {
     e.preventDefault();
@@ -447,6 +463,15 @@ export default function Search() {
         {!loading && filtered.length > 0 && (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((r) => <ListingCard key={r.id} listing={r} />)}
+          </div>
+        )}
+
+        {!loading && !searched && browseLoading && (
+          <div className="mt-10">
+            <h2 className="text-lg font-medium mb-4">Browse latest stays</h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((n) => <CardSkeleton key={n} />)}
+            </div>
           </div>
         )}
 
