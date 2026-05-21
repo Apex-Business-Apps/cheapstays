@@ -2,7 +2,6 @@ import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import brandMark from "@/assets/brand-mark.png";
 
 const links = [
   { to: "/search", label: "Search" },
@@ -16,15 +15,12 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="container flex h-16 items-center justify-between gap-6">
-        <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight group">
+        <Link to="/" className="group flex h-full items-center font-semibold tracking-tight">
           <img
-            src={brandMark}
-            alt="CheapStays — bahay-kubo brand mark"
-            width={36}
-            height={36}
-            className="h-9 w-9 object-contain transition-transform duration-500 ease-out group-hover:rotate-[-6deg] group-hover:scale-110"
+            src="/wordmark.png"
+            alt="CheapStays wordmark"
+            className="h-[90%] w-auto object-contain transition-transform duration-500 ease-out group-hover:scale-[1.02]"
           />
-          <span className="text-lg">Cheap<span className="text-accent">Stays</span></span>
         </Link>
         <nav className="hidden md:flex items-center gap-1">
           {links.map((l) => (
