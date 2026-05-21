@@ -117,10 +117,10 @@ export default function Membership() {
           title: "Payment gateway coming soon.",
           description: "Your account has been upgraded!",
         });
-        // Attempt to record role upgrade — may fail due to RLS, that is expected
-        await supabase
-          .from("user_roles")
-          .upsert({ user_id: user!.id, role: "member" });
+        // Assign member role via edge function (service role bypasses RLS)
+        await supabase.functions.invoke("assign-member-role", {
+          body: { role: "member" },
+        });
         setPayDialogOpen(false);
         return;
       }
