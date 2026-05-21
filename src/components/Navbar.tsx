@@ -20,7 +20,7 @@ export function Navbar() {
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Sparkles className="h-4 w-4" />
           </span>
-          <span>CheapStays</span>
+          <span>Cheap<span className="text-accent">Stays</span></span>
         </Link>
         <nav className="hidden md:flex items-center gap-1">
           {links.map((l) => (
