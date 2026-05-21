@@ -107,7 +107,7 @@ function ListingCard({ listing }: { listing: Listing }) {
 
   return (
     <Link
-      to={`/listing/${listing.id}`}
+      to={listing.slug ? `/listing/slug/${listing.slug}` : `/listing/${listing.id}`}
       className="group block rounded-2xl border border-border/60 bg-card hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden"
     >
       <div className="h-44 bg-gradient-to-br from-secondary/60 to-accent/10 flex items-center justify-center relative overflow-hidden">

@@ -61,17 +61,19 @@ const AMENITY_LABELS: Record<string, string> = {
 };
 
 export default function ListingDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { id, slug } = useParams<{ id?: string; slug?: string }>();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    const lookupKey = slug ?? id;
+    const lookupField = slug ? "slug" : "id";
+    if (!lookupKey) return;
     supabase
       .from("listings")
       .select("*")
-      .eq("id", id)
+      .eq(lookupField, lookupKey)
       .eq("status", "active")
       .single()
       .then(({ data, error }) => {
@@ -79,7 +81,7 @@ export default function ListingDetail() {
         else setListing(data as Listing);
         setLoading(false);
       });
-  }, [id]);
+  }, [id, slug]);
 
   if (loading) {
     return (
@@ -111,7 +113,7 @@ export default function ListingDetail() {
       <Seo
         title={`${listing.title} · CheapStays`}
         description={listing.description || `${listing.bedrooms}BR in ${listing.city} — ₱${listing.nightly_php}/night, owner-direct.`}
-        path={`/listing/${listing.id}`}
+        path={listing.slug ? `/listing/slug/${listing.slug}` : `/listing/${listing.id}`}
       />
 
       <div className="container py-10 max-w-6xl">
