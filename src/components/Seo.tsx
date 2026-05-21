@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 type SeoProps = {
   title: string;
@@ -6,6 +6,7 @@ type SeoProps = {
   path?: string;
   image?: string;
   type?: "website" | "article";
+  jsonLd?: Record<string, unknown>;
 };
 
 const SITE_URL = "https://cheapstays.me";
@@ -37,7 +38,9 @@ const upsertLink = (selector: string, attributes: Record<string, string>) => {
   });
 };
 
-export const Seo = ({ title, description, path = "/", image = DEFAULT_IMAGE, type = "website" }: SeoProps) => {
+export const Seo = ({ title, description, path = "/", image = DEFAULT_IMAGE, type = "website", jsonLd }: SeoProps) => {
+  const jsonLdScriptRef = useRef<HTMLScriptElement | null>(null);
+
   useEffect(() => {
     const canonicalUrl = `${SITE_URL}${path}`;
 
@@ -55,6 +58,30 @@ export const Seo = ({ title, description, path = "/", image = DEFAULT_IMAGE, typ
 
     upsertLink('link[rel="canonical"]', { rel: "canonical", href: canonicalUrl });
   }, [description, image, path, title, type]);
+
+  useEffect(() => {
+    // Remove previous dynamic JSON-LD script injected by this component
+    if (jsonLdScriptRef.current) {
+      jsonLdScriptRef.current.remove();
+      jsonLdScriptRef.current = null;
+    }
+
+    if (jsonLd) {
+      const script = document.createElement("script");
+      script.type = "application/ld+json";
+      script.setAttribute("data-seo-component", "true");
+      script.textContent = JSON.stringify(jsonLd);
+      document.head.appendChild(script);
+      jsonLdScriptRef.current = script;
+    }
+
+    return () => {
+      if (jsonLdScriptRef.current) {
+        jsonLdScriptRef.current.remove();
+        jsonLdScriptRef.current = null;
+      }
+    };
+  }, [jsonLd]);
 
   return null;
 };

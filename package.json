@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "deploy:preview": "wrangler pages deploy dist --project-name cheapstays --branch work",
     "deploy:production": "wrangler pages deploy dist --project-name cheapstays --branch main",
-    "release:production": "npm run build && npm run deploy:production"
+    "release:production": "npm run build && npm run deploy:production",
+    "generate:sitemap": "deno run --allow-net --allow-env --allow-write supabase/scripts/generate-sitemap.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
