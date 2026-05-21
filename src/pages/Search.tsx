@@ -218,20 +218,28 @@ export default function Search() {
   const [browseLoading, setBrowseLoading] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     setBrowseLoading(true);
-    supabase
-      .from("listings")
-      .select("id, slug, host_id, title, city, province, type, bedrooms, bathrooms, max_guests, nightly_php, min_nights, amenities, images, is_owner_direct, instant_book, avg_rating, review_count")
-      .eq("status", "active")
-      .order("created_at", { ascending: false })
-      .limit(12)
-      .then(({ data }) => {
-        setBrowseListings(
-          (data ?? []).map((l) => ({ ...l, why_its_a_deal: "", score: 0 })) as Listing[]
-        );
-      })
-      .catch(() => { /* silent — browse listings are non-critical */ })
-      .finally(() => setBrowseLoading(false));
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("listings")
+          .select("id, slug, host_id, title, city, province, type, bedrooms, bathrooms, max_guests, nightly_php, min_nights, amenities, images, is_owner_direct, instant_book, avg_rating, review_count")
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(12);
+        if (!cancelled) {
+          setBrowseListings(
+            (data ?? []).map((l) => ({ ...l, why_its_a_deal: "", score: 0 })) as Listing[]
+          );
+        }
+      } catch {
+        // silent — browse listings are non-critical
+      } finally {
+        if (!cancelled) setBrowseLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   async function run(e: React.FormEvent) {
