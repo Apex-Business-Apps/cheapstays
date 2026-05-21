@@ -87,10 +87,14 @@ export default function Membership() {
 
   function handleGoMember() {
     if (!user) {
-      navigate("/auth");
+      navigate("/auth?mode=signup");
       return;
     }
     setPayDialogOpen(true);
+  }
+
+  function handleStayFree() {
+    navigate(user ? "/search" : "/auth?mode=signup");
   }
 
   async function handlePay() {
@@ -195,7 +199,7 @@ export default function Membership() {
               <Button
                 className="w-full mt-6"
                 variant={t.highlight ? "default" : "outline"}
-                onClick={t.highlight ? handleGoMember : undefined}
+                onClick={t.highlight ? handleGoMember : handleStayFree}
               >
                 {t.highlight ? "Go member" : "Stay free"}
               </Button>
