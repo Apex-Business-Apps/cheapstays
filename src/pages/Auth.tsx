@@ -17,6 +17,7 @@ export default function Auth() {
     searchParams.get("mode") === "signup" ? "signup" : "signin"
   );
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -45,10 +46,15 @@ export default function Auth() {
   }
 
   async function google() {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/` },
-    });
+    setOauthLoading(true);
+    try {
+      await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/` },
+      });
+    } finally {
+      setOauthLoading(false);
+    }
   }
 
   return (
@@ -75,7 +81,7 @@ export default function Auth() {
             {loading ? "…" : mode === "signin" ? "Sign in" : "Create account"}
           </Button>
         </form>
-        <Button variant="outline" className="w-full mt-3" onClick={google}>Continue with Google</Button>
+        <Button variant="outline" className="w-full mt-3" onClick={google} disabled={oauthLoading}>{oauthLoading ? "…" : "Continue with Google"}</Button>
         <button
           type="button"
           className="mt-4 text-sm text-muted-foreground hover:text-foreground w-full text-center"
