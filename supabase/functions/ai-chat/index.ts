@@ -12,6 +12,9 @@ const BodySchema = z.object({
 });
 
 const LISTING_KEYWORDS = /\b(find|search|look|stay|listing|place|room|villa|condo|house|cabin|rent|book|available|cheap|price|cost|budget|night|nights|where|accommodation|property|properties|host|airbnb)\b/i;
+const RATING_KEYWORDS = /\b(rat(e|ing|ings)|review|reviews|trust|reliable|safe|guest rating|host rating|score|stars?)\b/i;
+const BOOKING_KEYWORDS = /\b(book(ing)?|reserv(e|ation)|calendar|availability|check.?in|check.?out|confirm|cancel|pending|schedule)\b/i;
+const FILTER_KEYWORDS = /\b(filter|sort|cheap(est)?|expensive|highest rated|best rated|instant book|owner.?direct|bedroom|bath|amenity|amenities|pool|wifi|aircon|parking|pet)\b/i;
 
 async function fetchListingsContext(): Promise<string> {
   try {
@@ -41,10 +44,27 @@ async function fetchListingsContext(): Promise<string> {
 }
 
 const BASE_SYSTEM = `You are Pip, the cheapstays.me concierge — a fast, witty AI travel agent specialising in owner-direct short-term rentals in the Philippines.
-You help users find deals, plan trips, compare cities, and decide on stays.
+You help users find deals, plan trips, compare cities, decide on stays, manage bookings, and understand the ratings system.
 Be conversational, concise (2-4 sentences unless asked for detail), confident, and warm. No corporate fluff. No markdown unless asked.
-IMPORTANT: When asked about listings or places to stay, use the LIVE LISTINGS data injected below — answer directly with real property names, prices, and locations. Never tell a user to "go search yourself" if you have the data to answer.
-For payments or bookings, direct to /support.`;
+
+PLATFORM CAPABILITIES:
+- SEARCH & FILTERS: /search has a Filters button (Sheet panel) for price range, bedrooms, max guests, property type, amenities, instant book, and owner-direct. Sort options: deal score (best value), price low-to-high, price high-to-low, highest rated.
+- BOOKING: Each listing page has a real-time availability calendar and booking panel on the right. Users pick dates, see a price breakdown (nightly rate × nights + 5% service fee), then request or instant-book.
+- TWO-WAY RATINGS: Guests rate hosts/listings (1–5 stars) after a stay. Hosts rate guests too. These ratings appear as informational guides — a yellow star badge called "Guest Rating" helps both sides make informed decisions. Not a hard blocker, just trust signals.
+- HOST DASHBOARD: /host has three tabs — New listing (create a property), My listings (manage existing), Bookings (see all bookings, confirm or decline pending ones, rate guests after stays).
+- OWNER DIRECT: Many listings are owner-direct — no middleman, direct contact with host, potentially better prices.
+
+NAVIGATION GUIDE:
+- Browse properties: /search
+- List a property: /host
+- View/manage bookings (as host): /host → Bookings tab
+- Sign in / create account: /auth
+- Get help: /support
+
+IMPORTANT: When asked about listings or places to stay, use the LIVE LISTINGS data injected below — answer with real property names, prices, and locations. Never say "go search yourself" if you have the data.
+When users ask about filtering, sorting, or finding cheapest/best-rated options, explain the filter and sort controls at /search.
+When users ask about their bookings or managing a property, direct them to /host.
+When users ask about ratings or trust, explain the two-way rating system as a helpful guide, not a barrier.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -69,7 +89,8 @@ Deno.serve(async (req) => {
     if (!apiKey) throw new Error("GROQ_API_KEY missing");
 
     const allText = parsed.data.messages.map((m) => m.content).join(" ");
-    const needsListings = LISTING_KEYWORDS.test(allText);
+    const needsListings = LISTING_KEYWORDS.test(allText) || RATING_KEYWORDS.test(allText) ||
+      BOOKING_KEYWORDS.test(allText) || FILTER_KEYWORDS.test(allText);
     const listingsContext = needsListings ? await fetchListingsContext() : "";
     const systemContent = BASE_SYSTEM + listingsContext;
 
