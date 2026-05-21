@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Check } from "lucide-react";
+import { Seo } from "@/components/Seo";
 
 const tiers = [
   { name: "Libre", price: "₱0", blurb: "Hunt PH deals casually.", features: ["AI search (5/day)", "Public PH listings", "Weekly peso drop email"] },
@@ -10,6 +11,8 @@ const tiers = [
 
 export default function Membership() {
   return (
+    <div>
+      <Seo title="CheapStays Membership" description="View CheapStays membership benefits, pricing, and savings guarantees." path="/membership" />
     <div className="container py-16">
       <div className="max-w-2xl">
         <h1 className="text-4xl font-semibold tracking-tight">Membership</h1>
@@ -33,6 +36,7 @@ export default function Membership() {
         ))}
       </div>
       <p className="mt-6 text-xs text-muted-foreground">Checkout wires to Stripe once enabled. Pesos billed monthly via GCash, Maya, or card.</p>
+    </div>
     </div>
   );
 }

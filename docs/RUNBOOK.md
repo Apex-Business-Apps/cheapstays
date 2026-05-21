@@ -2,7 +2,7 @@
 
 **Organization:** APEX Business Systems Ltd.  
 **Location:** Edmonton, AB  
-**Document Version:** 1.0.0  
+**Document Version:** 1.1.0  
 **Last Updated:** 2026-05-21
 
 ## 1) Incident Severity Model
@@ -20,9 +20,20 @@
    ```
 2. Apply pending migrations to Supabase.
 3. Validate RLS-sensitive flows (admin vs non-admin).
-4. Deploy frontend to Cloudflare Pages.
+4. Deploy frontend to Cloudflare Pages using the production branch target (`main`) so the deployment is promoted automatically.
 5. Verify public URLs and admin/support paths.
 6. Update `docs/STATUS.md` with change summary/date.
+
+
+
+### Production promotion command (required)
+
+```bash
+npm run release:production
+```
+
+- This wraps build + `wrangler pages deploy ... --branch main`.
+- Deploying to any non-`main` branch creates a **Preview** deployment and will not promote to production.
 
 ## 3) RLS Change Procedure
 

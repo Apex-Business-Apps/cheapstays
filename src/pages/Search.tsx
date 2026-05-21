@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { aiSearchSchema } from "@/lib/schemas";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Sparkles } from "lucide-react";
+import { Seo } from "@/components/Seo";
 
 type Result = { title: string; city: string; nightly_usd: number; why_its_a_deal: string; score: number };
 
@@ -35,6 +36,8 @@ export default function Search() {
   }
 
   return (
+    <div>
+      <Seo title="CheapStays Search" description="Search owner-direct Philippine rentals with AI-powered filters." path="/search" />
     <div className="container py-12">
       <div className="max-w-2xl">
         <h1 className="text-3xl font-semibold tracking-tight">AI deal search</h1>
@@ -64,6 +67,7 @@ export default function Search() {
           </Card>
         ))}
       </div>
+    </div>
     </div>
   );
 }

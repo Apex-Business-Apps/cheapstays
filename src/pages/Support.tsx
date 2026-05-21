@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { supportTicketSchema, supportMessageSchema } from "@/lib/schemas";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { Seo } from "@/components/Seo";
 
 type Ticket = { id: string; ticket_num: number; subject: string; status: string; priority: string; escalated: boolean; ai_response: string | null; created_at: string };
 type Message = { id: string; sender: string; content: string; created_at: string };
@@ -69,17 +70,22 @@ export default function Support() {
 
   if (!user) {
     return (
-      <div className="container py-20 max-w-md text-center">
-        <h1 className="text-2xl font-semibold">Support</h1>
-        <p className="text-muted-foreground mt-2">Sign in to open a ticket.</p>
-        <Button asChild className="mt-6"><Link to="/auth">Sign in</Link></Button>
+      <div>
+        <Seo title="CheapStays Support" description="Contact CheapStays support and concierge for bookings and account help." path="/support" />
+        <div className="container py-20 max-w-md text-center">
+          <h1 className="text-2xl font-semibold">Support</h1>
+          <p className="text-muted-foreground mt-2">Sign in to open a ticket.</p>
+          <Button asChild className="mt-6"><Link to="/auth">Sign in</Link></Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container py-12 grid gap-8 md:grid-cols-[360px_1fr]">
-      <div className="space-y-4">
+    <div>
+      <Seo title="CheapStays Support" description="Contact CheapStays support and concierge for bookings and account help." path="/support" />
+      <div className="container py-12 grid gap-8 md:grid-cols-[360px_1fr]">
+        <div className="space-y-4">
         <h1 className="text-2xl font-semibold tracking-tight">Support</h1>
         <Card className="p-4">
           <form onSubmit={createTicket} className="space-y-3">
@@ -109,8 +115,8 @@ export default function Support() {
           ))}
         </div>
       </div>
-      <div>
-        {active ? (
+        <div>
+          {active ? (
           <Card className="p-6">
             <div className="flex justify-between items-start gap-4">
               <div>
@@ -136,7 +142,8 @@ export default function Support() {
           </Card>
         ) : (
           <Card className="p-10 text-center text-muted-foreground">Select a ticket or open a new one.</Card>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

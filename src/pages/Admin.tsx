@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import type { AppRole } from "@/lib/rbac";
+import { Seo } from "@/components/Seo";
 
 type AuditRow = { id: string; target_user_id: string; role: AppRole; action: "granted" | "revoked"; created_at: string };
 type Ticket = { id: string; ticket_num: number; subject: string; status: string; escalated: boolean; created_at: string };
@@ -86,6 +87,8 @@ export default function Admin() {
   if (!roles.includes("admin")) return <div className="container py-20 max-w-md text-center"><h1 className="text-2xl font-semibold">Admin only</h1><p className="text-muted-foreground mt-2">You don't have admin access.</p></div>;
 
   return (
+    <div>
+      <Seo title="CheapStays Admin" description="Admin dashboard for role management, users, and support oversight." path="/admin" />
     <div className="container py-12 space-y-10">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">RBAC Admin Dashboard</h1>
@@ -139,6 +142,7 @@ export default function Admin() {
           ))}
         </div>
       </section>
+    </div>
     </div>
   );
 }

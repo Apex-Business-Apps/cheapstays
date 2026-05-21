@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "deploy:preview": "npx wrangler pages deploy dist --project-name cheapstays --branch work",
+    "deploy:production": "npx wrangler pages deploy dist --project-name cheapstays --branch main",
+    "release:production": "npm run build && npm run deploy:production"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
