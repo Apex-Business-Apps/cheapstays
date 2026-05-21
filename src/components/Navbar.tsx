@@ -82,9 +82,14 @@ export function Navbar() {
               <span className="sm:hidden">Out</span>
             </Button>
           ) : (
-            <Button size="sm" asChild>
-              <Link to="/auth">{t("nav.signIn")}</Link>
-            </Button>
+            <>
+              <Button size="sm" variant="ghost" asChild>
+                <Link to="/auth">{t("nav.signIn")}</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link to="/auth?mode=signup">Get Started</Link>
+              </Button>
+            </>
           )}
         </div>
       </div>

@@ -105,13 +105,13 @@ export default function Index() {
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button size="lg" asChild className="group">
-                  <Link to="/search">
-                    {t("hero.ctaHunt")}
+                  <Link to="/auth?mode=signup">
+                    Create Free Account
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
-                  <Link to="/membership">{t("hero.ctaMembership")}</Link>
+                  <Link to="/search">{t("hero.ctaHunt")}</Link>
                 </Button>
               </div>
               <div className="mt-10 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
@@ -386,11 +386,14 @@ export default function Index() {
               <h2 className="text-3xl md:text-5xl font-semibold tracking-tight">{t("cta.h2")}</h2>
               <p className="mt-4 opacity-85">{t("cta.subtitle")}</p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Button size="lg" variant="secondary" asChild>
-                  <Link to="/membership">{t("cta.member")}</Link>
+                <Button size="lg" variant="secondary" asChild className="group">
+                  <Link to="/auth?mode=signup">
+                    Create Free Account
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                  </Link>
                 </Button>
                 <Button size="lg" variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/10" asChild>
-                  <Link to="/search">{t("cta.free")} <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                  <Link to="/membership">{t("cta.member")}</Link>
                 </Button>
               </div>
             </div>
