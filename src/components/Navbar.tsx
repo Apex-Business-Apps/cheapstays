@@ -2,7 +2,7 @@ import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Sparkles } from "lucide-react";
+import brandMark from "@/assets/brand-mark.png";
 
 const links = [
   { to: "/search", label: "Search" },
@@ -16,11 +16,15 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="container flex h-16 items-center justify-between gap-6">
-        <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-            <Sparkles className="h-4 w-4" />
-          </span>
-          <span>Cheap<span className="text-accent">Stays</span></span>
+        <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight group">
+          <img
+            src={brandMark}
+            alt="CheapStays — bahay-kubo brand mark"
+            width={36}
+            height={36}
+            className="h-9 w-9 object-contain transition-transform duration-500 ease-out group-hover:rotate-[-6deg] group-hover:scale-110"
+          />
+          <span className="text-lg">Cheap<span className="text-accent">Stays</span></span>
         </Link>
         <nav className="hidden md:flex items-center gap-1">
           {links.map((l) => (
