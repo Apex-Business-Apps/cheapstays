@@ -101,6 +101,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (listing.host_id === user.id) {
+      return new Response(JSON.stringify({ error: "You cannot book your own listing" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     // --- Business rule validation ---
     if (guests > listing.max_guests) {
       return new Response(
