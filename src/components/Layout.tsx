@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Navbar } from "@/components/Navbar";
+import { AiChatBubble } from "@/components/AiChatBubble";
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
@@ -12,6 +13,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <p className="opacity-70">AI-powered deals. Owner-direct prices. Zero markup guilt.</p>
         </div>
       </footer>
+      <AiChatBubble />
     </div>
   );
 }
