@@ -17,7 +17,7 @@ type SR = any;
 export function AiChatBubble() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", content: "Hey, I'm Pip — your cheapstays concierge. Tell me what you're hunting for." },
+    { role: "assistant", content: "Kumusta! I'm Pip — your CheapStays PH concierge. Tell me where you want to go." },
   ]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -194,7 +194,7 @@ export function AiChatBubble() {
 
             <div className="border-t border-border/60 p-3">
               <div className="flex flex-wrap gap-1.5 mb-2">
-                {["Cabin under $90", "7 nights in Lisbon", "Pet-friendly desert stays"].map((q) => (
+                {["Palawan under ₱3k", "5 nights in Siargao", "Pet-friendly Baguio cabin"].map((q) => (
                   <button
                     key={q}
                     onClick={() => send(q)}

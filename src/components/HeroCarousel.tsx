@@ -9,13 +9,13 @@ import s6 from "@/assets/stay-6.jpg";
 import s7 from "@/assets/stay-7.jpg";
 
 const stays = [
-  { src: s1, label: "A-frame · Pine Ridge", price: "$84/night" },
-  { src: s2, label: "Villa · Aegean coast", price: "$132/night" },
-  { src: s3, label: "Loft · Tromsø", price: "$96/night" },
-  { src: s4, label: "Casita · Sonoran desert", price: "$71/night" },
-  { src: s5, label: "Overwater · Maldives", price: "$189/night" },
-  { src: s6, label: "Chalet · Dolomites", price: "$148/night" },
-  { src: s7, label: "Farmhouse · Tuscany", price: "$112/night" },
+  { src: s1, label: "Bamboo villa · El Nido, Palawan", price: "₱4,800/night" },
+  { src: s2, label: "Surf bungalow · Siargao", price: "₱2,950/night" },
+  { src: s3, label: "Hillside villa · Bohol", price: "₱6,200/night" },
+  { src: s4, label: "Stone hut · Batanes", price: "₱3,400/night" },
+  { src: s5, label: "Heritage casa · Vigan", price: "₱2,100/night" },
+  { src: s6, label: "Cliff cottage · Boracay", price: "₱5,400/night" },
+  { src: s7, label: "Pine A-frame · Baguio", price: "₱2,750/night" },
 ];
 
 const INTERVAL = 30_000;
