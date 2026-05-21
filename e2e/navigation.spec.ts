@@ -1,10 +1,16 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Navigation — responsive", () => {
-  test("desktop nav shows links", async ({ page }) => {
+  test("desktop nav shows links", async ({ page, viewport }) => {
     await page.goto("/");
-    // Desktop nav items should be visible
-    await expect(page.locator("nav")).toBeVisible();
+    if (viewport && viewport.width >= 768) {
+      // Desktop: nav links are rendered inline and visible
+      await expect(page.locator("nav").first()).toBeVisible();
+    } else {
+      // Mobile: nav is hidden behind hamburger — header must still be present
+      await expect(page.locator("header")).toBeVisible();
+      await expect(page.locator("nav").first()).toBeAttached();
+    }
   });
 
   test("mobile nav has hamburger button", async ({ page, viewport }) => {
@@ -31,7 +37,8 @@ test.describe("Navigation — responsive", () => {
   test("can navigate to /auth", async ({ page }) => {
     await page.goto("/auth");
     await expect(page).toHaveURL(/\/auth/);
-    await expect(page.locator("text=Sign In").or(page.locator("text=Log in"))).toBeVisible();
+    // Auth page must have an email input
+    await expect(page.locator("input[type='email']")).toBeVisible();
   });
 
   test("can navigate to /membership", async ({ page }) => {
