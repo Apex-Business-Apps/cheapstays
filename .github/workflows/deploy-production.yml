@@ -58,15 +58,22 @@ jobs:
       - name: Detect changed functions
         id: changed
         run: |
-          # List function directories that changed vs the previous commit
-          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'supabase/functions/' \
-            | grep -v '^supabase/functions/_shared/' \
-            | sed 's|supabase/functions/||' \
-            | cut -d'/' -f1 \
-            | sort -u \
-            | tr '\n' ' ')
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD -- 'supabase/functions/')
+          SHARED_CHANGED=$(echo "$CHANGED_FILES" | grep '^supabase/functions/_shared/' || true)
+          if [ -n "$SHARED_CHANGED" ]; then
+            # _shared changed: redeploy all functions
+            CHANGED=$(ls supabase/functions/ | grep -v '^_shared$' | tr '\n' ' ')
+            echo "Shared code changed — redeploying all: ${CHANGED}"
+          else
+            CHANGED=$(echo "$CHANGED_FILES" \
+              | grep -v '^supabase/functions/_shared/' \
+              | sed 's|supabase/functions/||' \
+              | cut -d'/' -f1 \
+              | sort -u \
+              | tr '\n' ' ')
+            echo "Changed functions: ${CHANGED}"
+          fi
           echo "functions=${CHANGED}" >> "$GITHUB_OUTPUT"
-          echo "Changed functions: ${CHANGED}"
 
       - name: Deploy changed functions
         if: steps.changed.outputs.functions != ''
