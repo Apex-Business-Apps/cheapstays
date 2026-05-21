@@ -13,20 +13,25 @@ const links = [
 
 export function Navbar() {
   const { user, signOut, roles } = useAuth();
-  const [wordmarkLoadFailed, setWordmarkLoadFailed] = useState(false);
+  const [brandAsset, setBrandAsset] = useState<"wordmark" | "icon" | "text">("wordmark");
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="container flex h-16 items-center justify-between gap-6">
         <Link to="/" className="group flex h-full items-center font-semibold tracking-tight">
-          {wordmarkLoadFailed ? (
-            // Fallback keeps brand visible if static asset is unavailable in a bad deploy artifact.
+          {brandAsset === "text" ? (
+            // Last-resort fallback guarantees brand visibility if static assets are unavailable.
             <span className="text-lg">Cheap<span className="text-accent">Stays</span></span>
           ) : (
             <img
-              src="/wordmark.png"
-              alt="CheapStays wordmark"
-              className="h-[90%] w-auto max-w-[240px] object-contain transition-transform duration-500 ease-out group-hover:scale-[1.02]"
-              onError={() => setWordmarkLoadFailed(true)}
+              src={brandAsset === "wordmark" ? "/wordmark.png" : "/favicon.png"}
+              alt={brandAsset === "wordmark" ? "CheapStays wordmark" : "CheapStays mark"}
+              className={`w-auto object-contain transition-transform duration-500 ease-out group-hover:scale-[1.02] ${
+                brandAsset === "wordmark" ? "h-[90%] max-w-[240px]" : "h-10 max-w-10 rounded-md"
+              }`}
+              onError={() => {
+                // Step down from missing wordmark -> icon -> text fallback to avoid a stale-looking broken header.
+                setBrandAsset((current) => (current === "wordmark" ? "icon" : "text"));
+              }}
             />
           )}
         </Link>
