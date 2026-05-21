@@ -1,4 +1,5 @@
 import { z } from "npm:zod@3.23.8";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 
@@ -10,9 +11,40 @@ const BodySchema = z.object({
   messages: z.array(MsgSchema).min(1).max(40),
 });
 
-const SYSTEM = `You are Pip, the cheapstays.me concierge — a fast, witty AI travel agent.
-You help users find owner-direct short-term rental deals, plan trips, compare cities, and decide on stays.
-Be conversational, concise (2-4 sentences unless asked), confident, and warm. No corporate fluff. No markdown lists unless requested. If asked to perform an action you can't do (booking, payments), tell the user the exact next step in the app: /search, /membership, /host, /support.`;
+const LISTING_KEYWORDS = /\b(find|search|look|stay|listing|place|room|villa|condo|house|cabin|rent|book|available|cheap|price|cost|budget|night|nights|where|accommodation|property|properties|host|airbnb)\b/i;
+
+async function fetchListingsContext(): Promise<string> {
+  try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { data } = await supabase
+      .from("listings")
+      .select("id,title,city,province,type,bedrooms,bathrooms,max_guests,nightly_php,min_nights,amenities,is_owner_direct,instant_book")
+      .eq("status", "active")
+      .limit(60);
+
+    if (!data || data.length === 0) return "";
+
+    const lines = data.map((l) =>
+      `• ID:${l.id} | "${l.title}" in ${l.city}, ${l.province} — ₱${l.nightly_php}/night | ` +
+      `${l.bedrooms}BR ${l.bathrooms}BA | max ${l.max_guests} guests | min ${l.min_nights} nights | ` +
+      `${l.type} | amenities: ${(l.amenities ?? []).slice(0, 6).join(", ")} | ` +
+      `owner-direct: ${l.is_owner_direct} | instant-book: ${l.instant_book}`
+    );
+
+    return `\n\nLIVE LISTINGS (${data.length} active properties from database):\n${lines.join("\n")}\n\nWhen recommending listings, cite the title, city, and price in ₱. Direct users to /search to browse all listings.`;
+  } catch {
+    return "";
+  }
+}
+
+const BASE_SYSTEM = `You are Pip, the cheapstays.me concierge — a fast, witty AI travel agent specialising in owner-direct short-term rentals in the Philippines.
+You help users find deals, plan trips, compare cities, and decide on stays.
+Be conversational, concise (2-4 sentences unless asked for detail), confident, and warm. No corporate fluff. No markdown unless asked.
+IMPORTANT: When asked about listings or places to stay, use the LIVE LISTINGS data injected below — answer directly with real property names, prices, and locations. Never tell a user to "go search yourself" if you have the data to answer.
+For payments or bookings, direct to /support.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -36,6 +68,11 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("GROQ_API_KEY");
     if (!apiKey) throw new Error("GROQ_API_KEY missing");
 
+    const allText = parsed.data.messages.map((m) => m.content).join(" ");
+    const needsListings = LISTING_KEYWORDS.test(allText);
+    const listingsContext = needsListings ? await fetchListingsContext() : "";
+    const systemContent = BASE_SYSTEM + listingsContext;
+
     const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -43,7 +80,7 @@ Deno.serve(async (req) => {
         model: "llama-3.3-70b-versatile",
         temperature: 0.7,
         stream: true,
-        messages: [{ role: "system", content: SYSTEM }, ...parsed.data.messages],
+        messages: [{ role: "system", content: systemContent }, ...parsed.data.messages],
       }),
     });
 

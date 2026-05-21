@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      listings: {
+        Row: {
+          id: string
+          host_id: string
+          title: string
+          slug: string | null
+          description: string
+          type: string
+          city: string
+          province: string
+          address: string | null
+          lat: number | null
+          lng: number | null
+          bedrooms: number
+          bathrooms: number
+          max_guests: number
+          nightly_php: number
+          min_nights: number
+          amenities: string[]
+          images: string[]
+          is_owner_direct: boolean
+          instant_book: boolean
+          status: "draft" | "active" | "inactive" | "suspended"
+          avg_rating: number | null
+          review_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          host_id: string
+          title: string
+          slug?: string | null
+          description?: string
+          type?: string
+          city: string
+          province: string
+          address?: string | null
+          lat?: number | null
+          lng?: number | null
+          bedrooms?: number
+          bathrooms?: number
+          max_guests?: number
+          nightly_php: number
+          min_nights?: number
+          amenities?: string[]
+          images?: string[]
+          is_owner_direct?: boolean
+          instant_book?: boolean
+          status?: "draft" | "active" | "inactive" | "suspended"
+          avg_rating?: number | null
+          review_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          host_id?: string
+          title?: string
+          slug?: string | null
+          description?: string
+          type?: string
+          city?: string
+          province?: string
+          address?: string | null
+          lat?: number | null
+          lng?: number | null
+          bedrooms?: number
+          bathrooms?: number
+          max_guests?: number
+          nightly_php?: number
+          min_nights?: number
+          amenities?: string[]
+          images?: string[]
+          is_owner_direct?: boolean
+          instant_book?: boolean
+          status?: "draft" | "active" | "inactive" | "suspended"
+          avg_rating?: number | null
+          review_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

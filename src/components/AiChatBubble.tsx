@@ -23,7 +23,7 @@ const VOICE_ROUTES: {
   action: (nav: ReturnType<typeof useNavigate>) => void;
   response: string;
 }[] = [
-  { pattern: /\b(go to |open |show |take me to )?(search|listings?|browse|find stays?)\b/i,
+  { pattern: /\b(go to |open |show |take me to )the search( page)?\b/i,
     action: (nav) => nav("/search"),      response: "Opening the search page for you." },
   { pattern: /\b(go to |open |show )?(membership|become a member|join|subscribe)\b/i,
     action: (nav) => nav("/membership"),  response: "Opening the membership page." },
