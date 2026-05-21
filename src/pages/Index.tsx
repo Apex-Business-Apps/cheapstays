@@ -90,7 +90,7 @@ export default function Index() {
       <Seo title="CheapStays" description="AI-powered Philippine short-term rentals with owner-direct pricing and zero markup." path="/" />
     <div>
       <section className="container pt-14 pb-20 md:pt-20 md:pb-24">
-        <div className="grid gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-14 items-center">
+        <div className="grid gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-14 items-start">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
