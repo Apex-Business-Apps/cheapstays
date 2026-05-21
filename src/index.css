@@ -8,24 +8,24 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* cheapstays.me — forest + warm tan, Wise-style transparency */
-    --background: 36 30% 97%;
+    /* cheapstays.me — light tan canvas, forest accents */
+    --background: 34 38% 90%;
     --foreground: 150 25% 10%;
 
-    --card: 0 0% 100%;
+    --card: 36 45% 96%;
     --card-foreground: 150 25% 10%;
 
-    --popover: 0 0% 100%;
+    --popover: 36 45% 96%;
     --popover-foreground: 150 25% 10%;
 
     --primary: 152 45% 22%;
     --primary-foreground: 36 40% 97%;
 
-    --secondary: 32 55% 88%;
+    --secondary: 34 42% 82%;
     --secondary-foreground: 152 45% 18%;
 
-    --muted: 36 20% 93%;
-    --muted-foreground: 150 10% 38%;
+    --muted: 34 30% 86%;
+    --muted-foreground: 150 12% 32%;
 
     --accent: 28 80% 60%;
     --accent-foreground: 150 30% 10%;
@@ -39,8 +39,8 @@ All colors MUST be HSL.
     --destructive: 0 72% 48%;
     --destructive-foreground: 36 40% 97%;
 
-    --border: 36 20% 86%;
-    --input: 36 20% 86%;
+    --border: 34 25% 78%;
+    --input: 34 25% 78%;
     --ring: 152 45% 22%;
 
     --radius: 0.75rem;
