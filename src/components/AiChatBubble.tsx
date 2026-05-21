@@ -68,7 +68,18 @@ export function AiChatBubble() {
   const [listening, setListening] = useState(false);
   const [tts, setTts] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const recogRef = useRef<SR>(null);
+  const recogRef = useRef<SR | null>(null);
+
+  // Re-sync greeting when language changes.
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].role === "assistant") {
+        return [{ role: "assistant", content: t("pip.greeting") }];
+      }
+      return prev;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
 
   // Re-sync greeting when language changes.
   useEffect(() => {
@@ -87,15 +98,35 @@ export function AiChatBubble() {
 
   function speak(text: string) {
     if (!tts || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
+    const synth = window.speechSynthesis;
+    synth.cancel();
+
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = 1.05;
-    u.pitch = 1;
-    window.speechSynthesis.speak(u);
+    u.rate = 0.93;
+    u.pitch = 1.15;
+    u.volume = 1;
+
+    // Pick the most natural-sounding voice available for the active language.
+    // Priority: Google > Neural/Natural/Premium remote > any remote > default.
+    const voices = synth.getVoices();
+    const lang = (i18n.language ?? "en").slice(0, 2);
+    const pick = (fn: (v: SpeechSynthesisVoice) => boolean) => voices.find(fn);
+    const voice =
+      pick(v => v.lang.startsWith(lang) && /google/i.test(v.name)) ??
+      pick(v => v.lang.startsWith(lang) && /natural|neural|premium/i.test(v.name)) ??
+      pick(v => v.lang.startsWith(lang) && !v.localService) ??
+      pick(v => v.lang.startsWith("en") && /google uk english female/i.test(v.name)) ??
+      pick(v => v.lang.startsWith("en") && /google/i.test(v.name)) ??
+      pick(v => v.lang.startsWith("en") && !v.localService) ??
+      null;
+
+    if (voice) u.voice = voice;
+    synth.speak(u);
   }
 
   function toggleListen() {
-    const Ctor: SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const w = window as Window & { SpeechRecognition?: SRConstructor; webkitSpeechRecognition?: SRConstructor };
+    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!Ctor) return;
     if (listening) {
       recogRef.current?.stop();

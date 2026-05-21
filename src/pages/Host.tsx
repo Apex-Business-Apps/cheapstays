@@ -59,6 +59,31 @@ function slugify(title: string, id: string) {
   );
 }
 
+const AMENITY_OPTIONS = [
+  { value: "wifi", label: "WiFi" },
+  { value: "aircon", label: "Air conditioning" },
+  { value: "kitchen", label: "Kitchen" },
+  { value: "parking", label: "Parking" },
+  { value: "pool", label: "Pool" },
+  { value: "beach_access", label: "Beach access" },
+  { value: "outdoor_shower", label: "Outdoor shower" },
+  { value: "hammock", label: "Hammock" },
+  { value: "generator", label: "Generator" },
+  { value: "fan", label: "Fan" },
+  { value: "hot_water", label: "Hot water" },
+  { value: "tv", label: "TV" },
+];
+
+const LISTING_TYPES: { value: string; label: string }[] = [
+  { value: "entire_place", label: "Entire place" },
+  { value: "private_room", label: "Private room" },
+  { value: "villa",        label: "Villa" },
+  { value: "glamping",     label: "Glamping" },
+  { value: "resort",       label: "Resort" },
+];
+
+type VerificationStatus = "pending" | "approved" | "rejected" | null;
+
 export default function Host() {
   const { user, roles, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -89,12 +114,12 @@ export default function Host() {
 
   async function generateDescription() {
     const parsed = aiDescribeSchema.safeParse({
-      title,
-      bullets: bullets.split("\n").map((b) => b.trim()).filter(Boolean),
+      title: aiTitle,
+      bullets: aiBullets.split("\n").map((b) => b.trim()).filter(Boolean),
       tone: "confident",
     });
     if (!parsed.success) {
-      toast({ title: "Add a title and at least one bullet", variant: "destructive" });
+      toast({ title: "Add a title and at least one bullet point.", variant: "destructive" });
       return;
     }
     setAiLoading(true);

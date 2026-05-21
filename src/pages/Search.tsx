@@ -3,6 +3,16 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { aiSearchSchema } from "@/lib/schemas";
 import { toast } from "@/hooks/use-toast";
@@ -144,6 +154,7 @@ function ListingCard({ listing }: { listing: Listing }) {
 }
 
 export default function Search() {
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Listing[]>([]);
   const [summary, setSummary] = useState("");
@@ -160,7 +171,15 @@ export default function Search() {
     setLoading(true);
     setSearched(false);
     try {
-      const { data, error } = await supabase.functions.invoke("ai-search", { body: parsed.data });
+      const { error } = await supabase.functions.invoke("book-listing", {
+        body: {
+          listing_id: booking.listing.id,
+          check_in: booking.checkIn,
+          check_out: booking.checkOut,
+          guests: booking.guests,
+          guest_message: booking.message,
+        },
+      });
       if (error) throw error;
       setResults(data?.results ?? []);
       setSummary(data?.summary ?? "");
@@ -171,6 +190,9 @@ export default function Search() {
       setLoading(false);
     }
   }
+
+  const nights = booking ? nightCount(booking.checkIn, booking.checkOut) : 0;
+  const total = booking ? nights * booking.listing.nightly_php : 0;
 
   return (
     <div>

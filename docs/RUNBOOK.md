@@ -2,7 +2,7 @@
 
 **Organization:** APEX Business Systems Ltd.  
 **Location:** Edmonton, AB  
-**Document Version:** 1.1.0  
+**Document Version:** 1.2.0  
 **Last Updated:** 2026-05-21
 
 ## 1) Incident Severity Model
@@ -60,7 +60,87 @@ Scope all permissions to:
 - single account
 - production zone only (`cheapstays.me`)
 
-## 5) Troubleshooting Matrix
+## 5) Supabase Migrations
+
+Migrations live in `supabase/migrations/`. Apply them in order by filename (timestamp prefix).
+
+### Option A: Migration helper script
+
+```bash
+python3 supabase/scripts/apply_migration.py <migration_file.sql>
+```
+
+The script reads the `SUPABASE_DB_URL` environment variable and applies the SQL file via a direct database connection.
+
+### Option B: Supabase Management API
+
+Send the migration SQL as a POST request to the Supabase Management API:
+
+```
+POST https://api.supabase.com/v1/projects/{project_ref}/database/migrations
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+Content-Type: application/json
+```
+
+Pass the SQL content in the request body.
+
+### Option C: Supabase CLI (local dev)
+
+```bash
+supabase db push
+```
+
+This applies all pending local migrations to the linked remote project. Requires `supabase link` with the project ref `muqdmvkapsxrsgdkfoxn` and a valid access token.
+
+### After any migration
+
+- Run smoke tests to verify RLS boundaries for affected tables.
+- Update `docs/STATUS.md` with a change log entry.
+
+## 6) Edge Function Deployment
+
+Deploy individual edge functions using the Supabase CLI:
+
+```bash
+SUPABASE_ACCESS_TOKEN=<token> npx supabase functions deploy <function-name> --project-ref muqdmvkapsxrsgdkfoxn
+```
+
+Replace `<function-name>` with one of: `book-listing`, `payment-intent`, `ai-search`, or any other function under `supabase/functions/`.
+
+The access token must have edge function deploy permissions scoped to the project.
+
+After deploying, verify the function is reachable and returns expected responses. For `book-listing` and `payment-intent`, confirm rate limiting is active by checking response headers.
+
+## 7) Payment Gateway (PayMongo)
+
+### Configuring the secret key
+
+1. Log in to the Supabase dashboard for project `muqdmvkapsxrsgdkfoxn`.
+2. Navigate to Project Settings > Edge Functions > Secrets.
+3. Add a new secret named `PAYMONGO_SECRET_KEY` with the value from the PayMongo dashboard.
+4. Redeploy the `payment-intent` function so it picks up the new secret.
+
+### Demo mode behavior
+
+When `PAYMONGO_SECRET_KEY` is not set, the `payment-intent` function operates in demo mode:
+
+- No real payment intent is created with PayMongo.
+- The booking record is set to `confirmed` status immediately.
+- No real money movement occurs.
+- The response includes a `demo: true` flag.
+
+Demo mode is intended for local development and pre-launch testing only.
+
+### Go-live checklist
+
+- [ ] Obtain live secret key from PayMongo dashboard (separate from test key).
+- [ ] Add `PAYMONGO_SECRET_KEY` to Supabase Edge Function secrets in the production project.
+- [ ] Redeploy `payment-intent` function.
+- [ ] Perform an end-to-end test payment using a PayMongo test card or GCash sandbox.
+- [ ] Confirm booking status transitions from `pending` to `confirmed` only after payment success webhook or intent confirmation.
+- [ ] Update `docs/STATUS.md` to mark the P1 PayMongo risk as resolved.
+
+## 8) Troubleshooting Matrix
 
 | Symptom | Likely Cause | Diagnostic Step | Resolution |
 |---|---|---|---|
@@ -68,8 +148,11 @@ Scope all permissions to:
 | Non-admin can mutate role data | RLS regression | Inspect `pg_policies` | Reapply migration/hotfix policy |
 | Support messages insert fails | ticket ownership mismatch / sender policy | Verify `ticket_id`, `author_user_id`, sender | Align payload with RLS rules |
 | Deploy succeeds but domain not live | DNS/cert propagation | Check Pages domain status | Wait propagation; confirm CNAME/proxy |
+| `payment-intent` returns demo flag | PAYMONGO_SECRET_KEY not set | Check Edge Function secrets in Supabase dashboard | Add key and redeploy function |
+| `book-listing` returns 429 | Rate limit exceeded (10 req/min per IP) | Confirm caller IP and request frequency | Reduce request rate or review client retry logic |
+| Booking stuck in pending after payment | PayMongo webhook not delivered or key misconfigured | Check PayMongo dashboard for intent status | Verify secret key and webhook endpoint configuration |
 
-## 6) Rollback Playbook
+## 9) Rollback Playbook
 
 - For frontend regressions: redeploy prior known-good build.
 - For migration regressions:
@@ -77,7 +160,7 @@ Scope all permissions to:
   2. if needed, restore from point-in-time backup per Supabase recovery process
 - Document rollback cause and preventive action in `docs/STATUS.md`.
 
-## 7) Contact & Ownership
+## 10) Contact & Ownership
 
 - Product/Engineering Owner: APEX Business Systems Ltd.
 - Operational Base: Edmonton, AB
