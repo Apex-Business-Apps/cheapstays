@@ -17,22 +17,24 @@ import launion from "@/assets/city-launion.jpg";
 import davao from "@/assets/city-davao.jpg";
 
 const stays = [
-  { src: s1, label: "Bamboo villa · El Nido, Palawan", price: "₱4,800/night" },
-  { src: s2, label: "Surf bungalow · Siargao", price: "₱2,950/night" },
-  { src: s3, label: "Hillside villa · Bohol", price: "₱6,200/night" },
-  { src: s4, label: "Stone hut · Batanes", price: "₱3,400/night" },
-  { src: s5, label: "Heritage casa · Vigan", price: "₱2,100/night" },
-  { src: s6, label: "Cliff cottage · Boracay", price: "₱5,400/night" },
-  { src: s7, label: "Pine A-frame · Baguio", price: "₱2,750/night" },
-  { src: cebu, label: "City feature · Cebu", price: "From ₱2,300/night" },
-  { src: coron, label: "Island feature · Coron", price: "From ₱3,900/night" },
-  { src: tagaytay, label: "Highland feature · Tagaytay", price: "From ₱2,600/night" },
-  { src: iloilo, label: "Cultural feature · Iloilo", price: "From ₱2,200/night" },
-  { src: dumaguete, label: "Coastal feature · Dumaguete", price: "From ₱2,450/night" },
-  { src: camiguin, label: "Volcanic feature · Camiguin", price: "From ₱3,200/night" },
-  { src: launion, label: "Surf feature · La Union", price: "From ₱2,700/night" },
-  { src: davao, label: "Urban feature · Davao", price: "From ₱2,900/night" },
+  { src: s1,       label: "Bamboo villa, El Nido",    price: "₱4,800/night" },
+  { src: s2,       label: "Surf bungalow, Siargao",   price: "₱2,950/night" },
+  { src: s3,       label: "Hillside villa, Bohol",    price: "₱6,200/night" },
+  { src: s4,       label: "Stone hut, Batanes",       price: "₱3,400/night" },
+  { src: s5,       label: "Heritage casa, Vigan",     price: "₱2,100/night" },
+  { src: s6,       label: "Cliff cottage, Boracay",   price: "₱5,400/night" },
+  { src: s7,       label: "Pine A-frame, Baguio",     price: "₱2,750/night" },
+  { src: cebu,     label: "Skyline condo, Cebu",      price: "From ₱2,300/night" },
+  { src: coron,    label: "Bamboo bungalow, Coron",   price: "From ₱3,900/night" },
+  { src: tagaytay, label: "Volcano cabin, Tagaytay",  price: "From ₱2,600/night" },
+  { src: iloilo,   label: "Heritage casa, Iloilo",    price: "From ₱2,200/night" },
+  { src: dumaguete,label: "Coastal stay, Dumaguete",  price: "From ₱2,450/night" },
+  { src: camiguin, label: "Cove cottage, Camiguin",   price: "From ₱3,200/night" },
+  { src: launion,  label: "Surf shack, La Union",     price: "From ₱2,700/night" },
+  { src: davao,    label: "City flat, Davao",         price: "From ₱2,900/night" },
 ];
+
+export const HERO_STAYS_COUNT = stays.length;
 const INTERVAL = 30_000;
 
 export function HeroCarousel() {

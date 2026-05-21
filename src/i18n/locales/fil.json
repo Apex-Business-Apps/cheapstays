@@ -1,0 +1,116 @@
+{
+  "nav": {
+    "search": "Maghanap",
+    "membership": "Membership",
+    "host": "Maging Host",
+    "support": "Suporta",
+    "signIn": "Mag-sign in",
+    "signOut": "Mag-sign out"
+  },
+  "hero": {
+    "badge": "DIREKTA SA HOST · WALANG MARKUP",
+    "h1Line1": "Mahanap nang mura.",
+    "h1Line2": "Mag-stay nang matalino.",
+    "subtitle": "Mga short-term rental na may presyo ng host mismo, hindi ng platform. Mas maraming piso para sa tunay na karanasan.",
+    "ctaHunt": "Simulan ang paghahanap",
+    "ctaMembership": "Tingnan ang membership",
+    "liveScanner": "Live na deal scanner",
+    "cycling": "{{count}} stays sa kasalukuyan"
+  },
+  "why": {
+    "badge": "BAKIT CHEAPSTAYS",
+    "h2Start": "Anim na dahilan kung bakit kokopyahin ng iyong ",
+    "h2Accent": "mga tito at tita",
+    "h2End": " ang iyong biyahe.",
+    "subtitle": "Ginawa para sa paraan ng paglalakbay ng mga Pilipino, hindi para sa isang global na template.",
+    "f1Title": "Deal hunter",
+    "f1Body": "Sabihin kay Pip ang destinasyon, budget, at petsa. Hahanapin nito ang mga listing na talagang sulit sa presyo.",
+    "f2Title": "Presyo ng host mismo",
+    "f2Body": "Ang mga host ang nagtatakda ng sariling presyo dito. Walang platform na nagdadagdag ng bayad bago mag-checkout.",
+    "f3Title": "Verified na Filipino hosts",
+    "f3Body": "Bawat host ay may ID verification at reviews mula sa tunay na mga miyembro. Walang surpresa.",
+    "f4Title": "GCash, Maya at card",
+    "f4Body": "Magbayad sa gusto mong paraan. Hatiin ang bayad kasama ang barkada. Babalik ang refund sa loob ng 24 na oras.",
+    "f5Title": "24/7 na si Pip",
+    "f5Body": "Nawala ang booking code mo nang alas dos ng umaga sa Coron? Si Pip ay sumasagot sa loob ng segundo. Tagalog, English, o halo.",
+    "f6Title": "Instant na kumpirmasyon",
+    "f6Body": "Kapag na-clear na ang bayad, live na ang booking at nasa phone mo na ang lahat ng detalye."
+  },
+  "stats": {
+    "s1Label": "naipundar ng mga miyembro noong 2025",
+    "s2Label": "verified na PH listings",
+    "s3Label": "isla na sakop",
+    "s4Label": "rating ng miyembro"
+  },
+  "destinations": {
+    "badge": "MGA DESTINASYON",
+    "h2": "Mula Palawan hanggang Batanes.",
+    "subtitle": "Pitong libong isla. Mga piniling stays sa mga lugar na gustong bisitahin.",
+    "browseAll": "Tingnan lahat",
+    "philippines": "Pilipinas",
+    "perNight": "/gabi",
+    "from": "mula"
+  },
+  "city": {
+    "badge": "CITY STAYCATIONS",
+    "h2Part1": "Walong bagong lungsod.",
+    "h2Accent": "Isang mahabang weekend",
+    "h2End": "palayo.",
+    "subtitle": "Mula sa Cebu skyline balcony hanggang sa Camiguin volcano cove. Mga sariwang pick na ina-update linggu-linggo.",
+    "seeAll": "Tingnan lahat ng city stays",
+    "from": "mula"
+  },
+  "how": {
+    "badge": "PAANO ITO GUMAGANA",
+    "h2": "Mas simpleng paraan para mag-book ng stays sa Pilipinas.",
+    "subtitle": "Walang bidding, walang hidden fees. Isang search na naglalagay ng tapat na presyo muna.",
+    "cta": "Subukan si Pip",
+    "s1Title": "Sabihin kay Pip ang gusto mo",
+    "s1Body": "I-type o magsalita ng destinasyon, budget, at petsa. Si Pip ay nakakaintindi ng Tagalog, English, o halo ng dalawa.",
+    "s2Title": "Naghahanap si Pip ng direkta sa host",
+    "s2Body": "Nag-scan kami ng mga listing at verified hosts sa mahigit 80 destinasyon sa Pilipinas, ayon sa tunay na halaga.",
+    "s3Title": "Mag-book nang walang nakatagong bayad",
+    "s3Body": "Nakikita ang bawat bayad. Kausapin ang host bago mag-commit. Isang bayad lang, walang hidden charges."
+  },
+  "reviews": {
+    "badge": "PINAGKAKATIWALAAN NG MGA FILIPINO TRAVELER",
+    "h2": "Tunay na biyahe. Tunay na ipon."
+  },
+  "cta": {
+    "h2": "Mas mura kaysa sa inaakala mo ang susunod mong stay sa Pilipinas.",
+    "subtitle": "Sumali sa CheapStays at hayaang si Pip ang humanap para sa iyo. Cancel anytime.",
+    "member": "Maging miyembro",
+    "free": "Magsimulang maghanap nang libre"
+  },
+  "footer": {
+    "tagline": "Mahanap nang mura. Mag-stay nang matalino.",
+    "desc": "Mga short-term rental sa buong Pilipinas. Direktang presyo ng host. Walang platform markup."
+  },
+  "pip": {
+    "greeting": "Kumusta! Ako si Pip, ang iyong CheapStays concierge. Saan ka gustong pumunta?",
+    "thinking": "nag-iisip...",
+    "online": "online",
+    "placeholder": "Tanungin si Pip ng kahit ano...",
+    "mute": "I-mute ang boses",
+    "unmute": "I-enable ang boses",
+    "close": "Isara ang chat",
+    "listen": "Magsalita",
+    "stopListen": "Itigil ang pakikinig",
+    "open": "Buksan si Pip, ang concierge",
+    "error": "Hindi ma-reach ang server. Subukan ulit sa sandaling ito.",
+    "q1": "Palawan under ₱3k",
+    "q2": "5 gabi sa Siargao",
+    "q3": "Pet-friendly cabin sa Baguio"
+  },
+  "lang": {
+    "en": "English",
+    "fil": "Filipino",
+    "zh": "中文",
+    "ms": "Melayu",
+    "id": "Indonesia",
+    "ko": "한국어",
+    "vi": "Tiếng Việt",
+    "ja": "日本語",
+    "th": "ภาษาไทย"
+  }
+}
