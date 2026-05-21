@@ -1,16 +1,1 @@
 project_id = "muqdmvkapsxrsgdkfoxn"
-
-[functions.ai-search]
-verify_jwt = false
-
-[functions.ai-describe]
-verify_jwt = false
-
-[functions.support-ticket]
-verify_jwt = false
-
-[functions.support-message]
-verify_jwt = false
-
-[functions.support-stream]
-verify_jwt = false
