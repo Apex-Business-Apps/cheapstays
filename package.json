@@ -11,8 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "deploy:preview": "CLOUDFLARE_API_TOKEN=${CLOUFLARE_AGENT_TOKEN:-$CLOUDFLARE_API_TOKEN} wrangler pages deploy dist --project-name cheapstays --branch work",
-    "deploy:production": "CLOUDFLARE_API_TOKEN=${CLOUFLARE_AGENT_TOKEN:-$CLOUDFLARE_API_TOKEN} wrangler pages deploy dist --project-name cheapstays --branch main",
+    "deploy:preview": "CLOUDFLARE_API_TOKEN=${CLOUDFLARE_AGENT_TOKEN:-$CLOUDFLARE_API_TOKEN} wrangler pages deploy dist --project-name cheapstays --branch work",
+    "deploy:production": "CLOUDFLARE_API_TOKEN=${CLOUDFLARE_AGENT_TOKEN:-$CLOUDFLARE_API_TOKEN} wrangler pages deploy dist --project-name cheapstays --branch main",
     "release:production": "npm run build && npm run deploy:production"
   },
   "dependencies": {
