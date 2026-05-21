@@ -14,7 +14,15 @@ const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID as string;
 const ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 const CHAT_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/ai-chat`;
 
-type SR = any;
+type SpeechRecognitionResult = { 0: { transcript: string } };
+type SpeechRecognitionEvent = Event & { results: ArrayLike<SpeechRecognitionResult> };
+interface SR extends EventTarget {
+  lang: string; interimResults: boolean; continuous: boolean;
+  onresult: (e: SpeechRecognitionEvent) => void;
+  onend: () => void; onerror: () => void;
+  start(): void; stop(): void;
+}
+type SRConstructor = new () => SR;
 
 // Voice-command routing: intercept navigation and language-switch intents before
 // sending to the LLM so responses are instant and fully local.
@@ -23,7 +31,7 @@ const VOICE_ROUTES: {
   action: (nav: ReturnType<typeof useNavigate>) => void;
   response: string;
 }[] = [
-  { pattern: /\b(go to |open |show |take me to )?(search|listings?|browse|find stays?)\b/i,
+  { pattern: /\b(go to |open |show |take me to )the search( page)?\b/i,
     action: (nav) => nav("/search"),      response: "Opening the search page for you." },
   { pattern: /\b(go to |open |show )?(membership|become a member|join|subscribe)\b/i,
     action: (nav) => nav("/membership"),  response: "Opening the membership page." },
@@ -56,7 +64,7 @@ const VOICE_ROUTES: {
 ];
 
 export function AiChatBubble() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
@@ -68,9 +76,8 @@ export function AiChatBubble() {
   const [listening, setListening] = useState(false);
   const [tts, setTts] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const recogRef = useRef<SR>(null);
+  const recogRef = useRef<SR | null>(null);
 
-  // Re-sync greeting when language changes.
   useEffect(() => {
     setMessages((prev) => {
       if (prev.length === 1 && prev[0].role === "assistant") {
@@ -78,7 +85,6 @@ export function AiChatBubble() {
       }
       return prev;
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t]);
 
   useEffect(() => {
@@ -87,15 +93,33 @@ export function AiChatBubble() {
 
   function speak(text: string) {
     if (!tts || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
+    const synth = window.speechSynthesis;
+    synth.cancel();
+
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = 1.05;
-    u.pitch = 1;
-    window.speechSynthesis.speak(u);
+    u.rate = 0.93;
+    u.pitch = 1.15;
+    u.volume = 1;
+
+    const voices = synth.getVoices();
+    const lang = (i18n.language ?? "en").slice(0, 2);
+    const pick = (fn: (v: SpeechSynthesisVoice) => boolean) => voices.find(fn);
+    const voice =
+      pick(v => v.lang.startsWith(lang) && /google/i.test(v.name)) ??
+      pick(v => v.lang.startsWith(lang) && /natural|neural|premium/i.test(v.name)) ??
+      pick(v => v.lang.startsWith(lang) && !v.localService) ??
+      pick(v => v.lang.startsWith("en") && /google uk english female/i.test(v.name)) ??
+      pick(v => v.lang.startsWith("en") && /google/i.test(v.name)) ??
+      pick(v => v.lang.startsWith("en") && !v.localService) ??
+      null;
+
+    if (voice) u.voice = voice;
+    synth.speak(u);
   }
 
   function toggleListen() {
-    const Ctor: SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const w = window as Window & { SpeechRecognition?: SRConstructor; webkitSpeechRecognition?: SRConstructor };
+    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!Ctor) return;
     if (listening) {
       recogRef.current?.stop();
@@ -106,8 +130,8 @@ export function AiChatBubble() {
     r.lang = "en-US";
     r.interimResults = true;
     r.continuous = false;
-    r.onresult = (e: any) => {
-      const text = Array.from(e.results).map((res: any) => res[0].transcript).join("");
+    r.onresult = (e: SpeechRecognitionEvent) => {
+      const text = Array.from(e.results).map((res) => res[0].transcript).join("");
       setInput(text);
     };
     r.onend = () => setListening(false);
