@@ -12,11 +12,12 @@ import { aiDescribeSchema } from "@/lib/schemas";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { isHost } from "@/lib/rbac";
-import { Sparkles, Loader2, CheckSquare, Square, PlusCircle } from "lucide-react";
+import { Sparkles, Loader2, CheckSquare, Square, PlusCircle, CalendarDays } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { Link } from "react-router-dom";
 import { ImageUploader } from "@/components/ImageUploader";
 import { VideoUploader } from "@/components/VideoUploader";
+import { HostBookings } from "@/components/HostBookings";
 
 const LISTING_TYPES = [
   { value: "entire_place", label: "Entire place" },
@@ -343,6 +344,9 @@ export default function Host() {
               <PlusCircle className="h-4 w-4" /> New listing
             </TabsTrigger>
             <TabsTrigger value="my">My listings</TabsTrigger>
+            <TabsTrigger value="bookings" className="gap-2">
+              <CalendarDays className="h-4 w-4" /> Bookings
+            </TabsTrigger>
           </TabsList>
 
           {/* ── New listing tab ── */}
@@ -591,6 +595,11 @@ export default function Host() {
           {/* ── My listings tab ── */}
           <TabsContent value="my">
             <MyListings userId={user.id} />
+          </TabsContent>
+
+          {/* ── Bookings tab ── */}
+          <TabsContent value="bookings">
+            <HostBookings hostId={user.id} />
           </TabsContent>
         </Tabs>
       </div>

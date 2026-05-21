@@ -8,6 +8,7 @@ import { Loader2, ArrowLeft, BedDouble, Bath, Users, CalendarDays, Zap, Star, Ch
 import { ImageGallery } from "@/components/ImageGallery";
 import { BookingPanel } from "@/components/BookingPanel";
 import { ReviewList } from "@/components/ReviewList";
+import { GuestRatingBadge } from "@/components/GuestRatingBadge";
 
 type Listing = {
   id: string;
@@ -118,7 +119,6 @@ export default function ListingDetail() {
           <ArrowLeft className="h-4 w-4" /> Back to search
         </Link>
 
-        {/* Gallery */}
         {listing.images?.length > 0 ? (
           <div className="mb-8">
             <ImageGallery images={listing.images} title={listing.title} />
@@ -131,12 +131,10 @@ export default function ListingDetail() {
           </div>
         )}
 
-        {/* Two-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-10 lg:items-start">
 
           {/* ── Left column ── */}
           <div>
-            {/* Header */}
             <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
               <div>
                 <div className="flex flex-wrap gap-2 mb-2">
@@ -153,17 +151,19 @@ export default function ListingDetail() {
                   {listing.city}, {listing.province}
                   {listing.address && ` · ${listing.address}`}
                 </p>
-                {listing.avg_rating && (
-                  <p className="flex items-center gap-1 text-sm mt-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-medium">{listing.avg_rating.toFixed(1)}</span>
-                    <span className="text-muted-foreground">({listing.review_count} reviews)</span>
-                  </p>
-                )}
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  {listing.avg_rating && (
+                    <p className="flex items-center gap-1 text-sm">
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <span className="font-medium">{listing.avg_rating.toFixed(1)}</span>
+                      <span className="text-muted-foreground">({listing.review_count} reviews)</span>
+                    </p>
+                  )}
+                  <GuestRatingBadge userId={listing.host_id} size="md" />
+                </div>
               </div>
             </div>
 
-            {/* Stats */}
             <div className="grid grid-cols-3 gap-4 py-5 border-y border-border/60 mb-8">
               <div className="flex flex-col items-center gap-1 text-center">
                 <BedDouble className="h-5 w-5 text-muted-foreground" />
@@ -182,7 +182,6 @@ export default function ListingDetail() {
               </div>
             </div>
 
-            {/* Description */}
             {listing.description && (
               <div className="mb-8">
                 <h2 className="text-lg font-medium mb-3">About this place</h2>
@@ -190,7 +189,6 @@ export default function ListingDetail() {
               </div>
             )}
 
-            {/* Amenities */}
             {(amenityList.length > 0 || unknownAmenities.length > 0) && (
               <div className="mb-8">
                 <h2 className="text-lg font-medium mb-3">What's included</h2>
@@ -211,7 +209,6 @@ export default function ListingDetail() {
               </div>
             )}
 
-            {/* Stay details */}
             <div className="mb-8 rounded-xl border border-border/60 p-5 space-y-3">
               <h2 className="text-lg font-medium">Stay details</h2>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -225,7 +222,6 @@ export default function ListingDetail() {
               )}
             </div>
 
-            {/* Video tour */}
             {listing.video_url && (
               <div className="mb-8">
                 <h2 className="text-lg font-medium mb-3">Video tour</h2>
@@ -237,7 +233,6 @@ export default function ListingDetail() {
               </div>
             )}
 
-            {/* Reviews */}
             <div className="mb-8 border-t border-border/60 pt-8">
               <ReviewList listingId={listing.id} hostId={listing.host_id} />
             </div>

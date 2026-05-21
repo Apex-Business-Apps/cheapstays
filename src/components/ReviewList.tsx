@@ -13,12 +13,12 @@ type Review = {
   rating: number;
   body: string;
   created_at: string;
-  reviewer_id: string;
+  reviewer_role: string;
 };
 
 type Props = { listingId: string; hostId: string };
 
-function Stars({ rating, interactive = false, onChange }: { rating: number; interactive?: boolean; onChange?: (r: number) => void }) {
+export function Stars({ rating, interactive = false, onChange }: { rating: number; interactive?: boolean; onChange?: (r: number) => void }) {
   const [hover, setHover] = useState(0);
   return (
     <div className="flex gap-0.5">
@@ -45,8 +45,8 @@ export function ReviewList({ listingId, hostId }: Props) {
   const { user } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [eligibleBookingId, setEligibleBookingId] = useState<string | null>(null);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const [eligibleBookingId, setEligibleBookingId] = useState<string | null>(null);
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -55,43 +55,34 @@ export function ReviewList({ listingId, hostId }: Props) {
   useEffect(() => {
     supabase
       .from("reviews")
-      .select("id,rating,body,created_at,reviewer_id")
+      .select("id,rating,body,created_at,reviewer_role")
       .eq("listing_id", listingId)
+      .eq("reviewer_role", "guest")
       .eq("is_public", true)
       .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        setReviews((data ?? []) as Review[]);
-        setLoading(false);
-      });
+      .then(({ data }) => { setReviews((data ?? []) as Review[]); setLoading(false); });
   }, [listingId]);
 
   useEffect(() => {
     if (!user) return;
-    // Check for a confirmed booking the user can review
     supabase
       .from("bookings")
       .select("id")
       .eq("listing_id", listingId)
       .eq("guest_id", user.id)
-      .eq("status", "confirmed")
+      .in("status", ["confirmed", "pending"])
       .limit(1)
       .then(({ data }) => {
         if (!data?.length) return;
         const bid = data[0].id;
         setEligibleBookingId(bid);
-        // Check if already reviewed
-        supabase
-          .from("reviews")
-          .select("id")
-          .eq("booking_id", bid)
-          .eq("reviewer_id", user.id)
-          .limit(1)
+        supabase.from("reviews").select("id").eq("booking_id", bid).eq("reviewer_id", user.id).eq("reviewer_role", "guest").limit(1)
           .then(({ data: rd }) => setAlreadyReviewed((rd ?? []).length > 0));
       });
   }, [user, listingId]);
 
   async function submitReview() {
-    if (!user || !eligibleBookingId || rating === 0) return;
+    if (!user || rating === 0) return;
     setSubmitting(true);
     try {
       const { error } = await supabase.from("reviews").insert({
@@ -99,6 +90,8 @@ export function ReviewList({ listingId, hostId }: Props) {
         booking_id: eligibleBookingId,
         reviewer_id: user.id,
         host_id: hostId,
+        reviewee_id: hostId,
+        reviewer_role: "guest",
         rating,
         body: body.trim(),
         is_public: true,
@@ -107,15 +100,8 @@ export function ReviewList({ listingId, hostId }: Props) {
       toast({ title: "Review posted!" });
       setAlreadyReviewed(true);
       setShowForm(false);
-      // Optimistically add to list
       setReviews((prev) => [
-        {
-          id: crypto.randomUUID(),
-          rating,
-          body: body.trim(),
-          created_at: new Date().toISOString(),
-          reviewer_id: user.id,
-        },
+        { id: crypto.randomUUID(), rating, body: body.trim(), created_at: new Date().toISOString(), reviewer_role: "guest" },
         ...prev,
       ]);
     } catch (err) {
@@ -125,16 +111,13 @@ export function ReviewList({ listingId, hostId }: Props) {
     }
   }
 
-  const avg = reviews.length
-    ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
-    : null;
+  const avg = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : null;
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-medium">Reviews</h2>
+          <h2 className="text-lg font-medium">Guest reviews</h2>
           {avg !== null && (
             <span className="flex items-center gap-1 text-sm text-muted-foreground">
               <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -142,39 +125,27 @@ export function ReviewList({ listingId, hostId }: Props) {
             </span>
           )}
         </div>
-        {eligibleBookingId && !alreadyReviewed && (
+        {user && !alreadyReviewed && (
           <Button size="sm" variant="outline" onClick={() => setShowForm((v) => !v)}>
-            Write a review
+            {showForm ? "Cancel" : "Write a review"}
           </Button>
         )}
       </div>
 
-      {/* Write review form */}
       {showForm && (
         <div className="mb-6 rounded-xl border border-border/60 p-4 space-y-3">
           <p className="text-sm font-medium">Your review</p>
           <Stars rating={rating} interactive onChange={setRating} />
-          <Textarea
-            placeholder="Tell guests what you loved about this place…"
-            rows={3}
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            className="text-sm"
-          />
-          <div className="flex gap-2">
-            <Button size="sm" disabled={rating === 0 || submitting} onClick={submitReview}>
-              {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Post review"}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
-          </div>
+          <Textarea rows={3} placeholder="Tell guests what you loved about this place…" value={body}
+            onChange={(e) => setBody(e.target.value)} className="text-sm" />
+          <Button size="sm" disabled={rating === 0 || submitting} onClick={submitReview}>
+            {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Post review"}
+          </Button>
         </div>
       )}
 
-      {/* Review list */}
       {loading ? (
-        <div className="flex justify-center py-6">
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-        </div>
+        <div className="flex justify-center py-6"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
       ) : reviews.length === 0 ? (
         <p className="text-sm text-muted-foreground">No reviews yet. Be the first to stay here!</p>
       ) : (
@@ -183,9 +154,7 @@ export function ReviewList({ listingId, hostId }: Props) {
             <div key={r.id} className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <Stars rating={r.rating} />
-                <span className="text-xs text-muted-foreground">
-                  {format(new Date(r.created_at), "MMM yyyy")}
-                </span>
+                <span className="text-xs text-muted-foreground">{format(new Date(r.created_at), "MMM yyyy")}</span>
               </div>
               {r.body && <p className="text-sm text-muted-foreground leading-relaxed">{r.body}</p>}
             </div>
