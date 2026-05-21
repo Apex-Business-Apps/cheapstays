@@ -63,45 +63,6 @@ const VOICE_ROUTES: {
     action: () => setLang("th"),          response: "Switched to Thai." },
 ];
 
-// Voice-command routing: intercept navigation and language-switch intents before
-// sending to the LLM so responses are instant and fully local.
-const VOICE_ROUTES: {
-  pattern: RegExp;
-  action: (nav: ReturnType<typeof useNavigate>) => void;
-  response: string;
-}[] = [
-  { pattern: /\b(go to |open |show |take me to )?(search|listings?|browse|find stays?)\b/i,
-    action: (nav) => nav("/search"),      response: "Opening the search page for you." },
-  { pattern: /\b(go to |open |show )?(membership|become a member|join|subscribe)\b/i,
-    action: (nav) => nav("/membership"),  response: "Opening the membership page." },
-  { pattern: /\b(go to |open |show )?(host|list my (place|property|home)|become a host)\b/i,
-    action: (nav) => nav("/host"),        response: "Taking you to the host page." },
-  { pattern: /\b(go to |open |show )?(support|help|contact|ticket)\b/i,
-    action: (nav) => nav("/support"),     response: "Opening the support page." },
-  { pattern: /\b(go |take me )?(home|homepage|main page)\b/i,
-    action: (nav) => nav("/"),            response: "Going back to the home page." },
-  { pattern: /\b(sign in|log in|login)\b/i,
-    action: (nav) => nav("/auth"),        response: "Opening the sign-in page." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(filipino|tagalog)\b/i,
-    action: () => setLang("fil"),         response: "Switched to Filipino." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?english\b/i,
-    action: () => setLang("en"),          response: "Switched to English." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(chinese|mandarin)\b/i,
-    action: () => setLang("zh"),          response: "Switched to Chinese." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(malay|bahasa melayu)\b/i,
-    action: () => setLang("ms"),          response: "Switched to Malay." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(indonesian|bahasa indonesia)\b/i,
-    action: () => setLang("id"),          response: "Switched to Indonesian." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?korean\b/i,
-    action: () => setLang("ko"),          response: "Switched to Korean." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(vietnamese|viet)\b/i,
-    action: () => setLang("vi"),          response: "Switched to Vietnamese." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?japanese\b/i,
-    action: () => setLang("ja"),          response: "Switched to Japanese." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?thai\b/i,
-    action: () => setLang("th"),          response: "Switched to Thai." },
-];
-
 export function AiChatBubble() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -116,17 +77,6 @@ export function AiChatBubble() {
   const [tts, setTts] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recogRef = useRef<SR | null>(null);
-
-  // Re-sync greeting when language changes.
-  useEffect(() => {
-    setMessages((prev) => {
-      if (prev.length === 1 && prev[0].role === "assistant") {
-        return [{ role: "assistant", content: t("pip.greeting") }];
-      }
-      return prev;
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t]);
 
   // Re-sync greeting when language changes.
   useEffect(() => {
