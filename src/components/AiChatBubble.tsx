@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import i18n, { setLang } from "@/i18n";
+import { setLang } from "@/i18n";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -31,7 +31,7 @@ const VOICE_ROUTES: {
   action: (nav: ReturnType<typeof useNavigate>) => void;
   response: string;
 }[] = [
-  { pattern: /\b(go to |open |show |take me to )?(search|listings?|browse|find stays?)\b/i,
+  { pattern: /\b(go to |open |show |take me to )the search( page)?\b/i,
     action: (nav) => nav("/search"),      response: "Opening the search page for you." },
   { pattern: /\b(go to |open |show )?(membership|become a member|join|subscribe)\b/i,
     action: (nav) => nav("/membership"),  response: "Opening the membership page." },
@@ -87,6 +87,16 @@ export function AiChatBubble() {
       return prev;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
+
+  // Re-sync greeting when language changes.
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].role === "assistant") {
+        return [{ role: "assistant", content: t("pip.greeting") }];
+      }
+      return prev;
+    });
   }, [t]);
 
   useEffect(() => {

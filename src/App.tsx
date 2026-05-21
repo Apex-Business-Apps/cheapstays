@@ -13,6 +13,7 @@ import Membership from "./pages/Membership";
 import Host from "./pages/Host";
 import Support from "./pages/Support";
 import Admin from "./pages/Admin";
+import ListingDetail from "./pages/ListingDetail";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/host" element={<Host />} />
               <Route path="/support" element={<Support />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/listing/:id" element={<ListingDetail />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

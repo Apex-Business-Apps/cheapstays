@@ -1,217 +1,213 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { aiDescribeSchema } from "@/lib/schemas";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Sparkles, Loader2, CheckCircle2, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { isHost } from "@/lib/rbac";
+import { Sparkles, Loader2, CheckSquare, Square } from "lucide-react";
 import { Seo } from "@/components/Seo";
+import { Link } from "react-router-dom";
 
-const AMENITY_OPTIONS = [
-  { value: "wifi", label: "WiFi" },
-  { value: "aircon", label: "Air conditioning" },
-  { value: "kitchen", label: "Kitchen" },
-  { value: "parking", label: "Parking" },
-  { value: "pool", label: "Pool" },
-  { value: "beach_access", label: "Beach access" },
-  { value: "outdoor_shower", label: "Outdoor shower" },
-  { value: "hammock", label: "Hammock" },
-  { value: "generator", label: "Generator" },
-  { value: "fan", label: "Fan" },
-  { value: "hot_water", label: "Hot water" },
-  { value: "tv", label: "TV" },
-];
-
-const LISTING_TYPES: { value: string; label: string }[] = [
+const LISTING_TYPES = [
   { value: "entire_place", label: "Entire place" },
   { value: "private_room", label: "Private room" },
-  { value: "villa",        label: "Villa" },
-  { value: "glamping",     label: "Glamping" },
-  { value: "resort",       label: "Resort" },
+  { value: "shared_room", label: "Shared room" },
+  { value: "villa", label: "Villa" },
+  { value: "glamping", label: "Glamping" },
 ];
 
-type VerificationStatus = "pending" | "approved" | "rejected" | null;
+const AMENITY_OPTIONS = [
+  "wifi", "aircon", "fan", "kitchen", "kitchenette", "kitchen_shared",
+  "hot_water", "outdoor_shower", "parking", "pool", "private_pool",
+  "rooftop_pool", "gym", "work_desk", "smart_tv", "tv",
+  "breakfast_included", "pet_friendly", "beach_access", "hammock",
+  "kayak", "snorkel_gear", "bike_rental", "bbq_grill", "fire_pit",
+  "fireplace", "garden", "terrace", "board_rack", "electric_blankets",
+];
+
+const AMENITY_LABELS: Record<string, string> = {
+  wifi: "WiFi", aircon: "Air conditioning", fan: "Fan",
+  kitchen: "Full kitchen", kitchenette: "Kitchenette", kitchen_shared: "Shared kitchen",
+  hot_water: "Hot water", outdoor_shower: "Outdoor shower", parking: "Parking",
+  pool: "Pool", private_pool: "Private pool", rooftop_pool: "Rooftop pool",
+  gym: "Gym", work_desk: "Work desk", smart_tv: "Smart TV", tv: "TV",
+  breakfast_included: "Breakfast included", pet_friendly: "Pet friendly",
+  beach_access: "Beach access", hammock: "Hammock", kayak: "Kayak",
+  snorkel_gear: "Snorkel gear", bike_rental: "Bike rental", bbq_grill: "BBQ grill",
+  fire_pit: "Fire pit", fireplace: "Fireplace", garden: "Garden", terrace: "Terrace",
+  board_rack: "Board rack", electric_blankets: "Electric blankets",
+};
+
+function slugify(title: string, id: string) {
+  return (
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .trim()
+      .slice(0, 60) +
+    "-" +
+    id.slice(0, 8)
+  );
+}
+
 
 export default function Host() {
-  const { user, roles } = useAuth();
-  const isHost = roles.includes("host");
+  const { user, roles, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
 
-  // Host profile state
-  const [profileSubmitting, setProfileSubmitting] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>(null);
-  const [displayName, setDisplayName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
-  const [bio, setBio] = useState("");
-
-  // Listing form state
-  const [listingTitle, setListingTitle] = useState("");
-  const [listingType, setListingType] = useState("");
-  const [listingCity, setListingCity] = useState("");
-  const [listingProvince, setListingProvince] = useState("");
-  const [bedrooms, setBedrooms] = useState(1);
-  const [bathrooms, setBathrooms] = useState(1);
-  const [maxGuests, setMaxGuests] = useState(2);
-  const [nightlyPhp, setNightlyPhp] = useState(1500);
-  const [minNights, setMinNights] = useState(1);
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-  const [description, setDescription] = useState("");
-  const [instantBook, setInstantBook] = useState(false);
-  const [listingSubmitting, setListingSubmitting] = useState(false);
-
-  // AI description state
-  const [aiTitle, setAiTitle] = useState("");
-  const [aiBullets, setAiBullets] = useState("");
+  // AI description generator state
+  const [title, setTitle] = useState("");
+  const [bullets, setBullets] = useState("");
   const [aiOut, setAiOut] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiOpen, setAiOpen] = useState(false);
 
-  function toggleAmenity(value: string) {
-    setSelectedAmenities((prev) =>
-      prev.includes(value) ? prev.filter((a) => a !== value) : [...prev, value]
-    );
-  }
-
-  async function submitProfile(e: React.FormEvent) {
-    e.preventDefault();
-    if (!user) return;
-    if (!displayName.trim() || !phone.trim() || !city.trim()) {
-      toast({ title: "Please fill in all required fields.", variant: "destructive" });
-      return;
-    }
-    setProfileSubmitting(true);
-    try {
-      const { error } = await supabase.from("host_profiles").upsert({
-        user_id: user.id,
-        display_name: displayName.trim(),
-        phone: phone.trim(),
-        location: city.trim(),
-        bio: bio.trim(),
-        verification_status: "pending",
-      });
-      if (error) throw error;
-      setVerificationStatus("pending");
-      toast({ title: "Application submitted!", description: "We will review your profile within 24 hours." });
-    } catch (err) {
-      toast({ title: "Submission failed", description: (err as Error).message, variant: "destructive" });
-    } finally {
-      setProfileSubmitting(false);
-    }
-  }
-
-  async function saveListing(isDraft: boolean) {
-    if (!user) return;
-    if (!isDraft && !isHost) {
-      toast({
-        title: "Host verification required",
-        description: "Complete your host profile and wait for approval before publishing listings.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!listingTitle.trim() || !listingType || !listingCity.trim() || !listingProvince.trim()) {
-      toast({ title: "Please fill in all required listing fields.", variant: "destructive" });
-      return;
-    }
-    if (nightlyPhp < 500) {
-      toast({ title: "Nightly rate must be at least ₱500.", variant: "destructive" });
-      return;
-    }
-    setListingSubmitting(true);
-    try {
-      const { error } = await supabase.from("listings").insert({
-        host_id: user.id,
-        title: listingTitle.trim(),
-        type: listingType,
-        city: listingCity.trim(),
-        province: listingProvince.trim(),
-        bedrooms,
-        bathrooms,
-        max_guests: maxGuests,
-        nightly_php: nightlyPhp,
-        min_nights: minNights,
-        amenities: selectedAmenities,
-        description: description.trim(),
-        instant_book: instantBook,
-        status: isDraft ? "draft" : "active",
-        is_owner_direct: true,
-      });
-      if (error) throw error;
-      toast({
-        title: isDraft ? "Listing saved as draft." : "Listing published!",
-        description: isDraft
-          ? "You can edit and publish it anytime."
-          : "Travelers can now find and book your place.",
-      });
-      if (!isDraft) {
-        setListingTitle("");
-        setListingType("");
-        setListingCity("");
-        setListingProvince("");
-        setBedrooms(1);
-        setBathrooms(1);
-        setMaxGuests(2);
-        setNightlyPhp(1500);
-        setMinNights(1);
-        setSelectedAmenities([]);
-        setDescription("");
-        setInstantBook(false);
-      }
-    } catch (err) {
-      toast({ title: "Could not save listing", description: (err as Error).message, variant: "destructive" });
-    } finally {
-      setListingSubmitting(false);
-    }
-  }
+  // Listing form state
+  const [form, setForm] = useState({
+    type: "entire_place",
+    city: "",
+    province: "",
+    address: "",
+    bedrooms: 1,
+    bathrooms: 1,
+    max_guests: 2,
+    nightly_php: 1500,
+    min_nights: 1,
+    is_owner_direct: true,
+    instant_book: false,
+    description: "",
+  });
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   async function generateDescription() {
     const parsed = aiDescribeSchema.safeParse({
-      title: aiTitle,
-      bullets: aiBullets.split("\n").map((b) => b.trim()).filter(Boolean),
+      title,
+      bullets: bullets.split("\n").map((b) => b.trim()).filter(Boolean),
       tone: "confident",
     });
     if (!parsed.success) {
-      toast({ title: "Add a title and at least one bullet point.", variant: "destructive" });
+      toast({ title: "Add a title and at least one bullet", variant: "destructive" });
       return;
     }
     setAiLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-describe", { body: parsed.data });
       if (error) throw error;
-      setAiOut(data?.description ?? "");
+      const desc = data?.description ?? "";
+      setAiOut(desc);
+      setForm((f) => ({ ...f, description: desc }));
     } catch (err) {
       toast({ title: "AI error", description: (err as Error).message, variant: "destructive" });
     } finally {
-      setAiLoading(false);
+      setAiLoading(false); }
+  }
+
+  function toggleAmenity(a: string) {
+    setSelectedAmenities((prev) =>
+      prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]
+    );
+  }
+
+  async function submitListing(isDraft: boolean) {
+    if (!user) return;
+    if (!title.trim()) {
+      toast({ title: "Title is required", variant: "destructive" });
+      return;
     }
+    if (!form.city.trim() || !form.province.trim()) {
+      toast({ title: "City and province are required", variant: "destructive" });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const id = crypto.randomUUID();
+      const slug = slugify(title, id);
+
+      const { error } = await supabase.from("listings").insert({
+        id,
+        slug,
+        host_id: user.id,
+        title: title.trim(),
+        description: form.description.trim(),
+        type: form.type,
+        city: form.city.trim(),
+        province: form.province.trim(),
+        address: form.address.trim() || null,
+        bedrooms: form.bedrooms,
+        bathrooms: form.bathrooms,
+        max_guests: form.max_guests,
+        nightly_php: form.nightly_php,
+        min_nights: form.min_nights,
+        amenities: selectedAmenities,
+        images: [],
+        is_owner_direct: form.is_owner_direct,
+        instant_book: form.instant_book,
+        status: isDraft ? "draft" : "active",
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: isDraft ? "Saved as draft" : "Listing published!",
+        description: isDraft
+          ? "You can publish it anytime from this page."
+          : "Your listing is now live and searchable.",
+      });
+
+      if (!isDraft) navigate(`/listing/${id}`);
+    } catch (err) {
+      toast({ title: "Failed to save listing", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="container py-24 flex justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   if (!user) {
     return (
-      <div>
-        <Seo title="Host on CheapStays" description="List your property on CheapStays and reach verified travelers directly." path="/host" />
-        <div className="container py-24 max-w-lg text-center">
-          <h1 className="text-3xl font-semibold tracking-tight">Become a host</h1>
-          <p className="mt-3 text-muted-foreground">
-            Sign in to set up your host profile and start listing your place on CheapStays.
-          </p>
-          <Button asChild className="mt-6">
-            <Link to="/auth">Sign in to get started</Link>
-          </Button>
+      <div className="container py-24 max-w-xl text-center">
+        <Seo title="Host on CheapStays" description="List your property and reach verified travelers directly." path="/host" />
+        <h1 className="text-2xl font-semibold">Sign in to host</h1>
+        <p className="text-muted-foreground mt-2">You need an account to list your property on CheapStays.</p>
+        <Link to="/auth">
+          <Button className="mt-6">Sign in or create account</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  if (!isHost(roles)) {
+    return (
+      <div className="container py-24 max-w-xl text-center">
+        <Seo title="Become a Host · CheapStays" description="Apply to list your property on CheapStays." path="/host" />
+        <h1 className="text-2xl font-semibold">Apply to become a host</h1>
+        <p className="text-muted-foreground mt-3">
+          Your account doesn't have host access yet. Contact support and an admin will review your application — usually within 24 hours.
+        </p>
+        <div className="flex gap-3 justify-center mt-6">
+          <Link to="/support">
+            <Button>Contact support</Button>
+          </Link>
+          <Link to="/search">
+            <Button variant="outline">Browse listings</Button>
+          </Link>
         </div>
       </div>
     );
@@ -219,369 +215,253 @@ export default function Host() {
 
   return (
     <div>
-      <Seo title="Host on CheapStays" description="List your property on CheapStays and reach verified travelers directly." path="/host" />
+      <Seo title="Host tools · CheapStays" description="Create and manage your listings on CheapStays." path="/host" />
       <div className="container py-12 max-w-3xl space-y-10">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Host tools</h1>
-          <p className="mt-2 text-muted-foreground">
-            Set up your host profile, create a listing, and let CheapStays travelers find your place.
-          </p>
+          <p className="text-muted-foreground mt-2">Create a listing and reach verified travelers directly.</p>
         </div>
 
-        {/* Section 1: Host Profile */}
-        <section>
-          <h2 className="text-xl font-semibold mb-4">Become a verified host</h2>
-          {verificationStatus === "pending" ? (
-            <Card className="p-6 flex items-center gap-4">
-              <Clock className="h-6 w-6 text-amber-500 shrink-0" />
-              <div>
-                <p className="font-medium">Verification in progress</p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  We received your application and will review it within 24 hours. You will get an email once approved.
-                </p>
-                <Badge variant="secondary" className="mt-2">Status: Pending</Badge>
-              </div>
-            </Card>
-          ) : verificationStatus === "approved" ? (
-            <Card className="p-6 flex items-center gap-4">
-              <CheckCircle2 className="h-6 w-6 text-green-600 shrink-0" />
-              <div>
-                <p className="font-medium text-green-700">You are a verified host!</p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Your profile is live. Travelers can now see your host badge.
-                </p>
-              </div>
-            </Card>
-          ) : (
-            <Card className="p-6">
-              <p className="text-sm text-muted-foreground mb-5">
-                Verified hosts get a trust badge, higher search ranking, and direct contact with travelers.
-                Verification usually takes less than 24 hours.
-              </p>
-              <form onSubmit={submitProfile} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="display-name">Full name *</Label>
-                    <Input
-                      id="display-name"
-                      placeholder="Maria Santos"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="phone">Phone / GCash number *</Label>
-                    <Input
-                      id="phone"
-                      placeholder="+63 9XX XXX XXXX"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="host-city">City / Location *</Label>
-                  <Input
-                    id="host-city"
-                    placeholder="Cebu City, Cebu"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="bio">Short bio</Label>
-                  <Textarea
-                    id="bio"
-                    rows={3}
-                    placeholder="Tell travelers a bit about yourself and your place..."
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="id-photo">Upload ID photo</Label>
-                    <Input id="id-photo" type="file" accept="image/*" />
-                    <p className="text-xs text-muted-foreground">Government-issued ID (front)</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="selfie">Upload selfie with ID</Label>
-                    <Input id="selfie" type="file" accept="image/*" />
-                    <p className="text-xs text-muted-foreground">Hold your ID next to your face</p>
-                  </div>
-                </div>
-                <Button type="submit" disabled={profileSubmitting}>
-                  {profileSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                  Submit for verification
-                </Button>
-              </form>
-            </Card>
+        {/* AI Description Generator */}
+        <Card className="p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h2 className="font-medium">AI description generator</h2>
+            <Badge variant="secondary" className="text-[10px]">Optional</Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">Paste your listing's facts and we'll write a clean, honest description.</p>
+          <div className="space-y-2">
+            <Label>Listing title</Label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Cozy 1BR Condo in Cubao, Quezon City"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Bullet points (one per line)</Label>
+            <Textarea
+              rows={5}
+              value={bullets}
+              onChange={(e) => setBullets(e.target.value)}
+              placeholder={"40m² · 1 bed\nQuezon City · near MRT\nFast WiFi · 100 Mbps\nAir-conditioned\nInstant book"}
+            />
+          </div>
+          <Button onClick={generateDescription} disabled={aiLoading} variant="secondary">
+            {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+            {aiLoading ? "Writing…" : "Generate description"}
+          </Button>
+          {aiOut && (
+            <div className="mt-2 border-t pt-4">
+              <p className="text-xs text-muted-foreground mb-2">Generated — copied into description field below:</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{aiOut}</p>
+            </div>
           )}
-        </section>
+        </Card>
 
-        <Separator />
+        {/* Listing Form */}
+        <Card className="p-6 space-y-6">
+          <h2 className="font-medium text-lg">Listing details</h2>
 
-        {/* Section 2: Create Listing */}
-        <section>
-          <h2 className="text-xl font-semibold mb-4">Create a listing</h2>
-          <Card className="p-6 space-y-5">
-            {/* Title */}
-            <div className="space-y-1.5">
-              <Label htmlFor="listing-title">Title *</Label>
-              <Input
-                id="listing-title"
-                placeholder="Cozy beachfront cottage in El Nido"
-                value={listingTitle}
-                onChange={(e) => setListingTitle(e.target.value)}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>Title *</Label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Cozy 1BR Condo in Cubao, Quezon City"
+            />
+          </div>
 
-            {/* Type */}
-            <div className="space-y-1.5">
-              <Label>Type *</Label>
-              <Select value={listingType} onValueChange={setListingType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {LISTING_TYPES.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Location */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="listing-city">City *</Label>
-                <Input
-                  id="listing-city"
-                  placeholder="El Nido"
-                  value={listingCity}
-                  onChange={(e) => setListingCity(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="listing-province">Province *</Label>
-                <Input
-                  id="listing-province"
-                  placeholder="Palawan"
-                  value={listingProvince}
-                  onChange={(e) => setListingProvince(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Rooms and guests */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="bedrooms">Bedrooms</Label>
-                <Input
-                  id="bedrooms"
-                  type="number"
-                  min={0}
-                  max={10}
-                  value={bedrooms}
-                  onChange={(e) => setBedrooms(Number(e.target.value))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="bathrooms">Bathrooms</Label>
-                <Input
-                  id="bathrooms"
-                  type="number"
-                  min={0}
-                  max={10}
-                  value={bathrooms}
-                  onChange={(e) => setBathrooms(Number(e.target.value))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="max-guests">Max guests</Label>
-                <Input
-                  id="max-guests"
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={maxGuests}
-                  onChange={(e) => setMaxGuests(Number(e.target.value))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="min-nights">Min nights</Label>
-                <Input
-                  id="min-nights"
-                  type="number"
-                  min={1}
-                  max={30}
-                  value={minNights}
-                  onChange={(e) => setMinNights(Number(e.target.value))}
-                />
-              </div>
-            </div>
-
-            {/* Pricing */}
-            <div className="space-y-1.5">
-              <Label htmlFor="nightly-rate">Nightly rate (₱) *</Label>
-              <Input
-                id="nightly-rate"
-                type="number"
-                min={500}
-                step={100}
-                value={nightlyPhp}
-                onChange={(e) => setNightlyPhp(Number(e.target.value))}
-              />
-              <p className="text-xs text-muted-foreground">Minimum ₱500/night. Travelers pay you directly via GCash, Maya, or card.</p>
-            </div>
-
-            {/* Amenities */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Amenities</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {AMENITY_OPTIONS.map((a) => (
-                  <label
-                    key={a.value}
-                    className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer select-none transition-colors ${
-                      selectedAmenities.includes(a.value)
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "border-muted-foreground/20 hover:border-primary/50"
+              <Label>City *</Label>
+              <Input
+                value={form.city}
+                onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                placeholder="Quezon City"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Province / Region *</Label>
+              <Input
+                value={form.province}
+                onChange={(e) => setForm((f) => ({ ...f, province: e.target.value }))}
+                placeholder="NCR"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Address <span className="text-muted-foreground text-xs">(optional — shown after booking)</span></Label>
+            <Input
+              value={form.address}
+              onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+              placeholder="Unit 12, Tower A, Example St."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Property type</Label>
+            <div className="flex flex-wrap gap-2">
+              {LISTING_TYPES.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, type: t.value }))}
+                  className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                    form.type === t.value
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border/60 hover:border-foreground/30"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Bedrooms</Label>
+              <Input
+                type="number"
+                min={0}
+                max={20}
+                value={form.bedrooms}
+                onChange={(e) => setForm((f) => ({ ...f, bedrooms: Number(e.target.value) }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Bathrooms</Label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                step={0.5}
+                value={form.bathrooms}
+                onChange={(e) => setForm((f) => ({ ...f, bathrooms: Number(e.target.value) }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Max guests</Label>
+              <Input
+                type="number"
+                min={1}
+                max={50}
+                value={form.max_guests}
+                onChange={(e) => setForm((f) => ({ ...f, max_guests: Number(e.target.value) }))}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Nightly price (₱)</Label>
+              <Input
+                type="number"
+                min={100}
+                step={50}
+                value={form.nightly_php}
+                onChange={(e) => setForm((f) => ({ ...f, nightly_php: Number(e.target.value) }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Minimum nights</Label>
+              <Input
+                type="number"
+                min={1}
+                max={30}
+                value={form.min_nights}
+                onChange={(e) => setForm((f) => ({ ...f, min_nights: Number(e.target.value) }))}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <Textarea
+              rows={6}
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              placeholder="Describe your place — what makes it special, the neighbourhood, what guests can expect…"
+            />
+            <p className="text-xs text-muted-foreground">Use the AI generator above to write this for you.</p>
+          </div>
+
+          <div className="space-y-3">
+            <Label>Amenities</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {AMENITY_OPTIONS.map((a) => {
+                const checked = selectedAmenities.includes(a);
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() => toggleAmenity(a)}
+                    className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg border transition-colors text-left ${
+                      checked
+                        ? "border-primary/60 bg-primary/5 text-foreground"
+                        : "border-border/50 hover:border-foreground/20 text-muted-foreground"
                     }`}
                   >
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={selectedAmenities.includes(a.value)}
-                      onChange={() => toggleAmenity(a.value)}
-                    />
-                    <span
-                      className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 ${
-                        selectedAmenities.includes(a.value)
-                          ? "bg-primary border-primary"
-                          : "border-muted-foreground/40"
-                      }`}
-                    >
-                      {selectedAmenities.includes(a.value) && (
-                        <svg className="h-2.5 w-2.5 text-primary-foreground" viewBox="0 0 12 12" fill="none">
-                          <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
-                    </span>
-                    {a.label}
-                  </label>
-                ))}
-              </div>
+                    {checked
+                      ? <CheckSquare className="h-4 w-4 text-primary shrink-0" />
+                      : <Square className="h-4 w-4 shrink-0" />}
+                    {AMENITY_LABELS[a] ?? a}
+                  </button>
+                );
+              })}
             </div>
+          </div>
 
-            {/* Description */}
-            <div className="space-y-1.5">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                rows={5}
-                placeholder="Describe your place honestly. Mention what makes it special and what guests should know before booking."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-
-            {/* Instant book */}
-            <label className="flex items-center gap-3 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={instantBook}
-                onChange={(e) => setInstantBook(e.target.checked)}
-                className="h-4 w-4 rounded border-muted-foreground/40"
-              />
-              <div>
-                <span className="text-sm font-medium">Enable instant book</span>
-                <p className="text-xs text-muted-foreground">
-                  Guests can book without waiting for your approval. Great for attracting more bookings.
-                </p>
-              </div>
-            </label>
-
-            {/* Action buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button
-                variant="outline"
-                onClick={() => saveListing(true)}
-                disabled={listingSubmitting}
+          <div className="space-y-3">
+            <Label>Booking options</Label>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, is_owner_direct: !f.is_owner_direct }))}
+                className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg border transition-colors ${
+                  form.is_owner_direct
+                    ? "border-primary/60 bg-primary/5"
+                    : "border-border/50 text-muted-foreground"
+                }`}
               >
-                {listingSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Save as draft
-              </Button>
-              <Button
-                onClick={() => saveListing(false)}
-                disabled={listingSubmitting}
+                {form.is_owner_direct ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4" />}
+                Owner direct
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, instant_book: !f.instant_book }))}
+                className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg border transition-colors ${
+                  form.instant_book
+                    ? "border-primary/60 bg-primary/5"
+                    : "border-border/50 text-muted-foreground"
+                }`}
               >
-                {listingSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Publish listing
-              </Button>
+                {form.instant_book ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4" />}
+                Instant book
+              </button>
             </div>
-          </Card>
-        </section>
+          </div>
 
-        <Separator />
-
-        {/* Section 3: AI Description Generator (collapsible) */}
-        <section>
-          <button
-            type="button"
-            className="flex items-center justify-between w-full text-left group"
-            onClick={() => setAiOpen((v) => !v)}
-          >
-            <div>
-              <h2 className="text-xl font-semibold group-hover:text-primary transition-colors">
-                AI description generator
-              </h2>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Paste bullet points, get a clean honest description instantly.
-              </p>
-            </div>
-            {aiOpen ? (
-              <ChevronUp className="h-5 w-5 text-muted-foreground shrink-0 ml-4" />
-            ) : (
-              <ChevronDown className="h-5 w-5 text-muted-foreground shrink-0 ml-4" />
-            )}
-          </button>
-
-          {aiOpen && (
-            <Card className="p-6 mt-4 space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="ai-title">Listing title</Label>
-                <Input
-                  id="ai-title"
-                  value={aiTitle}
-                  onChange={(e) => setAiTitle(e.target.value)}
-                  placeholder="Hilltop glamping tent in Batangas with sea view"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="ai-bullets">Bullet points (one per line)</Label>
-                <Textarea
-                  id="ai-bullets"
-                  rows={6}
-                  value={aiBullets}
-                  onChange={(e) => setAiBullets(e.target.value)}
-                  placeholder={"2 queen beds · sleeps 4\nPrivate outdoor shower\nFast wifi · 100 Mbps\n20 min from Anilao dive sites\nBreakfast included"}
-                />
-              </div>
-              <Button onClick={generateDescription} disabled={aiLoading}>
-                <Sparkles className="h-4 w-4 mr-2" />
-                {aiLoading ? "Writing..." : "Generate description"}
-              </Button>
-              {aiOut && (
-                <div className="border-t pt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                  {aiOut}
-                </div>
-              )}
-            </Card>
-          )}
-        </section>
+          <div className="flex flex-wrap gap-3 pt-2 border-t border-border/60">
+            <Button
+              onClick={() => submitListing(false)}
+              disabled={submitting}
+              className="gap-2"
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Publish listing
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => submitListing(true)}
+              disabled={submitting}
+            >
+              Save as draft
+            </Button>
+          </div>
+        </Card>
       </div>
     </div>
   );
