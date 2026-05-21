@@ -13,7 +13,7 @@ type AuditRow = { id: string; target_user_id: string; role: AppRole; action: "gr
 type Ticket = { id: string; ticket_num: number; subject: string; status: string; escalated: boolean; created_at: string };
 type UserRoleRow = { id: string; user_id: string; role: AppRole };
 type ProfileRow = { user_id: string; display_name: string | null };
-type HostProfile = { id: string; user_id: string; business_name: string | null; verification_status: string; created_at: string };
+type HostProfile = { id: string; user_id: string; display_name: string | null; verification_status: string; created_at: string };
 
 type UserView = { userId: string; displayName: string; initials: string; roles: AppRole[] };
 const MANAGED_ROLES: AppRole[] = ["admin", "host", "member"];
@@ -33,7 +33,7 @@ export default function Admin() {
       supabase.from("support_tickets").select("id,ticket_num,subject,status,escalated,created_at").order("created_at", { ascending: false }).limit(50),
       supabase.from("user_roles").select("id,user_id,role").order("created_at", { ascending: false }),
       supabase.from("profiles").select("user_id,display_name").order("created_at", { ascending: false }).limit(200),
-      supabase.from("host_profiles").select("id,user_id,business_name,verification_status,created_at").order("created_at", { ascending: false }).limit(100),
+      supabase.from("host_profiles").select("id,user_id,display_name,verification_status,created_at").order("created_at", { ascending: false }).limit(100),
     ]);
 
     if (auditRes.error || ticketRes.error || rolesRes.error || profilesRes.error) {
@@ -151,7 +151,7 @@ export default function Admin() {
               return (
                 <Card key={hp.id} className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="font-medium">{hp.business_name ?? displayName}</p>
+                    <p className="font-medium">{hp.display_name ?? displayName}</p>
                     <p className="text-xs text-muted-foreground font-mono">{hp.user_id.slice(0, 8)}</p>
                     <p className="text-xs text-muted-foreground">{new Date(hp.created_at).toLocaleDateString()}</p>
                   </div>

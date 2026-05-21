@@ -1,6 +1,6 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +20,12 @@ const ListingDetail = lazy(() => import("./pages/ListingDetail"));
 
 const queryClient = new QueryClient();
 
+/** Resets the error boundary whenever the route changes. */
+function RouteAwareErrorBoundary({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+  return <ErrorBoundary resetKeys={[pathname]}>{children}</ErrorBoundary>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -28,7 +34,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Layout>
-            <ErrorBoundary>
+            <RouteAwareErrorBoundary>
               <Suspense
                 fallback={
                   <div className="flex items-center justify-center min-h-screen">
@@ -45,11 +51,12 @@ const App = () => (
                   <Route path="/support" element={<Support />} />
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/listing/:id" element={<ListingDetail />} />
+                  <Route path="/listing/slug/:slug" element={<ListingDetail />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
-            </ErrorBoundary>
+            </RouteAwareErrorBoundary>
           </Layout>
         </BrowserRouter>
       </TooltipProvider>

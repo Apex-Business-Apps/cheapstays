@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,7 +107,7 @@ function ListingCard({ listing }: { listing: Listing }) {
 
   return (
     <Link
-      to={`/listing/${listing.id}`}
+      to={listing.slug ? `/listing/slug/${listing.slug}` : `/listing/${listing.id}`}
       className="group block rounded-2xl border border-border/60 bg-card hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden"
     >
       <div className="h-44 bg-gradient-to-br from-secondary/60 to-accent/10 flex items-center justify-center relative overflow-hidden">
@@ -214,6 +214,33 @@ export default function Search() {
   const [sort, setSort] = useState<SortKey>("score");
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [browseListings, setBrowseListings] = useState<Listing[]>([]);
+  const [browseLoading, setBrowseLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setBrowseLoading(true);
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("listings")
+          .select("id, slug, host_id, title, city, province, type, bedrooms, bathrooms, max_guests, nightly_php, min_nights, amenities, images, is_owner_direct, instant_book, avg_rating, review_count")
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(12);
+        if (!cancelled) {
+          setBrowseListings(
+            (data ?? []).map((l) => ({ ...l, why_its_a_deal: "", score: 0 })) as Listing[]
+          );
+        }
+      } catch {
+        // silent — browse listings are non-critical
+      } finally {
+        if (!cancelled) setBrowseLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   async function run(e: React.FormEvent) {
     e.preventDefault();
@@ -447,6 +474,15 @@ export default function Search() {
         {!loading && filtered.length > 0 && (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((r) => <ListingCard key={r.id} listing={r} />)}
+          </div>
+        )}
+
+        {!loading && !searched && browseLoading && (
+          <div className="mt-10">
+            <h2 className="text-lg font-medium mb-4">Browse latest stays</h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((n) => <CardSkeleton key={n} />)}
+            </div>
           </div>
         )}
 

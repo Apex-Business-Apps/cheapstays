@@ -4,9 +4,29 @@ import { corsHeaders } from "../_shared/cors.ts";
 const PAYMONGO_WEBHOOK_SECRET_HEADER = "paymongo-signature";
 
 /**
+ * Constant-time comparison to prevent timing attacks.
+ * Both strings are encoded to bytes and compared byte-by-byte, accumulating
+ * differences so the runtime does not short-circuit on a mismatch.
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const aBytes = enc.encode(a);
+  const bBytes = enc.encode(b);
+  // If lengths differ, we still iterate the full shorter length to avoid a
+  // trivially detectable timing side-channel, then return false.
+  const len = Math.max(aBytes.length, bBytes.length);
+  let diff = aBytes.length ^ bBytes.length;
+  for (let i = 0; i < len; i++) {
+    diff |= (aBytes[i] ?? 0) ^ (bBytes[i] ?? 0);
+  }
+  return diff === 0;
+}
+
+/**
  * Verify PayMongo webhook signature using HMAC-SHA256.
  * PayMongo sends: t=<timestamp>,li=<live-sig>,te=<test-sig>
- * We reconstruct the signed payload as "<timestamp>.<raw-body>" and compare.
+ * We reconstruct the signed payload as "<timestamp>.<raw-body>" and compare
+ * using constant-time comparison to prevent timing attacks.
  */
 async function verifySignature(
   rawBody: string,
@@ -37,7 +57,7 @@ async function verifySignature(
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
-  return computed === receivedSig;
+  return timingSafeEqual(computed, receivedSig);
 }
 
 Deno.serve(async (req) => {
@@ -56,10 +76,26 @@ Deno.serve(async (req) => {
   try {
     const rawBody = await req.text();
     const webhookSecret = Deno.env.get("PAYMONGO_WEBHOOK_SECRET");
+    const isProduction = Deno.env.get("ENVIRONMENT") === "production";
 
-    // Verify signature when secret is configured (skip in demo mode)
+    // In production, a missing webhook secret is a configuration error — reject all events.
+    if (!webhookSecret && isProduction) {
+      return new Response(
+        JSON.stringify({ error: "Webhook secret not configured. Contact support." }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Verify signature when secret is configured; in non-production with no secret,
+    // unsigned events are accepted for local/demo testing only.
     if (webhookSecret) {
       const sigHeader = req.headers.get(PAYMONGO_WEBHOOK_SECRET_HEADER) ?? "";
+      if (!sigHeader) {
+        return new Response(JSON.stringify({ error: "Missing signature header" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const valid = await verifySignature(rawBody, sigHeader, webhookSecret);
       if (!valid) {
         return new Response(JSON.stringify({ error: "Invalid signature" }), {
@@ -67,6 +103,9 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+    } else {
+      // No secret and not production — log a warning so operators notice.
+      console.warn("PAYMONGO_WEBHOOK_SECRET not set; skipping signature verification (demo mode).");
     }
 
     let event: {
@@ -130,6 +169,21 @@ Deno.serve(async (req) => {
     }
 
     if (eventType === "payment.paid") {
+      // Idempotent: only update if the booking is not already in "paid"/"confirmed" state.
+      // This ensures a replayed or duplicate webhook does not trigger unintended side-effects.
+      const { data: existing } = await adminClient
+        .from("bookings")
+        .select("payment_status, status")
+        .eq("id", resolvedBookingId)
+        .maybeSingle();
+
+      if (existing && existing.payment_status === "paid" && existing.status === "confirmed") {
+        return new Response(
+          JSON.stringify({ received: true, action: "already_confirmed", booking_id: resolvedBookingId }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
       await adminClient
         .from("bookings")
         .update({ payment_status: "paid", status: "confirmed" })
@@ -143,6 +197,20 @@ Deno.serve(async (req) => {
     }
 
     if (eventType === "payment.failed") {
+      // Idempotent: only update if still in "pending" state; ignore if already failed or paid.
+      const { data: existing } = await adminClient
+        .from("bookings")
+        .select("payment_status")
+        .eq("id", resolvedBookingId)
+        .maybeSingle();
+
+      if (existing && existing.payment_status !== "pending") {
+        return new Response(
+          JSON.stringify({ received: true, action: "already_settled", booking_id: resolvedBookingId }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
       await adminClient
         .from("bookings")
         .update({ payment_status: "failed" })

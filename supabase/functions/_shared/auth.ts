@@ -8,8 +8,7 @@ export async function getUserFromRequest(req: Request) {
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: authHeader } } }
   );
-  const token = authHeader.replace("Bearer ", "");
-  const { data, error } = await supabase.auth.getClaims(token);
-  if (error || !data?.claims) return { user: null, supabase: null, error: "Unauthorized" };
-  return { user: { id: data.claims.sub as string, email: data.claims.email as string | undefined }, supabase, error: null };
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) return { user: null, supabase: null, error: "Unauthorized" };
+  return { user: { id: data.user.id, email: data.user.email }, supabase, error: null };
 }

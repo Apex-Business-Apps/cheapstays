@@ -123,21 +123,25 @@ Deno.serve(async (req) => {
 
     const listingTitle = listing?.title ?? "CheapStays property";
 
-    // --- Demo mode: return early if PayMongo key not configured ---
+    // --- Require PayMongo secret key ---
     const paymongoKey = Deno.env.get("PAYMONGO_SECRET_KEY");
     if (!paymongoKey) {
-      // Mark booking as confirmed in demo mode
-      await adminClient
-        .from("bookings")
-        .update({ status: "confirmed" })
-        .eq("id", booking_id);
+      // In production, a missing key is a configuration error — reject hard.
+      if (Deno.env.get("ENVIRONMENT") === "production") {
+        return new Response(
+          JSON.stringify({ error: "Payment gateway is not configured. Please contact support." }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
 
+      // Non-production demo mode: acknowledge but do NOT auto-confirm the booking
+      // so that the demo does not silently bypass payment verification.
       return new Response(
         JSON.stringify({
           demo_mode: true,
           booking_id,
           total_php: booking.total_php,
-          message: "Payment gateway not configured. Booking is confirmed for demo.",
+          message: "Payment gateway not configured. Running in demo mode — booking is NOT confirmed.",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );

@@ -2,12 +2,59 @@
 
 **Organization:** APEX Business Systems Ltd.  
 **Location:** Edmonton, AB  
-**Document Version:** 1.2.0  
+**Document Version:** 1.1.0  
 **Last Updated:** 2026-05-21
 
 All notable changes to this project are documented in this file.
 
 Format guidance follows Keep a Changelog principles and semantic release headings.
+
+## [1.1.0] - 2026-05-21
+
+### Security
+
+- Replaced invalid `auth.getClaims()` with `auth.getUser()` in `supabase/functions/_shared/auth.ts` (BUG-002).
+- AI chat bubble now derives function URL from `VITE_SUPABASE_URL` instead of potentially undefined `VITE_SUPABASE_PROJECT_ID` (BUG-004).
+- Self-booking rejected at `book-listing` edge function — hosts cannot book their own listings (BUG-007).
+- Google OAuth button disabled during sign-in to prevent double-click race conditions (BUG-012).
+- High npm audit vulnerabilities resolved via `npm audit fix` (rollup, yaml, wrangler/ws devDependencies).
+- ErrorBoundary hides raw error details in production; resets on route change (BUG-013).
+- Payment-webhook uses constant-time HMAC comparison; requires webhook secret in production.
+- `_shared` changes in CI now redeploy all edge functions.
+
+### Fixed
+
+- `/search` page crash when `browseListings` was undefined — added mount fetch for latest 12 active listings (BUG-001).
+- Agoda search imported non-existent `checkRateLimit`; corrected to exported `rateLimit` (BUG-005).
+- Review form shown for non-completed bookings; now gated on `eligibleBookingId` from completed bookings only (BUG-006).
+- `GuestRatingBadge` now uses 5-minute TTL module-level cache to prevent stale data and excessive fetches (BUG-009).
+- Toast system standardized on Sonner; `use-toast.ts` is a thin shim, `toaster.tsx` uses `<SonnerToaster>` (BUG-010).
+
+### Added
+
+- `supabase/functions/assign-member-role/index.ts` — service-role edge function for membership role upsert (BUG-008).
+- `/listing/slug/:slug` route in App.tsx; `ListingDetail.tsx` fetches by slug when param is present (BUG-016).
+- `supabase/migrations/20260521220000_fix_reviews_booking_unique.sql` — unique index on `(booking_id, reviewer_role)` for two-way ratings.
+- `supabase/migrations/20260521230000_rate_limit_table.sql` — persistent `rate_limits` table for cross-instance rate limiting.
+- `supabase/migrations/20260521240000_listings_images_text_array.sql` — ensures `images` column is `TEXT[]` with `'{}'` default.
+- `supabase/migrations/20260521260000_notifications.sql` — `notifications` table with RLS, booking status trigger.
+- `public/sitemap.xml` — static sitemap with all primary routes.
+- `public/robots.txt` — standard allow-all with sitemap reference.
+- `supabase/scripts/generate-sitemap.ts` — automated sitemap generation script.
+- `npm run typecheck` script added to `package.json` and PR CI workflow.
+- `npm run generate:sitemap` script added to `package.json`.
+- SEO: `Seo.tsx` supports `jsonLd` prop for JSON-LD structured data injection.
+- Mobile hamburger nav added to `Navbar.tsx`.
+- `docs/SEO_SITEMAP.md`, `docs/NOTIFICATIONS.md`, `docs/RESPONSIVE_UX.md` created.
+- `.env.example` with required environment variable keys.
+
+### Changed
+
+- Supabase types updated to include `bookings`, `reviews`, `host_profiles`, `notifications` tables and all missing enums.
+- `listings` type updated with `video_url` column.
+- PR CI workflow adds typecheck and test steps before build.
+- Production deploy CI redeploys all functions when `_shared` directory changes.
+- `Admin.tsx` corrected to query `display_name` instead of non-existent `business_name` on `host_profiles`.
 
 ## [1.2.0] - 2026-05-21
 

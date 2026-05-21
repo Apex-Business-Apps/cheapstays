@@ -10,9 +10,9 @@ import { setLang } from "@/i18n";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID as string;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-const CHAT_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/ai-chat`;
+const CHAT_URL = `${SUPABASE_URL}/functions/v1/ai-chat`;
 
 type SpeechRecognitionResult = { 0: { transcript: string } };
 type SpeechRecognitionEvent = Event & { results: ArrayLike<SpeechRecognitionResult> };

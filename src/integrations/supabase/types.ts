@@ -14,6 +14,223 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          id: string
+          listing_id: string
+          guest_id: string
+          host_id: string
+          check_in: string
+          check_out: string
+          nights: number
+          guests: number
+          total_php: number
+          status: "pending" | "confirmed" | "cancelled" | "completed" | "no_show"
+          payment_status: "unpaid" | "pending" | "paid" | "failed" | "refunded"
+          payment_method: "gcash" | "maya" | "card" | "bank_transfer" | "cash" | null
+          payment_ref: string | null
+          paymongo_payment_intent_id: string | null
+          guest_message: string | null
+          host_notes: string | null
+          confirmed_at: string | null
+          cancelled_at: string | null
+          cancellation_reason: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          listing_id: string
+          guest_id: string
+          host_id: string
+          check_in: string
+          check_out: string
+          nights: number
+          guests?: number
+          total_php: number
+          status?: "pending" | "confirmed" | "cancelled" | "completed" | "no_show"
+          payment_status?: "unpaid" | "pending" | "paid" | "failed" | "refunded"
+          payment_method?: "gcash" | "maya" | "card" | "bank_transfer" | "cash" | null
+          payment_ref?: string | null
+          paymongo_payment_intent_id?: string | null
+          guest_message?: string | null
+          host_notes?: string | null
+          confirmed_at?: string | null
+          cancelled_at?: string | null
+          cancellation_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          listing_id?: string
+          guest_id?: string
+          host_id?: string
+          check_in?: string
+          check_out?: string
+          nights?: number
+          guests?: number
+          total_php?: number
+          status?: "pending" | "confirmed" | "cancelled" | "completed" | "no_show"
+          payment_status?: "unpaid" | "pending" | "paid" | "failed" | "refunded"
+          payment_method?: "gcash" | "maya" | "card" | "bank_transfer" | "cash" | null
+          payment_ref?: string | null
+          paymongo_payment_intent_id?: string | null
+          guest_message?: string | null
+          host_notes?: string | null
+          confirmed_at?: string | null
+          cancelled_at?: string | null
+          cancellation_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: string
+          title: string
+          body: string
+          data: Json
+          read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: string
+          title: string
+          body: string
+          data?: Json
+          read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: string
+          title?: string
+          body?: string
+          data?: Json
+          read?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          id: string
+          booking_id: string
+          listing_id: string
+          reviewer_id: string
+          host_id: string
+          reviewee_id: string | null
+          reviewer_role: string
+          rating: number
+          body: string | null
+          is_public: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          booking_id: string
+          listing_id: string
+          reviewer_id: string
+          host_id: string
+          reviewee_id?: string | null
+          reviewer_role?: string
+          rating: number
+          body?: string | null
+          is_public?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          booking_id?: string
+          listing_id?: string
+          reviewer_id?: string
+          host_id?: string
+          reviewee_id?: string | null
+          reviewer_role?: string
+          rating?: number
+          body?: string | null
+          is_public?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      host_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          display_name: string | null
+          bio: string | null
+          phone: string | null
+          location: string | null
+          id_photo_url: string | null
+          selfie_url: string | null
+          verification_status: "unverified" | "pending" | "verified" | "rejected"
+          verified_at: string | null
+          response_rate: number | null
+          total_listings: number | null
+          total_bookings: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          display_name?: string | null
+          bio?: string | null
+          phone?: string | null
+          location?: string | null
+          id_photo_url?: string | null
+          selfie_url?: string | null
+          verification_status?: "unverified" | "pending" | "verified" | "rejected"
+          verified_at?: string | null
+          response_rate?: number | null
+          total_listings?: number | null
+          total_bookings?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          display_name?: string | null
+          bio?: string | null
+          phone?: string | null
+          location?: string | null
+          id_photo_url?: string | null
+          selfie_url?: string | null
+          verification_status?: "unverified" | "pending" | "verified" | "rejected"
+          verified_at?: string | null
+          response_rate?: number | null
+          total_listings?: number | null
+          total_bookings?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       listings: {
         Row: {
           id: string
@@ -34,6 +251,7 @@ export type Database = {
           min_nights: number
           amenities: string[]
           images: string[]
+          video_url: string | null
           is_owner_direct: boolean
           instant_book: boolean
           status: "draft" | "active" | "inactive" | "suspended"
@@ -61,6 +279,7 @@ export type Database = {
           min_nights?: number
           amenities?: string[]
           images?: string[]
+          video_url?: string | null
           is_owner_direct?: boolean
           instant_book?: boolean
           status?: "draft" | "active" | "inactive" | "suspended"
@@ -88,6 +307,7 @@ export type Database = {
           min_nights?: number
           amenities?: string[]
           images?: string[]
+          video_url?: string | null
           is_owner_direct?: boolean
           instant_book?: boolean
           status?: "draft" | "active" | "inactive" | "suspended"
@@ -277,7 +497,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "host" | "member" | "user"
+      booking_status: "pending" | "confirmed" | "cancelled" | "completed" | "no_show"
+      host_verification_status: "unverified" | "pending" | "verified" | "rejected"
+      listing_type: "entire_place" | "private_room" | "shared_room" | "glamping" | "villa" | "resort"
       message_sender: "user" | "ai" | "admin" | "system"
+      payment_method: "gcash" | "maya" | "card" | "bank_transfer" | "cash"
+      payment_status: "unpaid" | "pending" | "paid" | "failed" | "refunded"
       ticket_priority: "low" | "normal" | "high" | "urgent"
       ticket_status: "open" | "pending" | "resolved" | "closed" | "escalated"
     }
@@ -408,7 +633,12 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "host", "member", "user"],
+      booking_status: ["pending", "confirmed", "cancelled", "completed", "no_show"],
+      host_verification_status: ["unverified", "pending", "verified", "rejected"],
+      listing_type: ["entire_place", "private_room", "shared_room", "glamping", "villa", "resort"],
       message_sender: ["user", "ai", "admin", "system"],
+      payment_method: ["gcash", "maya", "card", "bank_transfer", "cash"],
+      payment_status: ["unpaid", "pending", "paid", "failed", "refunded"],
       ticket_priority: ["low", "normal", "high", "urgent"],
       ticket_status: ["open", "pending", "resolved", "closed", "escalated"],
     },
