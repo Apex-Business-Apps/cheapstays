@@ -23,7 +23,7 @@ export function Navbar() {
             <span className="text-lg">Cheap<span className="text-accent">Stays</span></span>
           ) : (
             <img
-              src={brandAsset === "wordmark" ? "/wordmark.png" : "/favicon.png"}
+              src={brandAsset === "wordmark" ? `/wordmark.png?v=${__CACHE_BUST__}` : `/favicon.png?v=${__CACHE_BUST__}`}
               alt={brandAsset === "wordmark" ? "CheapStays wordmark" : "CheapStays mark"}
               className={`w-auto object-contain transition-transform duration-500 ease-out group-hover:scale-[1.02] ${
                 brandAsset === "wordmark" ? "h-[90%] max-w-[240px]" : "h-10 max-w-10 rounded-md"
