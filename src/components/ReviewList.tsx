@@ -70,7 +70,7 @@ export function ReviewList({ listingId, hostId }: Props) {
       .select("id")
       .eq("listing_id", listingId)
       .eq("guest_id", user.id)
-      .in("status", ["confirmed", "pending"])
+      .eq("status", "completed")
       .limit(1)
       .then(({ data }) => {
         if (!data?.length) return;
@@ -125,7 +125,7 @@ export function ReviewList({ listingId, hostId }: Props) {
             </span>
           )}
         </div>
-        {user && !alreadyReviewed && (
+        {user && !alreadyReviewed && eligibleBookingId && (
           <Button size="sm" variant="outline" onClick={() => setShowForm((v) => !v)}>
             {showForm ? "Cancel" : "Write a review"}
           </Button>
