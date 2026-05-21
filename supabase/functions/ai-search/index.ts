@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
     let dbQuery = supabase
       .from("listings")
-      .select("id,title,slug,city,province,type,bedrooms,bathrooms,max_guests,nightly_php,min_nights,amenities,description,is_owner_direct,instant_book,avg_rating,review_count")
+      .select("id,title,slug,city,province,type,bedrooms,bathrooms,max_guests,nightly_php,min_nights,amenities,images,description,is_owner_direct,instant_book,avg_rating,review_count")
       .eq("status", "active");
 
     if (filters?.maxNightly) {
@@ -127,6 +127,7 @@ Match listings to the user query using FUZZY, SEMANTIC matching:
           nightly_php: l.nightly_php,
           min_nights: l.min_nights,
           amenities: l.amenities ?? [],
+          images: l.images ?? [],
           is_owner_direct: l.is_owner_direct,
           instant_book: l.instant_book,
           avg_rating: l.avg_rating,

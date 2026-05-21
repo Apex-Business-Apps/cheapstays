@@ -4,19 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { aiSearchSchema } from "@/lib/schemas";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Wifi, Zap, Users, BedDouble, Star } from "lucide-react";
+import { Loader2, Sparkles, Zap, Users, BedDouble, Star } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +24,7 @@ type Listing = {
   nightly_php: number;
   min_nights: number;
   amenities: string[];
+  images: string[];
   is_owner_direct: boolean;
   instant_book: boolean;
   avg_rating: number | null;
@@ -65,6 +57,7 @@ const AMENITY_ICONS: Record<string, string> = {
 
 function ListingCard({ listing }: { listing: Listing }) {
   const href = `/listing/${listing.id}`;
+  const heroImage = listing.images?.[0];
   const displayAmenities = (listing.amenities ?? [])
     .filter((a) => AMENITY_ICONS[a])
     .slice(0, 4);
@@ -74,11 +67,20 @@ function ListingCard({ listing }: { listing: Listing }) {
       to={href}
       className="group block rounded-2xl border border-border/60 bg-card hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden"
     >
-      {/* Placeholder image area */}
-      <div className="h-44 bg-gradient-to-br from-secondary/60 to-accent/10 flex items-center justify-center relative">
-        <span className="text-4xl opacity-20 select-none">
-          {listing.type === "villa" ? "🏡" : listing.type === "glamping" ? "⛺" : "🏠"}
-        </span>
+      {/* Hero image or placeholder */}
+      <div className="h-44 bg-gradient-to-br from-secondary/60 to-accent/10 flex items-center justify-center relative overflow-hidden">
+        {heroImage ? (
+          <img
+            src={heroImage}
+            alt={listing.title}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            loading="lazy"
+          />
+        ) : (
+          <span className="text-4xl opacity-20 select-none">
+            {listing.type === "villa" ? "🏡" : listing.type === "glamping" ? "⛺" : "🏠"}
+          </span>
+        )}
         {listing.instant_book && (
           <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground text-[10px] gap-1">
             <Zap className="h-3 w-3" /> Instant book
@@ -153,8 +155,20 @@ function ListingCard({ listing }: { listing: Listing }) {
   );
 }
 
+function CardSkeleton() {
+  return (
+    <div className="rounded-2xl border border-border/60 overflow-hidden">
+      <Skeleton className="h-44 w-full rounded-none" />
+      <div className="p-4 space-y-2">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-3 w-1/2" />
+        <Skeleton className="h-3 w-full" />
+      </div>
+    </div>
+  );
+}
+
 export default function Search() {
-  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Listing[]>([]);
   const [summary, setSummary] = useState("");
@@ -171,14 +185,8 @@ export default function Search() {
     setLoading(true);
     setSearched(false);
     try {
-      const { error } = await supabase.functions.invoke("book-listing", {
-        body: {
-          listing_id: booking.listing.id,
-          check_in: booking.checkIn,
-          check_out: booking.checkOut,
-          guests: booking.guests,
-          guest_message: booking.message,
-        },
+      const { data, error } = await supabase.functions.invoke("ai-search", {
+        body: { query },
       });
       if (error) throw error;
       setResults(data?.results ?? []);
@@ -190,9 +198,6 @@ export default function Search() {
       setLoading(false);
     }
   }
-
-  const nights = booking ? nightCount(booking.checkIn, booking.checkOut) : 0;
-  const total = booking ? nights * booking.listing.nightly_php : 0;
 
   return (
     <div>
@@ -229,14 +234,20 @@ export default function Search() {
           </p>
         )}
 
-        {searched && results.length === 0 && (
+        {loading && (
+          <div className={cn("mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3")}>
+            {[1, 2, 3].map((n) => <CardSkeleton key={n} />)}
+          </div>
+        )}
+
+        {!loading && searched && results.length === 0 && (
           <div className="mt-12 text-center text-muted-foreground">
             <p className="text-lg">No matches found.</p>
             <p className="text-sm mt-1">Try a different city, adjust your budget, or broaden your description.</p>
           </div>
         )}
 
-        {results.length > 0 && (
+        {!loading && results.length > 0 && (
           <div className={cn("mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3")}>
             {results.map((r) => (
               <ListingCard key={r.id} listing={r} />
