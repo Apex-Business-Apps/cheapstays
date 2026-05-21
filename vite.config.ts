@@ -41,6 +41,21 @@ export default defineConfig(({ mode }) => {
         },
       },
     ].filter(Boolean),
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes("node_modules/react-dom")) return "vendor-react";
+            if (id.includes("node_modules/react-router-dom")) return "vendor-react";
+            if (id.includes("node_modules/react/")) return "vendor-react";
+            if (id.includes("node_modules/framer-motion")) return "vendor-motion";
+            if (id.includes("node_modules/react-i18next") || id.includes("node_modules/i18next")) return "vendor-i18n";
+            if (id.includes("node_modules/@tanstack/react-query") || id.includes("node_modules/@tanstack/query-core")) return "vendor-query";
+            if (id.includes("node_modules/@radix-ui/")) return "vendor-ui";
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

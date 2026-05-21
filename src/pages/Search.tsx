@@ -449,6 +449,15 @@ export default function Search() {
             {filtered.map((r) => <ListingCard key={r.id} listing={r} />)}
           </div>
         )}
+
+        {!loading && !searched && browseListings.length > 0 && (
+          <div className="mt-10">
+            <h2 className="text-lg font-medium mb-4">Browse latest stays</h2>
+            <div className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-3")}>
+              {browseListings.map((r) => <ListingCard key={r.id} listing={r} />)}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ type AuditRow = { id: string; target_user_id: string; role: AppRole; action: "gr
 type Ticket = { id: string; ticket_num: number; subject: string; status: string; escalated: boolean; created_at: string };
 type UserRoleRow = { id: string; user_id: string; role: AppRole };
 type ProfileRow = { user_id: string; display_name: string | null };
+type HostProfile = { id: string; user_id: string; business_name: string | null; verification_status: string; created_at: string };
 
 type UserView = { userId: string; displayName: string; initials: string; roles: AppRole[] };
 const MANAGED_ROLES: AppRole[] = ["admin", "host", "member"];
@@ -24,13 +25,15 @@ export default function Admin() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [userRoles, setUserRoles] = useState<UserRoleRow[]>([]);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
+  const [hostProfiles, setHostProfiles] = useState<HostProfile[]>([]);
 
   const fetchDashboard = useCallback(async () => {
-    const [auditRes, ticketRes, rolesRes, profilesRes] = await Promise.all([
+    const [auditRes, ticketRes, rolesRes, profilesRes, hostProfilesRes] = await Promise.all([
       supabase.from("role_audit_log").select("id,target_user_id,role,action,created_at").order("created_at", { ascending: false }).limit(100),
       supabase.from("support_tickets").select("id,ticket_num,subject,status,escalated,created_at").order("created_at", { ascending: false }).limit(50),
       supabase.from("user_roles").select("id,user_id,role").order("created_at", { ascending: false }),
       supabase.from("profiles").select("user_id,display_name").order("created_at", { ascending: false }).limit(200),
+      supabase.from("host_profiles").select("id,user_id,business_name,verification_status,created_at").order("created_at", { ascending: false }).limit(100),
     ]);
 
     if (auditRes.error || ticketRes.error || rolesRes.error || profilesRes.error) {
@@ -42,6 +45,7 @@ export default function Admin() {
     setTickets((ticketRes.data as Ticket[]) ?? []);
     setUserRoles((rolesRes.data as UserRoleRow[]) ?? []);
     setProfiles((profilesRes.data as ProfileRow[]) ?? []);
+    setHostProfiles((hostProfilesRes.data as HostProfile[]) ?? []);
   }, []);
 
   useEffect(() => {
@@ -78,6 +82,20 @@ export default function Admin() {
       toast.success(`${shouldHaveRole ? "Granted" : "Revoked"} ${role} role.`);
     } catch {
       toast.error(`Could not ${shouldHaveRole ? "grant" : "revoke"} ${role}.`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verifyHost = async (profileId: string, status: "verified" | "rejected") => {
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("host_profiles").update({ verification_status: status }).eq("id", profileId);
+      if (error) throw error;
+      await fetchDashboard();
+      toast.success(`Host ${status}.`);
+    } catch {
+      toast.error("Could not update host status.");
     } finally {
       setBusy(false);
     }
@@ -120,6 +138,39 @@ export default function Admin() {
             </Card>
           ))}
         </div>
+      </section>
+
+      <section>
+        <h2 className="text-lg font-medium mb-3">Host verification</h2>
+        {hostProfiles.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No host profiles yet.</p>
+        ) : (
+          <div className="grid gap-3">
+            {hostProfiles.map((hp) => {
+              const displayName = profiles.find(p => p.user_id === hp.user_id)?.display_name ?? hp.user_id.slice(0, 8);
+              return (
+                <Card key={hp.id} className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="font-medium">{hp.business_name ?? displayName}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{hp.user_id.slice(0, 8)}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(hp.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={hp.verification_status === "verified" ? "default" : hp.verification_status === "rejected" ? "destructive" : "secondary"}>
+                      {hp.verification_status}
+                    </Badge>
+                    {hp.verification_status === "pending" || hp.verification_status === "unverified" ? (
+                      <>
+                        <Button size="sm" variant="outline" disabled={busy} onClick={() => verifyHost(hp.id, "verified")}>Verify</Button>
+                        <Button size="sm" variant="outline" disabled={busy} onClick={() => verifyHost(hp.id, "rejected")}>Reject</Button>
+                      </>
+                    ) : null}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <section>
