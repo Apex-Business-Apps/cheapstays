@@ -1,5 +1,5 @@
 import { corsHeaders } from "../_shared/cors.ts";
-import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
 
 // ---------------------------------------------------------------------------
 // Agoda Affiliate Partner API – property search proxy
@@ -93,7 +93,7 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-  if (!checkRateLimit(ip, 20, 60)) {
+  if (!rateLimit(ip, 20, 60_000).ok) {
     return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
       status: 429,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
