@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { setLang } from "@/i18n";
+import i18n, { setLang } from "@/i18n";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -95,11 +95,30 @@ export function AiChatBubble() {
 
   function speak(text: string) {
     if (!tts || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
+    const synth = window.speechSynthesis;
+    synth.cancel();
+
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = 1.05;
-    u.pitch = 1;
-    window.speechSynthesis.speak(u);
+    u.rate = 0.93;
+    u.pitch = 1.15;
+    u.volume = 1;
+
+    // Pick the most natural-sounding voice available for the active language.
+    // Priority: Google > Neural/Natural/Premium remote > any remote > default.
+    const voices = synth.getVoices();
+    const lang = (i18n.language ?? "en").slice(0, 2);
+    const pick = (fn: (v: SpeechSynthesisVoice) => boolean) => voices.find(fn);
+    const voice =
+      pick(v => v.lang.startsWith(lang) && /google/i.test(v.name)) ??
+      pick(v => v.lang.startsWith(lang) && /natural|neural|premium/i.test(v.name)) ??
+      pick(v => v.lang.startsWith(lang) && !v.localService) ??
+      pick(v => v.lang.startsWith("en") && /google uk english female/i.test(v.name)) ??
+      pick(v => v.lang.startsWith("en") && /google/i.test(v.name)) ??
+      pick(v => v.lang.startsWith("en") && !v.localService) ??
+      null;
+
+    if (voice) u.voice = voice;
+    synth.speak(u);
   }
 
   function toggleListen() {
