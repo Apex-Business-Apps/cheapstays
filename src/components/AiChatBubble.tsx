@@ -64,7 +64,7 @@ const VOICE_ROUTES: {
 ];
 
 export function AiChatBubble() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
@@ -78,18 +78,6 @@ export function AiChatBubble() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const recogRef = useRef<SR | null>(null);
 
-  // Re-sync greeting when language changes.
-  useEffect(() => {
-    setMessages((prev) => {
-      if (prev.length === 1 && prev[0].role === "assistant") {
-        return [{ role: "assistant", content: t("pip.greeting") }];
-      }
-      return prev;
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t]);
-
-  // Re-sync greeting when language changes.
   useEffect(() => {
     setMessages((prev) => {
       if (prev.length === 1 && prev[0].role === "assistant") {
@@ -113,8 +101,6 @@ export function AiChatBubble() {
     u.pitch = 1.15;
     u.volume = 1;
 
-    // Pick the most natural-sounding voice available for the active language.
-    // Priority: Google > Neural/Natural/Premium remote > any remote > default.
     const voices = synth.getVoices();
     const lang = (i18n.language ?? "en").slice(0, 2);
     const pick = (fn: (v: SpeechSynthesisVoice) => boolean) => voices.find(fn);

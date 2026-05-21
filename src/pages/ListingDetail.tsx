@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
 import { Loader2, ArrowLeft, BedDouble, Bath, Users, CalendarDays, Zap, Star, CheckCircle2 } from "lucide-react";
+import { ImageGallery } from "@/components/ImageGallery";
 
 type Listing = {
   id: string;
@@ -23,6 +24,7 @@ type Listing = {
   min_nights: number;
   amenities: string[];
   images: string[];
+  video_url: string | null;
   is_owner_direct: boolean;
   instant_book: boolean;
   status: string;
@@ -139,12 +141,18 @@ export default function ListingDetail() {
           <ArrowLeft className="h-4 w-4" /> Back to search
         </Link>
 
-        {/* Image placeholder */}
-        <div className="rounded-2xl h-64 bg-gradient-to-br from-secondary/60 to-accent/10 flex items-center justify-center mb-8">
-          <span className="text-7xl opacity-20 select-none">
-            {listing.type === "villa" ? "🏡" : listing.type === "glamping" ? "⛺" : "🏠"}
-          </span>
-        </div>
+        {/* Photo gallery or placeholder */}
+        {listing.images && listing.images.length > 0 ? (
+          <div className="mb-8">
+            <ImageGallery images={listing.images} title={listing.title} />
+          </div>
+        ) : (
+          <div className="rounded-2xl h-64 bg-gradient-to-br from-secondary/60 to-accent/10 flex items-center justify-center mb-8">
+            <span className="text-7xl opacity-20 select-none">
+              {listing.type === "villa" ? "🏡" : listing.type === "glamping" ? "⛺" : "🏠"}
+            </span>
+          </div>
+        )}
 
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
@@ -241,6 +249,18 @@ export default function ListingDetail() {
             </p>
           )}
         </div>
+
+        {/* Video tour */}
+        {listing.video_url && (
+          <div className="mb-8">
+            <h2 className="text-lg font-medium mb-3">Video tour</h2>
+            <video
+              src={listing.video_url}
+              controls
+              className="w-full rounded-xl border border-border/60 max-h-80 bg-black"
+            />
+          </div>
+        )}
 
         {/* CTA */}
         <div className="flex flex-wrap gap-3">
