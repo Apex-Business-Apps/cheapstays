@@ -82,7 +82,7 @@ export function ReviewList({ listingId, hostId }: Props) {
   }, [user, listingId]);
 
   async function submitReview() {
-    if (!user || rating === 0) return;
+    if (!user || rating === 0 || !eligibleBookingId) return;
     setSubmitting(true);
     try {
       const { error } = await supabase.from("reviews").insert({
