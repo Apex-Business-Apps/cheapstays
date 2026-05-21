@@ -1,4 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -12,15 +13,22 @@ const links = [
 
 export function Navbar() {
   const { user, signOut, roles } = useAuth();
+  const [wordmarkLoadFailed, setWordmarkLoadFailed] = useState(false);
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="container flex h-16 items-center justify-between gap-6">
         <Link to="/" className="group flex h-full items-center font-semibold tracking-tight">
-          <img
-            src="/wordmark.png"
-            alt="CheapStays wordmark"
-            className="h-[90%] w-auto object-contain transition-transform duration-500 ease-out group-hover:scale-[1.02]"
-          />
+          {wordmarkLoadFailed ? (
+            // Fallback keeps brand visible if static asset is unavailable in a bad deploy artifact.
+            <span className="text-lg">Cheap<span className="text-accent">Stays</span></span>
+          ) : (
+            <img
+              src="/wordmark.png"
+              alt="CheapStays wordmark"
+              className="h-[90%] w-auto max-w-[240px] object-contain transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+              onError={() => setWordmarkLoadFailed(true)}
+            />
+          )}
         </Link>
         <nav className="hidden md:flex items-center gap-1">
           {links.map((l) => (
