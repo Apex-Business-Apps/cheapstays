@@ -11,15 +11,28 @@ type Props = {
 
 type RatingData = { avg: number; count: number } | null;
 
-const cache = new Map<string, RatingData>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+type CacheEntry = { data: RatingData; expiresAt: number };
+const cache = new Map<string, CacheEntry>();
+
+function getCached(userId: string): RatingData | undefined {
+  const entry = cache.get(userId);
+  if (!entry) return undefined;
+  if (Date.now() > entry.expiresAt) { cache.delete(userId); return undefined; }
+  return entry.data;
+}
+
+function setCached(userId: string, data: RatingData) {
+  cache.set(userId, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+}
 
 export function GuestRatingBadge({ userId, size = "sm", className }: Props) {
-  const [data, setData] = useState<RatingData | undefined>(
-    cache.has(userId) ? cache.get(userId) : undefined
-  );
+  const [data, setData] = useState<RatingData | undefined>(() => getCached(userId));
 
   useEffect(() => {
-    if (cache.has(userId)) { setData(cache.get(userId)); return; }
+    const cached = getCached(userId);
+    if (cached !== undefined) { setData(cached); return; }
     supabase
       .from("reviews")
       .select("rating")
@@ -28,13 +41,13 @@ export function GuestRatingBadge({ userId, size = "sm", className }: Props) {
       .eq("is_public", true)
       .then(({ data: rows }) => {
         if (!rows || rows.length === 0) {
-          cache.set(userId, null);
+          setCached(userId, null);
           setData(null);
           return;
         }
         const avg = rows.reduce((s, r) => s + r.rating, 0) / rows.length;
         const result = { avg: Math.round(avg * 10) / 10, count: rows.length };
-        cache.set(userId, result);
+        setCached(userId, result);
         setData(result);
       });
   }, [userId]);
