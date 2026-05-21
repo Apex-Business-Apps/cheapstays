@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { aiDescribeSchema } from "@/lib/schemas";
 import { toast } from "@/hooks/use-toast";
 import { Sparkles } from "lucide-react";
+import { Seo } from "@/components/Seo";
 
 export default function Host() {
   const [title, setTitle] = useState("");
@@ -36,6 +37,8 @@ export default function Host() {
   }
 
   return (
+    <div>
+      <Seo title="Host on CheapStays" description="List your property on CheapStays and reach verified travelers directly." path="/host" />
     <div className="container py-12 max-w-3xl">
       <h1 className="text-3xl font-semibold tracking-tight">Host tools</h1>
       <p className="text-muted-foreground mt-2">
@@ -56,6 +59,7 @@ export default function Host() {
         </Button>
         {out && <div className="mt-4 border-t pt-4 whitespace-pre-wrap text-sm leading-relaxed">{out}</div>}
       </Card>
+    </div>
     </div>
   );
 }

@@ -31,6 +31,7 @@ import emblemMountain from "@/assets/emblem-mountain.png";
 import emblemHeritage from "@/assets/emblem-heritage.png";
 import emblemUrban from "@/assets/emblem-urban.png";
 import brandMark from "@/assets/brand-mark.png";
+import { Seo } from "@/components/Seo";
 
 const features = [
   { icon: iconAiHunt, title: "AI deal hunter", body: "Describe your trip in Tagalog or English. Pip scores every PH listing on real value, not vibes." },
@@ -85,6 +86,8 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Index() {
   return (
+    <div>
+      <Seo title="CheapStays" description="AI-powered Philippine short-term rentals with owner-direct pricing and zero markup." path="/" />
     <div>
       <section className="container pt-14 pb-20 md:pt-20 md:pb-24">
         <div className="grid gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-14 items-center">
@@ -371,6 +374,7 @@ export default function Index() {
           </div>
         </div>
       </section>
+    </div>
     </div>
   );
 }

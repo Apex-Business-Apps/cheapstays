@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { Seo } from "@/components/Seo";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -48,6 +49,8 @@ export default function Auth() {
   }
 
   return (
+    <div>
+      <Seo title="CheapStays Login" description="Secure sign in and registration for CheapStays members and hosts." path="/auth" />
     <div className="container max-w-md py-20">
       <Card className="p-8">
         <h1 className="text-2xl font-semibold tracking-tight">
@@ -78,6 +81,7 @@ export default function Auth() {
           {mode === "signin" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
         </button>
       </Card>
+    </div>
     </div>
   );
 }
