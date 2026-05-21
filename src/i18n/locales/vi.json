@@ -1,0 +1,116 @@
+{
+  "nav": {
+    "search": "Tìm kiếm",
+    "membership": "Thành viên",
+    "host": "Cho thuê",
+    "support": "Hỗ trợ",
+    "signIn": "Đăng nhập",
+    "signOut": "Đăng xuất"
+  },
+  "hero": {
+    "badge": "ĐẶT TRỰC TIẾP · KHÔNG PHỤ PHÍ",
+    "h1Line1": "Tìm giá rẻ.",
+    "h1Line2": "Ở thông minh.",
+    "subtitle": "Cho thuê ngắn hạn do chủ nhà định giá, không qua nền tảng trung gian. Tiền của bạn dành cho trải nghiệm thực.",
+    "ctaHunt": "Bắt đầu tìm kiếm",
+    "ctaMembership": "Xem gói thành viên",
+    "liveScanner": "Quét ưu đãi trực tiếp",
+    "cycling": "{{count}} chỗ ở đang hiển thị"
+  },
+  "why": {
+    "badge": "TẠI SAO CHỌN CHEAPSTAYS",
+    "h2Start": "Sáu lý do khiến ",
+    "h2Accent": "gia đình và bạn bè",
+    "h2End": " muốn sao chép chuyến đi của bạn.",
+    "subtitle": "Được xây dựng theo cách người dân địa phương thực sự du lịch, không theo mẫu toàn cầu.",
+    "f1Title": "Săn ưu đãi",
+    "f1Body": "Cho Pip biết điểm đến, ngân sách và ngày của bạn. Nó tìm những chỗ ở thực sự xứng đáng với tiền.",
+    "f2Title": "Giá trực tiếp từ chủ nhà",
+    "f2Body": "Chủ nhà tự đặt giá ở đây. Không có nền tảng nào tăng giá trước khi thanh toán.",
+    "f3Title": "Chủ nhà Philippines đã xác minh",
+    "f3Body": "Mỗi chủ nhà đều được xác minh danh tính với đánh giá từ khách thực. Bạn thấy gì là nhận được đó.",
+    "f4Title": "GCash, Maya và thẻ",
+    "f4Body": "Thanh toán theo cách bạn thích. Chia hóa đơn với bạn bè qua ví chung. Hoàn tiền trong 24 giờ.",
+    "f5Title": "Pip concierge 24/7",
+    "f5Body": "Mất mã đặt phòng lúc 2 giờ sáng ở Coron? Pip trả lời trong vài giây. Tiếng Anh, Tagalog, hoặc cả hai.",
+    "f6Title": "Xác nhận ngay lập tức",
+    "f6Body": "Ngay khi thanh toán thành công, đặt phòng được kích hoạt và thông tin gửi đến điện thoại của bạn."
+  },
+  "stats": {
+    "s1Label": "tiết kiệm bởi thành viên năm 2025",
+    "s2Label": "danh sách PH đã xác minh",
+    "s3Label": "đảo được bao phủ",
+    "s4Label": "đánh giá thành viên"
+  },
+  "destinations": {
+    "badge": "ĐIỂM ĐẾN",
+    "h2": "Từ Palawan đến Batanes.",
+    "subtitle": "Bảy nghìn hòn đảo. Chỗ ở được tuyển chọn tại những nơi bạn thực sự muốn đến.",
+    "browseAll": "Xem tất cả",
+    "philippines": "Philippines",
+    "perNight": "/đêm",
+    "from": "từ"
+  },
+  "city": {
+    "badge": "NGHỈ DƯỠNG ĐÔ THỊ",
+    "h2Part1": "Tám thành phố mới.",
+    "h2Accent": "Một kỳ cuối tuần dài",
+    "h2End": "xa nhà.",
+    "subtitle": "Từ ban công nhìn skyline Cebu đến vịnh núi lửa Camiguin. Gợi ý mới cập nhật hàng tuần.",
+    "seeAll": "Xem tất cả chỗ ở thành phố",
+    "from": "từ"
+  },
+  "how": {
+    "badge": "CÁCH THỨC HOẠT ĐỘNG",
+    "h2": "Cách đặt chỗ ở Philippines đơn giản hơn.",
+    "subtitle": "Không đấu giá, không phí ẩn. Tìm kiếm đặt giá trung thực lên hàng đầu.",
+    "cta": "Thử Pip",
+    "s1Title": "Cho Pip biết bạn muốn gì",
+    "s1Body": "Nhập hoặc nói điểm đến, ngân sách và ngày đi. Pip hiểu tiếng Anh, Tagalog, hoặc kết hợp cả hai.",
+    "s2Title": "Pip tìm trực tiếp từ chủ nhà",
+    "s2Body": "Chúng tôi tìm kiếm danh sách và chủ nhà đã xác minh tại 80+ điểm đến ở Philippines, sắp xếp theo giá trị thực.",
+    "s3Title": "Đặt phòng hoàn toàn minh bạch",
+    "s3Body": "Mọi khoản phí đều hiển thị trước. Nhắn tin cho chủ nhà trước khi xác nhận. Thanh toán một lần, không bất ngờ."
+  },
+  "reviews": {
+    "badge": "ĐƯỢC KHÁCH DU LỊCH PHILIPPINES TIN TƯỞNG",
+    "h2": "Chuyến đi thực. Tiết kiệm thực."
+  },
+  "cta": {
+    "h2": "Chỗ ở tiếp theo của bạn ở Philippines rẻ hơn bạn nghĩ.",
+    "subtitle": "Tham gia CheapStays và để Pip tìm nơi phù hợp. Hủy bất cứ lúc nào.",
+    "member": "Trở thành thành viên",
+    "free": "Bắt đầu tìm kiếm miễn phí"
+  },
+  "footer": {
+    "tagline": "Tìm giá rẻ. Ở thông minh.",
+    "desc": "Cho thuê ngắn hạn khắp Philippines. Giá trực tiếp từ chủ nhà. Không markup nền tảng."
+  },
+  "pip": {
+    "greeting": "Xin chào! Tôi là Pip, concierge CheapStays của bạn. Bạn muốn đi đâu?",
+    "thinking": "đang suy nghĩ...",
+    "online": "trực tuyến",
+    "placeholder": "Hỏi Pip bất cứ điều gì...",
+    "mute": "Tắt tiếng",
+    "unmute": "Bật tiếng",
+    "close": "Đóng trò chuyện",
+    "listen": "Nói chuyện",
+    "stopListen": "Dừng nghe",
+    "open": "Mở Pip, concierge",
+    "error": "Không thể kết nối máy chủ. Thử lại sau một chút.",
+    "q1": "Palawan dưới ₱3k",
+    "q2": "5 đêm ở Siargao",
+    "q3": "Cabin thân thiện với thú cưng ở Baguio"
+  },
+  "lang": {
+    "en": "English",
+    "fil": "Filipino",
+    "zh": "中文",
+    "ms": "Melayu",
+    "id": "Indonesia",
+    "ko": "한국어",
+    "vi": "Tiếng Việt",
+    "ja": "日本語",
+    "th": "ภาษาไทย"
+  }
+}
