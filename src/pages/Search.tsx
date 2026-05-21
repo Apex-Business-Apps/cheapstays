@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -174,6 +174,19 @@ export default function Search() {
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [browseListings, setBrowseListings] = useState<Listing[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("listings")
+      .select("id,slug,title,city,province,type,bedrooms,bathrooms,max_guests,nightly_php,min_nights,amenities,images,is_owner_direct,instant_book,avg_rating,review_count")
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(12)
+      .then(({ data }) => {
+        setBrowseListings((data ?? []).map(d => ({ ...d, why_its_a_deal: "", score: 0 })));
+      });
+  }, []);
 
   async function run(e: React.FormEvent) {
     e.preventDefault();
@@ -252,6 +265,15 @@ export default function Search() {
             {results.map((r) => (
               <ListingCard key={r.id} listing={r} />
             ))}
+          </div>
+        )}
+
+        {!loading && !searched && browseListings.length > 0 && (
+          <div className="mt-10">
+            <h2 className="text-lg font-medium mb-4">Browse latest stays</h2>
+            <div className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-3")}>
+              {browseListings.map((r) => <ListingCard key={r.id} listing={r} />)}
+            </div>
           </div>
         )}
       </div>
