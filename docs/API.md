@@ -565,3 +565,12 @@ Connection: keep-alive
 | `429` | User has exceeded 20 requests in the current 60-second window |
 | `500` | `GROQ_API_KEY` not configured, or unexpected server error |
 | `502` | Groq returned a non-2xx status or an empty body |
+
+
+## Payment Architecture (PayMongo + Stripe)
+
+- Providers: `paymongo`, `stripe`; future providers are blocked by legal-approval feature flag (`ENABLE_UNAPPROVED_PROVIDERS=false`).
+- Explicit booking payment state machine: `intent_created -> authorized -> captured -> refunding/refunded` and payout states `payout_on_hold -> payout_released`.
+- Unsupported methods blocked when holds are required: prepaid, gift, anonymous reloadable, Interac-only debit, non-hold methods; wallets can pay but cannot secure incidentals if hold is required.
+- Refund window and payout release dates are returned at checkout and persisted on booking (`refundable_until`, `payout_release_on`).
+- Incidental charging requires `incidental_reviews` evidence path, guest response support, and manual gate for subjective cases before approval.
