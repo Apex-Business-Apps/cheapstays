@@ -99,7 +99,7 @@ export function HostDashboard({ hostId }: Props) {
       </div>
       <Card className="p-5 space-y-4">
         <h3 className="font-semibold">Booking calendar</h3>
-        <div className="flex flex-wrap gap-2 text-xs">{Object.entries(statusStyle).map(([k, v]) => <span key={k} className={`px-2 py-1 rounded-full ${v}`}>{k.replaceAll("_", " ")}</span>)}</div>
+        <div className="flex flex-wrap gap-2 text-xs">{Object.entries(statusStyle).map(([k, v]) => <span key={k} className={`px-2 py-1 rounded-full ${v}`}>{k.replace(/_/g, " ")}</span>)}</div>
         {loading ? <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div> : null}
         {!loading && error ? <p className="text-sm text-destructive">{error}</p> : null}
         {!loading && !error && events.length === 0 ? <p className="text-sm text-muted-foreground">No calendar events yet. Confirm a booking to populate this view.</p> : null}
@@ -109,7 +109,7 @@ export function HostDashboard({ hostId }: Props) {
               <button key={event.id} onClick={() => setSelected(event)} className={`text-left border rounded-lg p-3 hover:border-primary ${selected?.id === event.id ? "border-primary" : "border-border"}`}>
                 <p className="font-medium">{event.listing}</p>
                 <p className="text-xs text-muted-foreground">{format(parseISO(event.start), "MMM d")} → {format(parseISO(event.end), "MMM d")}</p>
-                <span className={`inline-block mt-2 text-xs px-2 py-1 rounded-full ${statusStyle[event.status]}`}>{event.status.replaceAll("_", " ")}</span>
+                <span className={`inline-block mt-2 text-xs px-2 py-1 rounded-full ${statusStyle[event.status]}`}>{event.status.replace(/_/g, " ")}</span>
               </button>
             ))}
           </div>
