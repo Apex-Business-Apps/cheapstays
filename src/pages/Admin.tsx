@@ -631,20 +631,17 @@ export default function Admin() {
                         <p className="text-[10px] text-muted-foreground font-mono mt-0.5">{user.userId.slice(0, 16)}…</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant="secondary">pending</Badge>
-                      <Badge variant={app.id_front_path ? "default" : "destructive"} className="text-[10px]">
-                        {app.id_front_path ? "ID ✓" : "No ID"}
-                      </Badge>
-                      <Badge variant={app.selfie_path ? "default" : "destructive"} className="text-[10px]">
-                        {app.selfie_path ? "Selfie ✓" : "No selfie"}
-                      </Badge>
-                      <Button size="sm" onClick={() => setReviewApp(app)}>Review</Button>
+                    <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+                      {user.roles.map((r) => (
+                        <Badge key={r} variant={r === "admin" ? "default" : r === "host" ? "secondary" : "outline"} className="text-[10px] capitalize">
+                          {r}
+                        </Badge>
+                      ))}
                     </div>
                   </Card>
                 ))}
               </div>
-            </div>
+            )}
 
             {resolvedApps.length > 0 && (
               <div>
