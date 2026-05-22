@@ -3,6 +3,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { groqChat } from "../_shared/groq.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
+import { AI_PROMPT_VERSION_REGISTRY, buildGuardrailSystemPrompt, detectGuardrailViolation, fallbackGuardrailResponse } from "../_shared/ai-governance.ts";
+import { logAiDecision } from "../_shared/ai-audit.ts";
 import { getUserFromRequest } from "../_shared/auth.ts";
 
 const BodySchema = z.object({
@@ -36,6 +38,11 @@ Deno.serve(async (req) => {
     }
 
     const { ticket_id, content } = parsed.data;
+    const violations = detectGuardrailViolation(content);
+    if (violations.length) {
+      await logAiDecision({ surface: "support", decision: "blocked", actor_id: user.id, prompt_version: AI_PROMPT_VERSION_REGISTRY.support, reason: "guardrail_violation", payload: { violations, ticket_id } });
+      return new Response(JSON.stringify({ ok: true, ai_response: fallbackGuardrailResponse() }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     // RLS will block if not owner; insert via user-scoped client
     const { error: insErr } = await supabase.from("support_messages").insert({
@@ -61,7 +68,7 @@ Deno.serve(async (req) => {
         .limit(20);
 
       const msgs = [
-        { role: "system" as const, content: "You are cheapstays.me support AI. Be direct, warm, useful. 2-4 short paragraphs. If you can't help confidently, say a human will follow up." },
+        { role: "system" as const, content: `${buildGuardrailSystemPrompt("support")}\n\nYou are cheapstays.me support AI. Be direct, warm, useful. 2-4 short paragraphs. If you can't help confidently, say a human will follow up.` },
         ...(history ?? []).map((m) => ({
           role: m.sender === "user" ? ("user" as const) : ("assistant" as const),
           content: m.content,
@@ -76,6 +83,7 @@ Deno.serve(async (req) => {
       }
     }
 
+    await logAiDecision({ surface: "support", decision: "allowed", actor_id: user.id, prompt_version: AI_PROMPT_VERSION_REGISTRY.support, reason: "support_reply_generated", payload: { ticket_id, ai_responded: !!ai_response } });
     return new Response(JSON.stringify({ ok: true, ai_response }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
