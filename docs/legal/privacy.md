@@ -16,6 +16,6 @@ This Privacy Policy explains how CheapStays collects, uses, and protects your pe
 
 ## Contact
 
-Questions about privacy can be sent to [privacy@cheapstays.com](mailto:privacy@cheapstays.com).
+Questions about privacy can be sent to [cheapstays.me@gmail.com](mailto:cheapstays.me@gmail.com).
 
 _Last updated: 2026-05-22_

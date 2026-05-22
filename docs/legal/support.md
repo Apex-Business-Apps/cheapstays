@@ -2,7 +2,7 @@
 
 Need help with bookings, hosts, or account access?
 
-- Email: [support@cheapstays.com](mailto:support@cheapstays.com)
+- Email: [cheapstays.me@gmail.com](mailto:cheapstays.me@gmail.com)
 - Response SLA: within 48 hours
 - Safety emergencies: call local emergency services first, then notify CheapStays
 

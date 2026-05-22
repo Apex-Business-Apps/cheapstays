@@ -43,7 +43,7 @@ Each person or entity gets one account. Running multiple accounts to game search
 ### Your obligation
 - Maintain only one active account per identity.
 - Do not share login credentials with others.
-- Notify us immediately at **support@cheapstays.me** if you believe your account has been accessed without your permission.
+- Notify us immediately at **cheapstays.me@gmail.com** if you believe your account has been accessed without your permission.
 
 ### Platform boundary
 CheapStays cannot monitor all login activity in real time. We rely on you to report suspicious access. We are not responsible for losses caused by credential theft where you failed to notify us promptly.
@@ -103,7 +103,7 @@ CheapStays will give at least **14 days' advance notice** before material change
 Either party may end the relationship, subject to any in-progress bookings.
 
 ### Your obligation
-- You may delete your account at any time via account settings or by emailing **support@cheapstays.me**.
+- You may delete your account at any time via account settings or by emailing **cheapstays.me@gmail.com**.
 - If you have upcoming confirmed bookings, cancel or honour them before requesting deletion.
 
 ### Platform boundary

@@ -92,7 +92,7 @@ Refund eligibility depends on the cancellation tier attached to each listing. Th
 ### Your obligation
 - Check the cancellation policy on the listing page before booking.
 - Cancel through the CheapStays platform before the relevant deadline.
-- Contact **support@cheapstays.me** within **24 hours of check-in** to report a material discrepancy that you believe entitles you to an out-of-policy refund.
+- Contact **cheapstays.me@gmail.com** within **24 hours of check-in** to report a material discrepancy that you believe entitles you to an out-of-policy refund.
 
 ### Platform boundary
 - The CheapStays platform fee is non-refundable in all cases, except where a platform error caused the booking to fail.
@@ -146,7 +146,7 @@ Normal use is expected. Damage beyond ordinary wear and tear is the guest's fina
 A chargeback is when you ask your bank to reverse a charge directly. We ask that you come to us first — it is faster and fairer.
 
 ### Your obligation
-- Before filing a chargeback with your bank or card issuer, submit a dispute through **support@cheapstays.me** and allow us **72 hours** to respond.
+- Before filing a chargeback with your bank or card issuer, submit a dispute through **cheapstays.me@gmail.com** and allow us **72 hours** to respond.
 - Filing a fraudulent chargeback (where you received the accommodation and are attempting a free stay) is a breach of these terms, may result in account suspension, and may be pursued through civil or criminal action.
 
 ### Platform boundary
