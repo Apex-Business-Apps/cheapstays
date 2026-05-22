@@ -18,6 +18,7 @@ export function Navbar() {
     { to: "/membership", label: t("nav.membership") },
     { to: "/host",       label: t("nav.host") },
     { to: "/support",    label: t("nav.support") },
+    { to: "/notifications", label: "Notifications" },
   ];
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
