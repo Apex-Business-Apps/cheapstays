@@ -177,6 +177,160 @@ function MyListings({ userId }: { userId: string }) {
   );
 }
 
+function HostApplicationForm() {
+  const { user } = useAuth();
+  const [propertyType, setPropertyType] = useState("");
+  const [location, setLocation] = useState("");
+  const [message, setMessage] = useState("");
+  const [idPhotoUrls, setIdPhotoUrls] = useState<string[]>([]);
+  const [selfieUrls, setSelfieUrls] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  if (!user) {
+    return (
+      <div className="container py-24 max-w-xl text-center">
+        <Seo title="Become a Host · CheapStays" description="Apply to list your property on CheapStays." path="/host" />
+        <h1 className="text-2xl font-semibold">Sign in to apply as a host</h1>
+        <Button asChild className="mt-6"><Link to="/auth?mode=signup">Sign Up / Log In</Link></Button>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="container py-24 max-w-xl text-center">
+        <Seo title="Application submitted · CheapStays" description="Your host application is under review." path="/host" />
+        <div className="text-4xl mb-4">✅</div>
+        <h1 className="text-2xl font-semibold">Application submitted</h1>
+        <p className="text-muted-foreground mt-2">An admin will review your documents and grant host access within 24 hours.</p>
+        <Button asChild className="mt-6" variant="outline"><Link to="/search">Browse listings</Link></Button>
+      </div>
+    );
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!propertyType.trim() || !location.trim()) {
+      toast({ title: "Please fill in all required fields.", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const idPhotoUrl = idPhotoUrls[0] ?? null;
+      const selfieUrl = selfieUrls[0] ?? null;
+
+      const [ticketResult, profileResult] = await Promise.all([
+        supabase.functions.invoke("support-ticket", {
+          body: {
+            subject: "Host application",
+            message: `Property type: ${propertyType}\nLocation: ${location}${idPhotoUrl ? `\nID photo: ${idPhotoUrl}` : ""}${selfieUrl ? `\nSelfie: ${selfieUrl}` : ""}\n\n${message.trim()}`,
+            category: "host_verification",
+            priority: "normal",
+          },
+        }),
+        supabase.from("host_profiles").upsert(
+          {
+            user_id: user!.id,
+            location: location.trim(),
+            id_photo_url: idPhotoUrl,
+            selfie_url: selfieUrl,
+            verification_status: "pending",
+          },
+          { onConflict: "user_id" }
+        ),
+      ]);
+
+      if (ticketResult.error) throw ticketResult.error;
+      if (profileResult.error) throw profileResult.error;
+
+      setSubmitted(true);
+    } catch (err) {
+      toast({ title: "Submission failed", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="container py-16 max-w-lg">
+      <Seo title="Become a Host · CheapStays" description="Apply to list your property on CheapStays." path="/host" />
+      <h1 className="text-3xl font-semibold tracking-tight">Apply to become a host</h1>
+      <p className="text-muted-foreground mt-2">
+        Tell us about your property. An admin reviews every application — usually within 24 hours.
+      </p>
+      <Card className="mt-8 p-6">
+        <form onSubmit={submit} className="space-y-5">
+          <div className="space-y-2">
+            <Label>Property type *</Label>
+            <Input
+              value={propertyType}
+              onChange={(e) => setPropertyType(e.target.value)}
+              placeholder="Beachfront villa, condo, private room…"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Location *</Label>
+            <Input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="City, Province"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Anything else you'd like us to know? <span className="text-muted-foreground text-xs">(optional)</span></Label>
+            <Textarea
+              rows={4}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Number of units, availability, pricing expectations…"
+            />
+          </div>
+
+          <div className="space-y-4 pt-2 border-t border-border/60">
+            <div>
+              <Label className="text-sm font-medium">Identity verification</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Upload a government ID and a selfie holding it. Required for host approval.</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Government-issued ID (passport, driver's license, UMID)</Label>
+              <ImageUploader
+                userId={user.id}
+                listingId="host-id"
+                value={idPhotoUrls}
+                onChange={setIdPhotoUrls}
+                maxFiles={1}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Selfie holding your ID</Label>
+              <ImageUploader
+                userId={user.id}
+                listingId="host-selfie"
+                value={selfieUrls}
+                onChange={setSelfieUrls}
+                maxFiles={1}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button type="submit" disabled={submitting} className="flex-1">
+              {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Submit application
+            </Button>
+            <Button type="button" variant="outline" asChild>
+              <Link to="/search">Browse listings</Link>
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </div>
+  );
+}
+
 export default function Host() {
   const { user, roles, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -209,6 +363,7 @@ export default function Host() {
   const [images, setImages] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   async function generateDescription() {
     const parsed = aiDescribeSchema.safeParse({
@@ -317,23 +472,7 @@ export default function Host() {
   }
 
   if (!isHost(roles)) {
-    return (
-      <div className="container py-24 max-w-xl text-center">
-        <Seo title="Become a Host · CheapStays" description="Apply to list your property on CheapStays." path="/host" />
-        <h1 className="text-2xl font-semibold">Apply to become a host</h1>
-        <p className="text-muted-foreground mt-3">
-          Submit your details and identity documents. Our team reviews applications within 24–48 hours.
-        </p>
-        <div className="flex gap-3 justify-center mt-6">
-          <Link to="/host/apply">
-            <Button>Start application</Button>
-          </Link>
-          <Link to="/search">
-            <Button variant="outline">Browse listings</Button>
-          </Link>
-        </div>
-      </div>
-    );
+    return <HostApplicationForm />;
   }
 
   return (
@@ -345,7 +484,7 @@ export default function Host() {
           <p className="text-muted-foreground mt-2">Create and manage your listings.</p>
         </div>
 
-        <Tabs defaultValue="dashboard">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-8 flex-wrap h-auto">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="new" className="gap-2">
@@ -358,7 +497,7 @@ export default function Host() {
           </TabsList>
 
           <TabsContent value="dashboard">
-            <HostDashboard hostId={user.id} />
+            <HostDashboard hostId={user.id} onTabChange={setActiveTab} />
           </TabsContent>
 
           {/* ── New listing tab ── */}

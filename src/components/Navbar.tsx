@@ -15,11 +15,11 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const links = [
-    { to: "/search",     label: t("nav.search") },
-    { to: "/membership", label: t("nav.membership") },
-    { to: "/host",       label: t("nav.host") },
-    { to: "/support",    label: t("nav.support") },
-    { to: "/notifications", label: "Notifications" },
+    { to: "/search",      label: t("nav.search") },
+    { to: "/membership",  label: t("nav.membership") },
+    { to: "/host",        label: t("nav.host") },
+    { to: "/support",     label: t("nav.support") },
+    ...(user ? [{ to: "/my-bookings", label: "My Bookings" }] : []),
   ];
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>

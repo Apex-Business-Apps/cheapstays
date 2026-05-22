@@ -13,15 +13,29 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import type { AppRole } from "@/lib/rbac";
 import { Seo } from "@/components/Seo";
-import { ChevronLeft, ChevronRight, Loader2, ExternalLink } from "lucide-react";
+import {
+  RefreshCw, Users, TicketIcon, ShieldCheck, Clock,
+  AlertTriangle, CheckCircle2, ChevronDown, ChevronUp,
+  ExternalLink, MessageSquare, Loader2,
+} from "lucide-react";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-type HostApp = {
-  id: string; user_id: string; full_legal_name: string; phone: string;
-  property_type: string; city: string; province: string; property_description: string;
-  id_type: string; id_front_path: string | null; selfie_path: string | null;
-  status: string; created_at: string;
+type AuditRow = {
+  id: string;
+  target_user_id: string;
+  actor_user_id: string;
+  role: AppRole;
+  action: "granted" | "revoked";
+  created_at: string;
+};
+type SupportTicket = {
+  id: string;
+  ticket_num: number;
+  subject: string;
+  status: string;
+  priority: string;
+  category: string;
+  escalated: boolean;
+  created_at: string;
 };
 type Booking = {
   id: string; listing_id: string; guest_id: string; host_id: string;
@@ -264,22 +278,40 @@ function AppReviewDialog({
 export default function Admin() {
   const { user, roles, loading } = useAuth();
   const [busy, setBusy] = useState(false);
-  const [tickets, setTickets]       = useState<Ticket[]>([]);
-  const [bookings, setBookings]     = useState<Booking[]>([]);
-  const [userRoles, setUserRoles]   = useState<UserRoleRow[]>([]);
-  const [profiles, setProfiles]     = useState<ProfileRow[]>([]);
-  const [hostApps, setHostApps]     = useState<HostApp[]>([]);
-  const [auditLog, setAuditLog]     = useState<AuditRow[]>([]);
-  const [reviewApp, setReviewApp]   = useState<HostApp | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState("tickets");
+  const [audit, setAudit] = useState<AuditRow[]>([]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [userRoles, setUserRoles] = useState<UserRoleRow[]>([]);
+  const [profiles, setProfiles] = useState<ProfileRow[]>([]);
+  const [hostProfiles, setHostProfiles] = useState<HostProfile[]>([]);
+  const [userSearch, setUserSearch] = useState("");
+  const [ticketFilter, setTicketFilter] = useState("all");
+  const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
+  const [ticketMessages, setTicketMessages] = useState<Map<string, TicketMessage[]>>(new Map());
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [replyInputs, setReplyInputs] = useState<Map<string, string>>(new Map());
+  const [sendingReply, setSendingReply] = useState<string | null>(null);
 
-  const fetchAll = useCallback(async () => {
-    const [ticketRes, bookingRes, rolesRes, profilesRes, appsRes, auditRes] = await Promise.all([
-      supabase.from("support_tickets").select("id,ticket_num,subject,status,escalated,created_at").order("created_at", { ascending: false }).limit(50),
-      supabase.from("bookings").select("id,listing_id,guest_id,host_id,check_in,check_out,status,total_php,created_at").order("check_in", { ascending: false }).limit(300),
-      supabase.from("user_roles").select("id,user_id,role").order("created_at", { ascending: false }),
-      supabase.from("profiles").select("user_id,display_name").limit(200),
-      supabase.from("host_applications").select("id,user_id,full_legal_name,phone,property_type,city,province,property_description,id_type,id_front_path,selfie_path,status,created_at").order("created_at", { ascending: false }).limit(100),
-      supabase.from("role_mutation_audit").select("id,command_id,command_source,operation,target_user_id,reason_code,before_state,after_state,executed_by,created_at").order("created_at", { ascending: false }).limit(100),
+  const fetchDashboard = useCallback(async () => {
+    const [auditRes, ticketRes, rolesRes, profilesRes, hostRes] = await Promise.all([
+      supabase
+        .from("role_audit_log")
+        .select("id,target_user_id,actor_user_id,role,action,created_at")
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase
+        .from("support_tickets")
+        .select("id,ticket_num,subject,status,priority,category,escalated,created_at")
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase.from("user_roles").select("id,user_id,role"),
+      supabase.from("profiles").select("user_id,display_name").order("created_at", { ascending: false }).limit(200),
+      supabase
+        .from("host_profiles")
+        .select("id,user_id,display_name,verification_status,id_photo_url,selfie_url,created_at")
+        .order("created_at", { ascending: false })
+        .limit(100),
     ]);
 
     if (ticketRes.error || bookingRes.error || rolesRes.error) {
@@ -326,16 +358,50 @@ export default function Admin() {
         body: { operation, target_user_id: userId, reason_code: reasonCode },
       });
       if (error) throw error;
-      await fetchAll();
-      toast.success(`${operation.replace("_", " ")} applied.`);
-    } catch (err) {
-      toast.error(`Failed: ${(err as Error).message}`);
+      // omnihub-role-authority requires pre-registered external commands not accessible
+      // from the frontend, so audit trail is written directly with actor attribution.
+      await supabase.from("role_audit_log").insert({
+        target_user_id: userId,
+        actor_user_id: user?.id ?? null,
+        role,
+        action: grant ? "granted" : "revoked",
+      });
+      await fetchDashboard();
+      toast.success(`${grant ? "Granted" : "Revoked"} ${role}.`);
+    } catch {
+      toast.error(`Could not ${grant ? "grant" : "revoke"} ${role}.`);
     } finally {
       setBusy(false);
     }
   }
 
-  async function handleAppDecision(appId: string, userId: string, approve: boolean, reason?: string) {
+  const sendAdminReply = async (ticketId: string) => {
+    const content = replyInputs.get(ticketId)?.trim();
+    if (!content) return;
+    setSendingReply(ticketId);
+    try {
+      const { error } = await supabase.from("support_messages").insert({
+        ticket_id: ticketId,
+        sender: "admin",
+        content,
+      });
+      if (error) throw error;
+      setReplyInputs((prev) => { const next = new Map(prev); next.set(ticketId, ""); return next; });
+      const { data } = await supabase
+        .from("support_messages")
+        .select("id,sender,content,created_at")
+        .eq("ticket_id", ticketId)
+        .order("created_at", { ascending: true });
+      if (data) setTicketMessages((prev) => new Map(prev).set(ticketId, data as TicketMessage[]));
+      toast.success("Reply sent.");
+    } catch {
+      toast.error("Could not send reply.");
+    } finally {
+      setSendingReply(null);
+    }
+  };
+
+  const updateTicketStatus = async (ticketId: string, status: TicketStatus) => {
     setBusy(true);
     try {
       if (approve) {
@@ -402,20 +468,168 @@ export default function Admin() {
             <TabsTrigger value="audit">Audit log</TabsTrigger>
           </TabsList>
 
-          {/* ── HOST APPLICATIONS ── */}
-          <TabsContent value="applications" className="space-y-6 pt-4">
-            <div>
-              <h2 className="text-base font-semibold mb-3">
-                Pending review
-                {pendingApps.length === 0 && <span className="text-muted-foreground font-normal ml-2">— all clear</span>}
-              </h2>
-              <div className="space-y-3">
-                {pendingApps.map((app) => (
-                  <Card key={app.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{app.full_legal_name}</p>
-                      <p className="text-sm text-muted-foreground">{app.property_type} · {app.city}, {app.province}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{app.id_type} · Applied {format(parseISO(app.created_at), "dd MMM yyyy")}</p>
+          {/* ── Tickets ── */}
+          <TabsContent value="tickets" className="mt-6 space-y-4">
+            <div className="flex gap-2 flex-wrap">
+              {(["all", "open", "pending", "escalated", "resolved", "closed"] as const).map((f) => (
+                <Button
+                  key={f}
+                  size="sm"
+                  variant={ticketFilter === f ? "default" : "outline"}
+                  onClick={() => setTicketFilter(f)}
+                  className="capitalize h-7 text-xs"
+                >
+                  {f}
+                  {f === "open" && stats.openTickets > 0 && ` (${stats.openTickets})`}
+                  {f === "escalated" && stats.escalated > 0 && ` (${stats.escalated})`}
+                </Button>
+              ))}
+            </div>
+
+            {filteredTickets.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6">No tickets matching this filter.</p>
+            ) : (
+              <div className="space-y-2">
+                {filteredTickets.map((t) => {
+                  const isExpanded = expandedTicketId === t.id;
+                  const messages = ticketMessages.get(t.id) ?? [];
+                  return (
+                    <Card key={t.id} className={`overflow-hidden ${t.escalated ? "border-destructive/40" : ""}`}>
+                      {/* Row */}
+                      <div
+                        className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => expandTicket(t.id)}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                            <span className="font-mono text-xs text-muted-foreground">#{t.ticket_num}</span>
+                            {t.escalated && (
+                              <Badge variant="destructive" className="text-[10px] h-4 px-1.5">Escalated</Badge>
+                            )}
+                            {t.priority && t.priority !== "normal" && (
+                              <Badge variant={PRIORITY_VARIANT[t.priority] ?? "secondary"} className="text-[10px] h-4 px-1.5 capitalize">
+                                {t.priority}
+                              </Badge>
+                            )}
+                            {t.category && (
+                              <Badge variant="outline" className="text-[10px] h-4 px-1.5 capitalize">
+                                {t.category.replace(/_/g, " ")}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="font-medium text-sm">{t.subject}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{new Date(t.created_at).toLocaleString()}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <Select value={t.status} onValueChange={(val) => updateTicketStatus(t.id, val as TicketStatus)} disabled={busy}>
+                            <SelectTrigger className="w-32 h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TICKET_STATUSES.map((s) => (
+                                <SelectItem key={s} value={s} className="text-xs capitalize">{s}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {isExpanded
+                            ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                            : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                        </div>
+                      </div>
+
+                      {/* Expanded thread */}
+                      {isExpanded && (
+                        <div className="border-t bg-muted/20 p-4 space-y-3">
+                          {loadingMessages && !ticketMessages.has(t.id) ? (
+                            <p className="text-xs text-muted-foreground">Loading messages…</p>
+                          ) : messages.length === 0 ? (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                              <MessageSquare className="h-3.5 w-3.5" /> No messages yet.
+                            </p>
+                          ) : (
+                            messages.map((msg) => (
+                              <div
+                                key={msg.id}
+                                className={`text-sm rounded-lg px-3 py-2 max-w-[85%] ${
+                                  msg.sender === "user"
+                                    ? "bg-muted ml-0"
+                                    : msg.sender === "admin"
+                                    ? "bg-primary/10 ml-auto text-right"
+                                    : msg.sender === "ai"
+                                    ? "bg-secondary/40 mx-auto text-center"
+                                    : "bg-muted/50 mx-auto text-center text-muted-foreground italic"
+                                }`}
+                              >
+                                <p className="text-[10px] font-medium text-muted-foreground mb-1">
+                                  {SENDER_LABEL[msg.sender] ?? msg.sender} · {new Date(msg.created_at).toLocaleTimeString()}
+                                </p>
+                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                              </div>
+                            ))
+                          )}
+                          {/* Admin reply input */}
+                          <div className="flex gap-2 pt-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              value={replyInputs.get(t.id) ?? ""}
+                              onChange={(e) =>
+                                setReplyInputs((prev) => { const next = new Map(prev); next.set(t.id, e.target.value); return next; })
+                              }
+                              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAdminReply(t.id); } }}
+                              placeholder="Reply to user…"
+                              className="h-8 text-xs flex-1"
+                              disabled={sendingReply === t.id}
+                            />
+                            <Button
+                              size="sm"
+                              className="h-8 text-xs"
+                              disabled={!replyInputs.get(t.id)?.trim() || sendingReply === t.id}
+                              onClick={() => sendAdminReply(t.id)}
+                            >
+                              {sendingReply === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Send"}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ── Users ── */}
+          <TabsContent value="users" className="mt-6 space-y-4">
+            <Input
+              placeholder="Search by name or user ID…"
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              className="max-w-sm h-8 text-sm"
+            />
+            {filteredUsers.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6">No users found.</p>
+            ) : (
+              <div className="grid gap-2">
+                {filteredUsers.map((user) => (
+                  <Card key={user.userId} className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="text-xs">{user.initials}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-sm">{user.displayName}</p>
+                        <div className="flex gap-1 mt-0.5 flex-wrap">
+                          {user.roles.map((r) => (
+                            <Badge
+                              key={r}
+                              variant={r === "admin" ? "default" : r === "host" ? "secondary" : "outline"}
+                              className="text-[10px] h-4 px-1.5"
+                            >
+                              {r}
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-mono mt-0.5">{user.userId.slice(0, 16)}…</p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant="secondary">pending</Badge>
