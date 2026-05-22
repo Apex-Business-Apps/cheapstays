@@ -462,10 +462,10 @@ export default function Host() {
     return (
       <div className="container py-24 max-w-xl text-center">
         <Seo title="Host on CheapStays" description="List your property and reach verified travelers directly." path="/host" />
-        <h1 className="text-2xl font-semibold">Sign up / log in to host</h1>
-        <p className="text-muted-foreground mt-2">You need an account to list your property on CheapStays.</p>
-        <Link to="/auth?mode=signup">
-          <Button className="mt-6">Sign Up / Log In</Button>
+        <h1 className="text-2xl font-semibold">Want to list your property?</h1>
+        <p className="text-muted-foreground mt-2 mb-6">Create a free account first, then apply as a host.</p>
+        <Link to="/auth?mode=signup&next=/host/apply">
+          <Button>Create account to apply</Button>
         </Link>
       </div>
     );
