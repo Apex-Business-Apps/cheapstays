@@ -1,11 +1,16 @@
 import { z } from "npm:zod@3.23.8";
 import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
+import { AI_PROMPT_VERSION_REGISTRY, buildGuardrailSystemPrompt, detectGuardrailViolation, fallbackGuardrailResponse } from "../_shared/ai-governance.ts";
+import { logAiDecision } from "../_shared/ai-audit.ts";
+import { isApprovedRegistryCommand } from "../_shared/command-authority.ts";
 import { getUserFromRequest } from "../_shared/auth.ts";
 
 const BodySchema = z.object({
   ticket_id: z.string().uuid().optional(),
   prompt: z.string().min(1).max(2000),
+  command_id: z.string().min(3).max(120).optional(),
+  top_level_command: z.boolean().optional(),
 });
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
@@ -34,6 +39,21 @@ Deno.serve(async (req) => {
     });
   }
 
+
+  if (parsed.data.top_level_command) {
+    const approved = parsed.data.command_id ? await isApprovedRegistryCommand(parsed.data.command_id) : false;
+    if (!approved) {
+      await logAiDecision({ surface: "support", decision: "blocked", actor_id: user.id, prompt_version: AI_PROMPT_VERSION_REGISTRY.support, reason: "registry_gate_blocked", payload: { command_id: parsed.data.command_id ?? null } });
+      return new Response(JSON.stringify({ error: "Top-level commands must come from approved GitHub registry flow." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+  }
+
+  const violations = detectGuardrailViolation(parsed.success ? parsed.data.prompt : "");
+  if (violations.length) {
+    await logAiDecision({ surface: "support", decision: "blocked", actor_id: user.id, prompt_version: AI_PROMPT_VERSION_REGISTRY.support, reason: "guardrail_violation", payload: { violations } });
+    return new Response(JSON.stringify({ error: fallbackGuardrailResponse() }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
   const apiKey = Deno.env.get("GROQ_API_KEY");
   if (!apiKey) {
     return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured" }), {
@@ -49,7 +69,7 @@ Deno.serve(async (req) => {
       stream: true,
       temperature: 0.5,
       messages: [
-        { role: "system", content: "You are cheapstays.me support AI. Direct, warm, useful. Plain text." },
+        { role: "system", content: `${buildGuardrailSystemPrompt("support")}\n\nYou are cheapstays.me support AI. Direct, warm, useful. Plain text.` },
         { role: "user", content: parsed.data.prompt },
       ],
     }),

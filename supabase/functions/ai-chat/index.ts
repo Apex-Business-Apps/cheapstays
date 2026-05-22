@@ -2,6 +2,9 @@ import { z } from "npm:zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
+import { AI_PROMPT_VERSION_REGISTRY, buildGuardrailSystemPrompt, detectGuardrailViolation, fallbackGuardrailResponse } from "../_shared/ai-governance.ts";
+import { logAiDecision } from "../_shared/ai-audit.ts";
+import { isApprovedRegistryCommand } from "../_shared/command-authority.ts";
 
 const MsgSchema = z.object({
   role: z.enum(["system", "user", "assistant"]),
@@ -9,6 +12,8 @@ const MsgSchema = z.object({
 });
 const BodySchema = z.object({
   messages: z.array(MsgSchema).min(1).max(40),
+  command_id: z.string().min(3).max(120).optional(),
+  top_level_command: z.boolean().optional(),
 });
 
 const LISTING_KEYWORDS = /\b(find|search|look|stay|listing|place|room|villa|condo|house|cabin|rent|book|available|cheap|price|cost|budget|night|nights|where|accommodation|property|properties|host|airbnb)\b/i;
@@ -85,6 +90,21 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (parsed.data.top_level_command) {
+      const approved = parsed.data.command_id ? await isApprovedRegistryCommand(parsed.data.command_id) : false;
+      if (!approved) {
+        await logAiDecision({ surface: "summary", decision: "blocked", prompt_version: AI_PROMPT_VERSION_REGISTRY.summary, reason: "registry_gate_blocked", payload: { command_id: parsed.data.command_id ?? null } });
+        return new Response("Top-level commands must come from approved GitHub registry flow.", { status: 403, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      }
+    }
+
+    const latestUserText = parsed.data.messages.filter((m) => m.role === "user").map((m) => m.content).join(" ");
+    const violations = detectGuardrailViolation(latestUserText);
+    if (violations.length) {
+      await logAiDecision({ surface: "summary", decision: "blocked", prompt_version: AI_PROMPT_VERSION_REGISTRY.summary, reason: "guardrail_violation", payload: { violations } });
+      return new Response(fallbackGuardrailResponse(), { status: 200, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+    }
+
     const apiKey = Deno.env.get("GROQ_API_KEY");
     if (!apiKey) throw new Error("GROQ_API_KEY missing");
 
@@ -92,7 +112,7 @@ Deno.serve(async (req) => {
     const needsListings = LISTING_KEYWORDS.test(allText) || RATING_KEYWORDS.test(allText) ||
       BOOKING_KEYWORDS.test(allText) || FILTER_KEYWORDS.test(allText);
     const listingsContext = needsListings ? await fetchListingsContext() : "";
-    const systemContent = BASE_SYSTEM + listingsContext;
+    const systemContent = `${buildGuardrailSystemPrompt("summary")}\n\n${BASE_SYSTEM}${listingsContext}`;
 
     const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",

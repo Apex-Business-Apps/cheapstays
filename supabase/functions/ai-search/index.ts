@@ -3,6 +3,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { groqChat } from "../_shared/groq.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
+import { AI_PROMPT_VERSION_REGISTRY, buildGuardrailSystemPrompt, detectGuardrailViolation, fallbackGuardrailResponse } from "../_shared/ai-governance.ts";
+import { logAiDecision } from "../_shared/ai-audit.ts";
 
 const BodySchema = z.object({
   query: z.string().min(2).max(500),
@@ -37,6 +39,20 @@ Deno.serve(async (req) => {
     }
 
     const { query, filters } = parsed.data;
+    const violations = detectGuardrailViolation(query);
+    if (violations.length) {
+      await logAiDecision({
+        surface: "search",
+        decision: "blocked",
+        prompt_version: AI_PROMPT_VERSION_REGISTRY.search,
+        reason: "guardrail_violation",
+        payload: { violations, query },
+      });
+      return new Response(JSON.stringify({ summary: fallbackGuardrailResponse(), results: [] }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Fetch real listings from the database
     const supabase = createClient(
@@ -78,7 +94,7 @@ Deno.serve(async (req) => {
       )
       .join("\n");
 
-    const system = `You are the cheapstays.me deal-hunting AI. You have real listings from the database below.
+    const system = `${buildGuardrailSystemPrompt("search")}\n\nYou are the cheapstays.me deal-hunting AI. You have real listings from the database below.
 Match listings to the user query using FUZZY, SEMANTIC matching:
 - Be flexible with city names, spelling, abbreviations (e.g. "QC" = "Quezon City", "BGC" = Bonifacio Global City, "NCR" = Metro Manila)
 - Match province/region names too ("Metro Manila" matches "NCR", "Palawan" matches "El Nido" or "Coron")
@@ -137,6 +153,7 @@ Match listings to the user query using FUZZY, SEMANTIC matching:
         };
       });
 
+    await logAiDecision({ surface: "search", decision: "allowed", prompt_version: AI_PROMPT_VERSION_REGISTRY.search, reason: "search_results_generated", payload: { query, result_count: results.length } });
     return new Response(JSON.stringify({ summary: aiJson.summary ?? "", results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
