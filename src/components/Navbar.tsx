@@ -6,6 +6,7 @@ import { isHost } from "@/lib/rbac";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { NotificationsModal } from "@/components/NotificationsModal";
 import { Menu, X } from "lucide-react";
 
 export function Navbar() {
@@ -14,12 +15,17 @@ export function Navbar() {
   const [brandAsset, setBrandAsset] = useState<"wordmark" | "icon" | "text">("wordmark");
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const links = [
-    { to: "/search",      label: t("nav.search") },
-    { to: "/membership",  label: t("nav.membership") },
-    { to: "/host",        label: t("nav.host") },
-    { to: "/support",     label: t("nav.support") },
+  // /notifications is desktop-only; mobile/tablet use the NotificationsModal bell icon
+  const mobileLinks = [
+    { to: "/search",     label: t("nav.search") },
+    { to: "/membership", label: t("nav.membership") },
+    { to: "/host",       label: t("nav.host") },
+    { to: "/support",    label: t("nav.support") },
     ...(user ? [{ to: "/my-bookings", label: "My Bookings" }] : []),
+  ];
+  const desktopLinks = [
+    ...mobileLinks,
+    { to: "/notifications", label: "Notifications" },
   ];
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -53,7 +59,7 @@ export function Navbar() {
 
         {/* Desktop nav links */}
         <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
-          {links.map((l) => (
+          {desktopLinks.map((l) => (
             <NavLink key={l.to} to={l.to} className={navLinkClass}>
               {l.label}
             </NavLink>
@@ -67,6 +73,8 @@ export function Navbar() {
 
         {/* Right-side actions */}
         <div className="flex items-center gap-1 shrink-0">
+          {/* Bell icon for mobile/tablet – opens NotificationsModal */}
+          <NotificationsModal />
           {/* LanguageSwitcher hidden on mobile — available in the hamburger drawer */}
           <span className="hidden sm:flex"><LanguageSwitcher /></span>
           <ThemeToggle />
@@ -113,7 +121,7 @@ export function Navbar() {
       {mobileOpen && (
         <nav className="lg:hidden border-t border-border/60 bg-background/95 backdrop-blur px-4 pb-4 pt-2">
           <ul className="flex flex-col gap-1">
-            {links.map((l) => (
+            {mobileLinks.map((l) => (
               <li key={l.to}>
                 <NavLink
                   to={l.to}
