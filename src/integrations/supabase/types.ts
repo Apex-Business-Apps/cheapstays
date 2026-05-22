@@ -458,6 +458,58 @@ export type Database = {
         }
         Relationships: []
       }
+
+      legal_consent_acceptances: {
+        Row: {
+          accepted_at: string
+          checkbox_label: string
+          context_id: string
+          created_at: string
+          document_hash: string
+          document_id: string
+          document_version: string
+          gate_opened_at: string
+          id: string
+          metadata: Json
+          role: string
+          scroll_completed_at: string | null
+          scrolled_to_bottom: boolean
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          checkbox_label: string
+          context_id: string
+          created_at?: string
+          document_hash: string
+          document_id: string
+          document_version: string
+          gate_opened_at?: string
+          id?: string
+          metadata?: Json
+          role: string
+          scroll_completed_at?: string | null
+          scrolled_to_bottom: boolean
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          checkbox_label?: string
+          context_id?: string
+          created_at?: string
+          document_hash?: string
+          document_id?: string
+          document_version?: string
+          gate_opened_at?: string
+          id?: string
+          metadata?: Json
+          role?: string
+          scroll_completed_at?: string | null
+          scrolled_to_bottom?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -487,6 +539,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+
+      legal_fast_accept_eligible: {
+        Args: {
+          p_changed_topics?: string[]
+          p_context_id: string
+          p_document_hash: string
+          p_document_id: string
+          p_document_version: string
+          p_role: string
+          p_user_id: string
+        }
+        Returns: {
+          accepted_at: string | null
+          eligible: boolean
+          last_acceptance_id: string | null
+          reason: string
+          requires_full_scroll: boolean
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

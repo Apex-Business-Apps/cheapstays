@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 export type LegalFastAcceptRequest = {
   userId: string;
@@ -55,7 +56,7 @@ export async function createLegalAcceptanceAudit(params: {
   scrolledToBottom: boolean;
   gateOpenedAt: string;
   scrollCompletedAt: string | null;
-  metadata?: Record<string, unknown>;
+  metadata?: Json;
 }) {
   const { error } = await supabase.from("legal_consent_acceptances").insert({
     user_id: params.userId,
