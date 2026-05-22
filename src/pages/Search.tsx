@@ -14,10 +14,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { aiSearchSchema } from "@/lib/schemas";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Zap, Users, BedDouble, Star, SlidersHorizontal, X } from "lucide-react";
+import { Loader2, Sparkles, Zap, Users, BedDouble, Star, SlidersHorizontal, X, Lock } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { cn } from "@/lib/utils";
-import { GuestRatingBadge } from "@/components/GuestRatingBadge";
+import { useAuth } from "@/hooks/useAuth";
+import { isMember } from "@/lib/rbac";
 
 type Listing = {
   id: string;
@@ -89,6 +90,18 @@ const AMENITY_LABELS: Record<string, string> = {
   beach_access: "Beach access", pet_friendly: "Pet friendly", work_desk: "Work desk",
 };
 
+const DAILY_SEARCH_LIMIT = 5;
+
+function todayKey() {
+  return `cheapstays:ai_searches:${new Date().toISOString().slice(0, 10)}`;
+}
+function getDailySearchCount(): number {
+  return parseInt(localStorage.getItem(todayKey()) ?? "0", 10);
+}
+function incrementDailySearchCount() {
+  localStorage.setItem(todayKey(), String(getDailySearchCount() + 1));
+}
+
 function activeFilterCount(f: Filters): number {
   return (
     (f.maxPrice < DEFAULT_FILTERS.maxPrice ? 1 : 0) +
@@ -101,7 +114,9 @@ function activeFilterCount(f: Filters): number {
   );
 }
 
-function ListingCard({ listing }: { listing: Listing }) {
+type GuestRating = { avg: number; count: number } | null;
+
+function ListingCard({ listing, guestRating }: { listing: Listing; guestRating?: GuestRating }) {
   const heroImage = listing.images?.[0];
   const displayAmenities = (listing.amenities ?? []).filter((a) => AMENITY_ICONS[a]).slice(0, 4);
 
@@ -152,8 +167,12 @@ function ListingCard({ listing }: { listing: Listing }) {
           )}
         </div>
 
-        {/* Host guest-rating badge */}
-        <GuestRatingBadge userId={listing.host_id} size="sm" />
+        {guestRating && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-yellow-300/60 bg-yellow-50 dark:bg-yellow-950/30 px-2 py-0.5 text-[10px] font-medium text-yellow-700 dark:text-yellow-400">
+            <Star className="h-2.5 w-2.5 fill-yellow-400 text-yellow-400" />
+            {guestRating.avg.toFixed(1)} guest · {guestRating.count} {guestRating.count === 1 ? "review" : "reviews"}
+          </span>
+        )}
 
         {displayAmenities.length > 0 && (
           <div className="flex flex-wrap gap-1">
@@ -206,6 +225,8 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
 }
 
 export default function Search() {
+  const { user, roles } = useAuth();
+  const memberUser = isMember(roles);
   const [searchParams] = useSearchParams();
   const initialQ = searchParams.get("q") ?? "";
   const [query, setQuery] = useState(initialQ);
@@ -218,7 +239,40 @@ export default function Search() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [browseListings, setBrowseListings] = useState<Listing[]>([]);
   const [browseLoading, setBrowseLoading] = useState(false);
+  const [hostRatings, setHostRatings] = useState<Map<string, GuestRating>>(new Map());
+  const [dailyCount, setDailyCount] = useState(() => getDailySearchCount());
   const autoSearched = useRef(false);
+
+  const searchesRemaining = memberUser ? Infinity : Math.max(0, DAILY_SEARCH_LIMIT - dailyCount);
+  const searchLimitReached = !memberUser && user != null && dailyCount >= DAILY_SEARCH_LIMIT;
+
+  async function fetchHostRatings(listings: Listing[]) {
+    const hostIds = [...new Set(listings.map((l) => l.host_id))];
+    if (hostIds.length === 0) return;
+    const { data } = await supabase
+      .from("reviews")
+      .select("reviewee_id, rating")
+      .in("reviewee_id", hostIds)
+      .eq("reviewer_role", "host")
+      .eq("is_public", true);
+    if (!data) return;
+    const grouped = new Map<string, number[]>();
+    for (const row of data) {
+      if (!grouped.has(row.reviewee_id)) grouped.set(row.reviewee_id, []);
+      grouped.get(row.reviewee_id)!.push(row.rating);
+    }
+    setHostRatings((prev) => {
+      const next = new Map(prev);
+      for (const id of hostIds) {
+        const ratings = grouped.get(id);
+        next.set(id, ratings?.length
+          ? { avg: Math.round(ratings.reduce((s, r) => s + r, 0) / ratings.length * 10) / 10, count: ratings.length }
+          : null
+        );
+      }
+      return next;
+    });
+  }
 
   // Auto-run search when arriving with a ?q= param (e.g. from destination cards)
   useEffect(() => {
@@ -242,9 +296,9 @@ export default function Search() {
           .order("created_at", { ascending: false })
           .limit(12);
         if (!cancelled) {
-          setBrowseListings(
-            (data ?? []).map((l) => ({ ...l, why_its_a_deal: "", score: 0 })) as Listing[]
-          );
+          const listings = (data ?? []).map((l) => ({ ...l, why_its_a_deal: "", score: 0 })) as Listing[];
+          setBrowseListings(listings);
+          fetchHostRatings(listings);
         }
       } catch {
         // silent — browse listings are non-critical
@@ -263,14 +317,25 @@ export default function Search() {
       toast({ title: "Refine your search", description: "Try at least a few words." });
       return;
     }
+    if (!memberUser && user != null && getDailySearchCount() >= DAILY_SEARCH_LIMIT) {
+      toast({ title: "Daily limit reached", description: "Upgrade to Member for unlimited AI searches.", variant: "destructive" });
+      setDailyCount(getDailySearchCount());
+      return;
+    }
     setLoading(true);
     setSearched(false);
     try {
       const { data, error } = await supabase.functions.invoke("ai-search", { body: { query: q } });
       if (error) throw error;
-      setResults(data?.results ?? []);
+      const searchResults: Listing[] = data?.results ?? [];
+      setResults(searchResults);
       setSummary(data?.summary ?? "");
       setSearched(true);
+      fetchHostRatings(searchResults);
+      if (!memberUser && user != null) {
+        incrementDailySearchCount();
+        setDailyCount(getDailySearchCount());
+      }
     } catch (err) {
       toast({ title: "Search failed", description: (err as Error).message, variant: "destructive" });
     } finally {
@@ -321,11 +386,28 @@ export default function Search() {
         </div>
 
         <form onSubmit={run} className="mt-6 flex gap-2 max-w-2xl">
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="2 nights in Quezon City, budget ₱2,000, need WiFi…" className="flex-1" />
-          <Button type="submit" disabled={loading}>
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="2 nights in Quezon City, budget ₱2,000, need WiFi…" className="flex-1" disabled={searchLimitReached} />
+          <Button type="submit" disabled={loading || searchLimitReached}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="h-4 w-4 mr-1" /> Search</>}
           </Button>
         </form>
+
+        {searchLimitReached ? (
+          <div className="mt-4 max-w-2xl rounded-xl border border-amber-400/40 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-sm">
+              <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+              <span className="text-amber-800 dark:text-amber-300">You've used all {DAILY_SEARCH_LIMIT} free AI searches today.</span>
+            </div>
+            <Button size="sm" asChild>
+              <Link to="/membership">Upgrade for unlimited</Link>
+            </Button>
+          </div>
+        ) : user && !memberUser ? (
+          <p className="mt-2 text-xs text-muted-foreground max-w-2xl">
+            {searchesRemaining} of {DAILY_SEARCH_LIMIT} free searches remaining today ·{" "}
+            <Link to="/membership" className="underline underline-offset-2 hover:text-foreground">Upgrade for unlimited</Link>
+          </p>
+        ) : null}
 
         {summary && (
           <p className="mt-4 text-sm text-muted-foreground max-w-2xl border-l-2 border-primary/40 pl-3">{summary}</p>
@@ -487,7 +569,7 @@ export default function Search() {
 
         {!loading && filtered.length > 0 && (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((r) => <ListingCard key={r.id} listing={r} />)}
+            {filtered.map((r) => <ListingCard key={r.id} listing={r} guestRating={hostRatings.get(r.host_id)} />)}
           </div>
         )}
 
@@ -504,7 +586,7 @@ export default function Search() {
           <div className="mt-10">
             <h2 className="text-lg font-medium mb-4">Browse latest stays</h2>
             <div className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-3")}>
-              {browseListings.map((r) => <ListingCard key={r.id} listing={r} />)}
+              {browseListings.map((r) => <ListingCard key={r.id} listing={r} guestRating={hostRatings.get(r.host_id)} />)}
             </div>
           </div>
         )}

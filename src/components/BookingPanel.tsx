@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { CalendarDays, ChevronDown, Loader2, Users, Zap, CheckCircle2 } from "lucide-react";
 import { LegalScrollGate } from "@/components/LegalScrollGate";
 import { legalDocs } from "@/pages/legal/content";
+import { isMember } from "@/lib/rbac";
 
 type Listing = {
   id: string;
@@ -40,8 +41,9 @@ const RENTER_RULES = legalDocs["renter-rules"];
 const RENTER_RULES_HASH = djb2(RENTER_RULES.markdown);
 
 export function BookingPanel({ listing }: Props) {
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
   const navigate = useNavigate();
+  const effectiveInstantBook = listing.instant_book && isMember(roles);
 
   const [range, setRange] = useState<DateRange | undefined>();
   const [guests, setGuests] = useState(1);
@@ -128,10 +130,10 @@ export function BookingPanel({ listing }: Props) {
       <div className="rounded-2xl border border-border/60 bg-card p-6 text-center space-y-4">
         <CheckCircle2 className="h-10 w-10 text-primary mx-auto" />
         <p className="font-semibold text-lg">
-          {listing.instant_book ? "Booking confirmed!" : "Request sent!"}
+          {effectiveInstantBook ? "Booking confirmed!" : "Request sent!"}
         </p>
         <p className="text-sm text-muted-foreground">
-          {listing.instant_book
+          {effectiveInstantBook
             ? "You're booked. Check your email for details."
             : "The host will confirm within 24 hours."}
         </p>
@@ -158,6 +160,7 @@ export function BookingPanel({ listing }: Props) {
           {listing.instant_book && (
             <span className="flex items-center gap-1 text-xs text-primary font-medium">
               <Zap className="h-3.5 w-3.5" /> Instant book
+              {!effectiveInstantBook && user && <span className="text-muted-foreground">(Members only)</span>}
             </span>
           )}
         </div>
@@ -270,12 +273,13 @@ export function BookingPanel({ listing }: Props) {
           className="w-full"
           disabled={!canBook || submitting}
           onClick={user ? () => setShowLegalGate(true) : () => navigate("/auth")}
+          aria-label={effectiveInstantBook ? "Book now" : "Request to book"}
         >
           {submitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : !user ? (
             "Sign in to book"
-          ) : listing.instant_book ? (
+          ) : effectiveInstantBook ? (
             "Book now"
           ) : (
             "Request to book"
@@ -284,7 +288,13 @@ export function BookingPanel({ listing }: Props) {
 
         {canBook && (
           <p className="text-xs text-center text-muted-foreground">
-            {listing.instant_book ? "You won't be charged yet." : "No charge until the host confirms."}
+            {effectiveInstantBook ? "You won't be charged yet." : "No charge until the host confirms."}
+          </p>
+        )}
+        {listing.instant_book && !effectiveInstantBook && user && (
+          <p className="text-xs text-center text-muted-foreground">
+            <Link to="/membership" className="underline underline-offset-2 hover:text-foreground">Upgrade to Member</Link>
+            {" "}to unlock instant booking on this listing.
           </p>
         )}
       </div>

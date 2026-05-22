@@ -103,7 +103,7 @@ function StatCard({
 }
 
 export default function Admin() {
-  const { roles, loading } = useAuth();
+  const { user, roles, loading } = useAuth();
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState("tickets");
@@ -263,6 +263,14 @@ export default function Admin() {
         ? await supabase.from("user_roles").insert({ user_id: userId, role })
         : await supabase.from("user_roles").delete().match({ user_id: userId, role });
       if (error) throw error;
+      // omnihub-role-authority requires pre-registered external commands not accessible
+      // from the frontend, so audit trail is written directly with actor attribution.
+      await supabase.from("role_audit_log").insert({
+        target_user_id: userId,
+        actor_user_id: user?.id ?? null,
+        role,
+        action: grant ? "granted" : "revoked",
+      });
       await fetchDashboard();
       toast.success(`${grant ? "Granted" : "Revoked"} ${role}.`);
     } catch {
