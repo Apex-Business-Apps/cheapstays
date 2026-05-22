@@ -348,6 +348,114 @@ export type Database = {
         }
         Relationships: []
       }
+      host_applications: {
+        Row: {
+          id: string
+          user_id: string
+          full_legal_name: string
+          phone: string
+          property_type: string
+          city: string
+          province: string
+          property_description: string
+          id_type: string
+          id_front_path: string | null
+          selfie_path: string | null
+          status: string
+          reviewed_by: string | null
+          reviewed_at: string | null
+          rejection_reason: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          full_legal_name: string
+          phone: string
+          property_type: string
+          city: string
+          province: string
+          property_description: string
+          id_type: string
+          id_front_path?: string | null
+          selfie_path?: string | null
+          status?: string
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          rejection_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          full_legal_name?: string
+          phone?: string
+          property_type?: string
+          city?: string
+          province?: string
+          property_description?: string
+          id_type?: string
+          id_front_path?: string | null
+          selfie_path?: string | null
+          status?: string
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          rejection_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      role_mutation_audit: {
+        Row: {
+          id: string
+          created_at: string
+          command_id: string
+          command_source: string
+          requester_id: string
+          approver_id: string
+          operation: string
+          target_user_id: string
+          reason_code: string
+          before_state: Json
+          after_state: Json
+          executed_by: string | null
+          ip_address: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          command_id: string
+          command_source: string
+          requester_id: string
+          approver_id: string
+          operation: string
+          target_user_id: string
+          reason_code: string
+          before_state?: Json
+          after_state?: Json
+          executed_by?: string | null
+          ip_address?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          command_id?: string
+          command_source?: string
+          requester_id?: string
+          approver_id?: string
+          operation?: string
+          target_user_id?: string
+          reason_code?: string
+          before_state?: Json
+          after_state?: Json
+          executed_by?: string | null
+          ip_address?: string | null
+        }
+        Relationships: []
+      }
       role_audit_log: {
         Row: {
           action: string

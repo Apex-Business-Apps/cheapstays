@@ -15,6 +15,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const Search = lazy(() => import("./pages/Search"));
 const Membership = lazy(() => import("./pages/Membership"));
 const Host = lazy(() => import("./pages/Host"));
+const HostApply = lazy(() => import("./pages/HostApply"));
 const Support = lazy(() => import("./pages/Support"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const Admin = lazy(() => import("./pages/Admin"));
@@ -43,8 +44,8 @@ const App = () => (
                   <Route path="/search" element={<Search />} />
                   <Route path="/membership" element={<Membership />} />
                   <Route path="/host" element={<Host />} />
-                  <Route path="/support" element={<Support />} />
-                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/host/apply" element={<HostApply />} />
+                  <Route path="/support" element={<LegalDocumentPage docKey="support" />} />
                   <Route path="/privacy" element={<LegalDocumentPage docKey="privacy" />} />
                   <Route path="/terms" element={<LegalDocumentPage docKey="terms" />} />
                   <Route path="/host-terms" element={<LegalDocumentPage docKey="host-terms" />} />

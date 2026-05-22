@@ -307,10 +307,10 @@ export default function Host() {
     return (
       <div className="container py-24 max-w-xl text-center">
         <Seo title="Host on CheapStays" description="List your property and reach verified travelers directly." path="/host" />
-        <h1 className="text-2xl font-semibold">Sign up / log in to host</h1>
-        <p className="text-muted-foreground mt-2">You need an account to list your property on CheapStays.</p>
-        <Link to="/auth?mode=signup">
-          <Button className="mt-6">Sign Up / Log In</Button>
+        <h1 className="text-2xl font-semibold">Want to list your property?</h1>
+        <p className="text-muted-foreground mt-2 mb-6">Create a free account first, then apply as a host.</p>
+        <Link to="/auth?mode=signup&next=/host/apply">
+          <Button>Create account to apply</Button>
         </Link>
       </div>
     );
@@ -322,11 +322,11 @@ export default function Host() {
         <Seo title="Become a Host · CheapStays" description="Apply to list your property on CheapStays." path="/host" />
         <h1 className="text-2xl font-semibold">Apply to become a host</h1>
         <p className="text-muted-foreground mt-3">
-          Your account doesn't have host access yet. Apply as Host and an admin will review your application — usually within 24 hours.
+          Submit your details and identity documents. Our team reviews applications within 24–48 hours.
         </p>
         <div className="flex gap-3 justify-center mt-6">
-          <Link to="/support">
-            <Button>Apply as Host</Button>
+          <Link to="/host/apply">
+            <Button>Start application</Button>
           </Link>
           <Link to="/search">
             <Button variant="outline">Browse listings</Button>
