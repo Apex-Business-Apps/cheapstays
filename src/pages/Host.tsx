@@ -305,13 +305,56 @@ export default function Host() {
 
   if (!user) {
     return (
-      <div className="container py-24 max-w-xl text-center">
-        <Seo title="Host on CheapStays" description="List your property and reach verified travelers directly." path="/host" />
-        <h1 className="text-2xl font-semibold">Sign up / log in to host</h1>
-        <p className="text-muted-foreground mt-2">You need an account to list your property on CheapStays.</p>
-        <Link to="/auth?mode=signup">
-          <Button className="mt-6">Sign Up / Log In</Button>
-        </Link>
+      <div className="container py-16 max-w-3xl">
+        <Seo title="Host on CheapStays" description="List your property and earn money hosting travelers across the Philippines. No platform markup." path="/host" />
+
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-semibold tracking-tight">Earn money hosting travelers</h1>
+          <p className="text-muted-foreground mt-3 text-lg max-w-xl mx-auto">
+            List your property on CheapStays and connect directly with verified renters.
+            No platform markup — every peso goes to you, not to us.
+          </p>
+          <div className="flex gap-3 justify-center mt-8">
+            <Link to="/auth?mode=signup">
+              <Button size="lg">Get started — it's free</Button>
+            </Link>
+            <Link to="/auth?mode=login">
+              <Button size="lg" variant="outline">Log in</Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-4 mb-12">
+          {[
+            { heading: "Zero markup", body: "Guests pay exactly what you charge. We take no cut from your nightly rate." },
+            { heading: "Owner-direct rates", body: "Set your own price, availability, and house rules. Full control, always." },
+            { heading: "Verified renters", body: "Every guest goes through account verification before they can book." },
+          ].map(({ heading, body }) => (
+            <div key={heading} className="rounded-lg border bg-card p-5">
+              <p className="font-semibold mb-1">{heading}</p>
+              <p className="text-sm text-muted-foreground">{body}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-lg border bg-card p-6">
+          <p className="font-semibold mb-4 text-sm uppercase tracking-wider text-muted-foreground">How it works</p>
+          <ol className="space-y-4">
+            {[
+              { step: "1", title: "Create your account", desc: "Sign up in under a minute. No credit card required." },
+              { step: "2", title: "Apply to host", desc: "Submit your host profile with an ID photo. Our team reviews within 24 hours." },
+              { step: "3", title: "List and earn", desc: "Add your property, set your rate, and start receiving booking requests." },
+            ].map(({ step, title, desc }) => (
+              <li key={step} className="flex gap-4">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">{step}</span>
+                <div>
+                  <p className="font-medium text-sm">{title}</p>
+                  <p className="text-sm text-muted-foreground">{desc}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
     );
   }

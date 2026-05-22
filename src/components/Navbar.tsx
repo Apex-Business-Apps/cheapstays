@@ -68,9 +68,6 @@ export function Navbar() {
           {/* LanguageSwitcher hidden on mobile — available in the hamburger drawer */}
           <span className="hidden sm:flex"><LanguageSwitcher /></span>
           <ThemeToggle />
-          <Button size="sm" variant="outline" asChild className="hidden sm:flex">
-            <Link to="/host?apply=1">Apply as Host</Link>
-          </Button>
           {user ? (
             <Button size="sm" variant="ghost" onClick={signOut} className="hidden sm:flex">
               {t("nav.signOut")}
@@ -132,9 +129,6 @@ export function Navbar() {
             )}
             {/* Auth + language in mobile drawer */}
             <li className="pt-2 border-t border-border/40 flex items-center gap-2 flex-wrap">
-              <Button size="sm" variant="outline" asChild className="min-h-[44px]">
-                <Link to="/host?apply=1" onClick={() => setMobileOpen(false)}>Apply as Host</Link>
-              </Button>
               {user ? (
                 <Button size="sm" variant="ghost" onClick={() => { signOut(); setMobileOpen(false); }} className="min-h-[44px]">
                   {t("nav.signOut")}

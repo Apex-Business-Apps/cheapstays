@@ -10,9 +10,9 @@ vi.mock("react-i18next", async (importOriginal) => {
 });
 
 describe("Navbar CTAs", () => {
-  it("shows single primary auth CTA and apply host CTA", () => {
+  it("shows a single primary auth CTA and no redundant Apply as Host button", () => {
     render(<MemoryRouter><Navbar /></MemoryRouter>);
     expect(screen.getAllByText("Sign Up / Log In").length).toBe(1);
-    expect(screen.getByText("Apply as Host")).toBeInTheDocument();
+    expect(screen.queryByText("Apply as Host")).toBeNull();
   });
 });

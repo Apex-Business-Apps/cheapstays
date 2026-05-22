@@ -42,7 +42,8 @@ const App = () => (
                   <Route path="/search" element={<Search />} />
                   <Route path="/membership" element={<Membership />} />
                   <Route path="/host" element={<Host />} />
-                  <Route path="/support" element={<LegalDocumentPage docKey="support" />} />
+                  <Route path="/support" element={<Support />} />
+                  <Route path="/support-info" element={<LegalDocumentPage docKey="support" />} />
                   <Route path="/privacy" element={<LegalDocumentPage docKey="privacy" />} />
                   <Route path="/terms" element={<LegalDocumentPage docKey="terms" />} />
                   <Route path="/host-terms" element={<LegalDocumentPage docKey="host-terms" />} />
