@@ -358,7 +358,7 @@ export default function Host() {
           </TabsList>
 
           <TabsContent value="dashboard">
-            <HostDashboard />
+            <HostDashboard hostId={user.id} />
           </TabsContent>
 
           {/* ── New listing tab ── */}
