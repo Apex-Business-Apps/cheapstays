@@ -50,7 +50,7 @@ export function Navbar() {
         </Link>
 
         {/* Desktop nav links */}
-        <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
+        <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
           {links.map((l) => (
             <NavLink key={l.to} to={l.to} className={navLinkClass}>
               {l.label}
@@ -82,7 +82,7 @@ export function Navbar() {
           )}
           {/* Hamburger button — mobile only */}
           <button
-            className="block md:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="block lg:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((o) => !o)}
@@ -94,7 +94,7 @@ export function Navbar() {
 
       {/* Mobile nav drawer */}
       {mobileOpen && (
-        <nav className="md:hidden border-t border-border/60 bg-background/95 backdrop-blur px-4 pb-4 pt-2">
+        <nav className="lg:hidden border-t border-border/60 bg-background/95 backdrop-blur px-4 pb-4 pt-2">
           <ul className="flex flex-col gap-1">
             {links.map((l) => (
               <li key={l.to}>
