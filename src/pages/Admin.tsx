@@ -11,7 +11,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import type { AppRole } from "@/lib/rbac";
 import { Seo } from "@/components/Seo";
-import { RefreshCw, Users, TicketIcon, ShieldCheck, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import {
+  RefreshCw, Users, TicketIcon, ShieldCheck, Clock,
+  AlertTriangle, CheckCircle2, ChevronDown, ChevronUp,
+  ExternalLink, MessageSquare,
+} from "lucide-react";
 
 type AuditRow = {
   id: string;
@@ -31,6 +35,12 @@ type SupportTicket = {
   escalated: boolean;
   created_at: string;
 };
+type TicketMessage = {
+  id: string;
+  sender: string;
+  content: string;
+  created_at: string;
+};
 type UserRoleRow = { id: string; user_id: string; role: AppRole };
 type ProfileRow = { user_id: string; display_name: string | null };
 type HostProfile = {
@@ -38,6 +48,8 @@ type HostProfile = {
   user_id: string;
   display_name: string | null;
   verification_status: string;
+  id_photo_url: string | null;
+  selfie_url: string | null;
   created_at: string;
 };
 type UserView = { userId: string; displayName: string; initials: string; roles: AppRole[] };
@@ -46,11 +58,18 @@ const MANAGED_ROLES: AppRole[] = ["admin", "host", "member"];
 type TicketStatus = "open" | "pending" | "resolved" | "closed" | "escalated";
 const TICKET_STATUSES: TicketStatus[] = ["open", "pending", "resolved", "closed", "escalated"];
 
+const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
 const PRIORITY_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   urgent: "destructive",
   high: "destructive",
   normal: "secondary",
   low: "outline",
+};
+const SENDER_LABEL: Record<string, string> = {
+  user: "User",
+  ai: "AI",
+  admin: "Admin",
+  system: "System",
 };
 
 function StatCard({
@@ -58,19 +77,25 @@ function StatCard({
   value,
   icon: Icon,
   urgent,
+  onClick,
 }: {
   label: string;
   value: number;
   icon: React.ElementType;
   urgent?: boolean;
+  onClick?: () => void;
 }) {
+  const active = urgent && value > 0;
   return (
-    <Card className={`p-4 flex items-center gap-3 ${urgent && value > 0 ? "border-destructive/50" : ""}`}>
-      <div className={`p-2 rounded-md ${urgent && value > 0 ? "bg-destructive/10" : "bg-muted"}`}>
-        <Icon className={`h-4 w-4 ${urgent && value > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+    <Card
+      className={`p-4 flex items-center gap-3 transition-colors ${active ? "border-destructive/50" : ""} ${onClick ? "cursor-pointer hover:bg-muted/50" : ""}`}
+      onClick={onClick}
+    >
+      <div className={`p-2 rounded-md ${active ? "bg-destructive/10" : "bg-muted"}`}>
+        <Icon className={`h-4 w-4 ${active ? "text-destructive" : "text-muted-foreground"}`} />
       </div>
       <div>
-        <p className={`text-xl font-semibold leading-none ${urgent && value > 0 ? "text-destructive" : ""}`}>{value}</p>
+        <p className={`text-xl font-semibold leading-none ${active ? "text-destructive" : ""}`}>{value}</p>
         <p className="text-xs text-muted-foreground mt-1">{label}</p>
       </div>
     </Card>
@@ -81,6 +106,7 @@ export default function Admin() {
   const { roles, loading } = useAuth();
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState("tickets");
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [userRoles, setUserRoles] = useState<UserRoleRow[]>([]);
@@ -88,6 +114,9 @@ export default function Admin() {
   const [hostProfiles, setHostProfiles] = useState<HostProfile[]>([]);
   const [userSearch, setUserSearch] = useState("");
   const [ticketFilter, setTicketFilter] = useState("all");
+  const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
+  const [ticketMessages, setTicketMessages] = useState<Map<string, TicketMessage[]>>(new Map());
+  const [loadingMessages, setLoadingMessages] = useState(false);
 
   const fetchDashboard = useCallback(async () => {
     const [auditRes, ticketRes, rolesRes, profilesRes, hostRes] = await Promise.all([
@@ -103,7 +132,11 @@ export default function Admin() {
         .limit(200),
       supabase.from("user_roles").select("id,user_id,role"),
       supabase.from("profiles").select("user_id,display_name").order("created_at", { ascending: false }).limit(200),
-      supabase.from("host_profiles").select("id,user_id,display_name,verification_status,created_at").order("created_at", { ascending: false }).limit(100),
+      supabase
+        .from("host_profiles")
+        .select("id,user_id,display_name,verification_status,id_photo_url,selfie_url,created_at")
+        .order("created_at", { ascending: false })
+        .limit(100),
     ]);
 
     if (auditRes.error || ticketRes.error || rolesRes.error || profilesRes.error) {
@@ -130,6 +163,25 @@ export default function Admin() {
     toast.success("Refreshed.");
   };
 
+  const expandTicket = async (ticketId: string) => {
+    if (expandedTicketId === ticketId) {
+      setExpandedTicketId(null);
+      return;
+    }
+    setExpandedTicketId(ticketId);
+    if (ticketMessages.has(ticketId)) return;
+    setLoadingMessages(true);
+    const { data } = await supabase
+      .from("support_messages")
+      .select("id,sender,content,created_at")
+      .eq("ticket_id", ticketId)
+      .order("created_at", { ascending: true });
+    if (data) {
+      setTicketMessages((prev) => new Map(prev).set(ticketId, data as TicketMessage[]));
+    }
+    setLoadingMessages(false);
+  };
+
   const nameMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const p of profiles) map.set(p.user_id, p.display_name ?? p.user_id.slice(0, 8));
@@ -146,12 +198,7 @@ export default function Admin() {
       const assignedRoles = Array.from(roleMap.get(p.user_id) ?? new Set(["user" as AppRole]));
       const label = p.display_name?.trim() || p.user_id;
       const initials =
-        label
-          .split(" ")
-          .filter(Boolean)
-          .slice(0, 2)
-          .map((s) => s[0]?.toUpperCase())
-          .join("") || "U";
+        label.split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("") || "U";
       return { userId: p.user_id, displayName: label, initials, roles: assignedRoles };
     });
   }, [profiles, userRoles]);
@@ -163,9 +210,15 @@ export default function Admin() {
   }, [users, userSearch]);
 
   const filteredTickets = useMemo(() => {
-    if (ticketFilter === "all") return tickets;
-    if (ticketFilter === "escalated") return tickets.filter((t) => t.escalated);
-    return tickets.filter((t) => t.status === ticketFilter);
+    let result = tickets;
+    if (ticketFilter === "escalated") result = tickets.filter((t) => t.escalated);
+    else if (ticketFilter !== "all") result = tickets.filter((t) => t.status === ticketFilter);
+    // Escalated first, then by priority
+    return [...result].sort((a, b) => {
+      if (a.escalated && !b.escalated) return -1;
+      if (!a.escalated && b.escalated) return 1;
+      return (PRIORITY_ORDER[a.priority] ?? 2) - (PRIORITY_ORDER[b.priority] ?? 2);
+    });
   }, [tickets, ticketFilter]);
 
   const pendingHosts = useMemo(
@@ -193,9 +246,7 @@ export default function Admin() {
     const groups = new Map<string, AuditRow[]>();
     for (const r of audit) {
       const key = new Date(r.created_at).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
+        year: "numeric", month: "long", day: "numeric",
       });
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(r);
@@ -275,17 +326,22 @@ export default function Admin() {
           </Button>
         </div>
 
-        {/* Stats */}
+        {/* Stats — clickable, navigate to relevant tab+filter */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <StatCard label="Total users" value={stats.totalUsers} icon={Users} />
-          <StatCard label="Open tickets" value={stats.openTickets} icon={TicketIcon} urgent />
-          <StatCard label="Escalated" value={stats.escalated} icon={AlertTriangle} urgent />
-          <StatCard label="Pending verifications" value={stats.pendingHosts} icon={Clock} urgent />
-          <StatCard label="Role changes (24h)" value={stats.roleChanges24h} icon={ShieldCheck} />
+          <StatCard label="Total users" value={stats.totalUsers} icon={Users}
+            onClick={() => setActiveTab("users")} />
+          <StatCard label="Open tickets" value={stats.openTickets} icon={TicketIcon} urgent
+            onClick={() => { setActiveTab("tickets"); setTicketFilter("open"); }} />
+          <StatCard label="Escalated" value={stats.escalated} icon={AlertTriangle} urgent
+            onClick={() => { setActiveTab("tickets"); setTicketFilter("escalated"); }} />
+          <StatCard label="Pending verifications" value={stats.pendingHosts} icon={Clock} urgent
+            onClick={() => setActiveTab("hosts")} />
+          <StatCard label="Role changes (24h)" value={stats.roleChanges24h} icon={ShieldCheck}
+            onClick={() => setActiveTab("audit")} />
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="tickets">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="tickets" className="gap-1.5">
               Tickets
@@ -329,44 +385,88 @@ export default function Admin() {
               <p className="text-sm text-muted-foreground py-6">No tickets matching this filter.</p>
             ) : (
               <div className="space-y-2">
-                {filteredTickets.map((t) => (
-                  <Card key={t.id} className="p-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                          <span className="font-mono text-xs text-muted-foreground">#{t.ticket_num}</span>
-                          {t.escalated && (
-                            <Badge variant="destructive" className="text-[10px] h-4 px-1.5">Escalated</Badge>
-                          )}
-                          {t.priority && t.priority !== "normal" && (
-                            <Badge variant={PRIORITY_VARIANT[t.priority] ?? "secondary"} className="text-[10px] h-4 px-1.5 capitalize">
-                              {t.priority}
-                            </Badge>
-                          )}
-                          {t.category && (
-                            <Badge variant="outline" className="text-[10px] h-4 px-1.5 capitalize">
-                              {t.category.replace(/_/g, " ")}
-                            </Badge>
+                {filteredTickets.map((t) => {
+                  const isExpanded = expandedTicketId === t.id;
+                  const messages = ticketMessages.get(t.id) ?? [];
+                  return (
+                    <Card key={t.id} className={`overflow-hidden ${t.escalated ? "border-destructive/40" : ""}`}>
+                      {/* Row */}
+                      <div
+                        className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => expandTicket(t.id)}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                            <span className="font-mono text-xs text-muted-foreground">#{t.ticket_num}</span>
+                            {t.escalated && (
+                              <Badge variant="destructive" className="text-[10px] h-4 px-1.5">Escalated</Badge>
+                            )}
+                            {t.priority && t.priority !== "normal" && (
+                              <Badge variant={PRIORITY_VARIANT[t.priority] ?? "secondary"} className="text-[10px] h-4 px-1.5 capitalize">
+                                {t.priority}
+                              </Badge>
+                            )}
+                            {t.category && (
+                              <Badge variant="outline" className="text-[10px] h-4 px-1.5 capitalize">
+                                {t.category.replace(/_/g, " ")}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="font-medium text-sm">{t.subject}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{new Date(t.created_at).toLocaleString()}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <Select value={t.status} onValueChange={(val) => updateTicketStatus(t.id, val as TicketStatus)} disabled={busy}>
+                            <SelectTrigger className="w-32 h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TICKET_STATUSES.map((s) => (
+                                <SelectItem key={s} value={s} className="text-xs capitalize">{s}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {isExpanded
+                            ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                            : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                        </div>
+                      </div>
+
+                      {/* Expanded thread */}
+                      {isExpanded && (
+                        <div className="border-t bg-muted/20 p-4 space-y-3">
+                          {loadingMessages && !ticketMessages.has(t.id) ? (
+                            <p className="text-xs text-muted-foreground">Loading messages…</p>
+                          ) : messages.length === 0 ? (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                              <MessageSquare className="h-3.5 w-3.5" /> No messages yet.
+                            </p>
+                          ) : (
+                            messages.map((msg) => (
+                              <div
+                                key={msg.id}
+                                className={`text-sm rounded-lg px-3 py-2 max-w-[85%] ${
+                                  msg.sender === "user"
+                                    ? "bg-muted ml-0"
+                                    : msg.sender === "admin"
+                                    ? "bg-primary/10 ml-auto text-right"
+                                    : msg.sender === "ai"
+                                    ? "bg-secondary/40 mx-auto text-center"
+                                    : "bg-muted/50 mx-auto text-center text-muted-foreground italic"
+                                }`}
+                              >
+                                <p className="text-[10px] font-medium text-muted-foreground mb-1">
+                                  {SENDER_LABEL[msg.sender] ?? msg.sender} · {new Date(msg.created_at).toLocaleTimeString()}
+                                </p>
+                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                              </div>
+                            ))
                           )}
                         </div>
-                        <p className="font-medium text-sm truncate">{t.subject}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{new Date(t.created_at).toLocaleString()}</p>
-                      </div>
-                      <Select value={t.status} onValueChange={(val) => updateTicketStatus(t.id, val as TicketStatus)} disabled={busy}>
-                        <SelectTrigger className="w-32 h-8 text-xs shrink-0">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TICKET_STATUSES.map((s) => (
-                            <SelectItem key={s} value={s} className="text-xs capitalize">
-                              {s}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </Card>
-                ))}
+                      )}
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
@@ -435,23 +535,52 @@ export default function Admin() {
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                   Awaiting review ({pendingHosts.length})
                 </p>
-                <div className="grid gap-2">
+                <div className="grid gap-3">
                   {pendingHosts.map((hp) => (
-                    <Card key={hp.id} className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-amber-500/40">
-                      <div>
-                        <p className="font-medium text-sm">{hp.display_name ?? nameMap.get(hp.user_id) ?? hp.user_id.slice(0, 8)}</p>
-                        <p className="text-[10px] text-muted-foreground font-mono">{hp.user_id.slice(0, 16)}…</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Applied {new Date(hp.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" className="h-7 text-xs" disabled={busy} onClick={() => verifyHost(hp.id, "verified")}>
-                          Approve
-                        </Button>
-                        <Button size="sm" variant="destructive" className="h-7 text-xs" disabled={busy} onClick={() => verifyHost(hp.id, "rejected")}>
-                          Reject
-                        </Button>
+                    <Card key={hp.id} className="p-4 border-amber-500/40">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1">
+                          <p className="font-medium text-sm">{hp.display_name ?? nameMap.get(hp.user_id) ?? hp.user_id.slice(0, 8)}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono">{hp.user_id.slice(0, 16)}…</p>
+                          <p className="text-xs text-muted-foreground">Applied {new Date(hp.created_at).toLocaleDateString()}</p>
+                          {/* Verification documents */}
+                          <div className="flex gap-3 mt-2 flex-wrap">
+                            {hp.id_photo_url ? (
+                              <a
+                                href={hp.id_photo_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-xs text-primary underline underline-offset-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink className="h-3 w-3" /> ID Photo
+                              </a>
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic">No ID photo</span>
+                            )}
+                            {hp.selfie_url ? (
+                              <a
+                                href={hp.selfie_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-xs text-primary underline underline-offset-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink className="h-3 w-3" /> Selfie
+                              </a>
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic">No selfie</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button size="sm" className="h-7 text-xs" disabled={busy} onClick={() => verifyHost(hp.id, "verified")}>
+                            Approve
+                          </Button>
+                          <Button size="sm" variant="destructive" className="h-7 text-xs" disabled={busy} onClick={() => verifyHost(hp.id, "rejected")}>
+                            Reject
+                          </Button>
+                        </div>
                       </div>
                     </Card>
                   ))}
@@ -496,11 +625,9 @@ export default function Admin() {
                   {rows.map((r) => (
                     <Card key={r.id} className="px-4 py-2.5 flex items-center justify-between gap-4">
                       <div className="flex items-center gap-2 text-sm flex-wrap">
-                        {r.action === "granted" ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                        ) : (
-                          <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
-                        )}
+                        {r.action === "granted"
+                          ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                          : <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />}
                         <span className={r.action === "granted" ? "text-green-500 font-medium" : "text-red-500 font-medium"}>
                           {r.action}
                         </span>
