@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { format, differenceInCalendarDays, eachDayOfInterval, isWithinInterval, parseISO, addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { CalendarDays, ChevronDown, Loader2, Users, Zap, CheckCircle2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { LegalScrollGate } from "@/components/LegalScrollGate";
+import { legalDocs } from "@/pages/legal/content";
 
 type Listing = {
   id: string;
@@ -26,6 +28,17 @@ type Props = { listing: Listing };
 
 const SERVICE_FEE_RATE = 0.05;
 
+function djb2(str: string): string {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) {
+    h = (((h << 5) + h) ^ str.charCodeAt(i)) >>> 0;
+  }
+  return h.toString(16);
+}
+
+const RENTER_RULES = legalDocs["renter-rules"];
+const RENTER_RULES_HASH = djb2(RENTER_RULES.markdown);
+
 export function BookingPanel({ listing }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -37,6 +50,7 @@ export function BookingPanel({ listing }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
+  const [showLegalGate, setShowLegalGate] = useState(false);
 
   useEffect(() => {
     supabase
@@ -111,7 +125,7 @@ export function BookingPanel({ listing }: Props) {
 
   if (confirmed) {
     return (
-      <div className="rounded-2xl border border-border/60 bg-card p-6 text-center space-y-3">
+      <div className="rounded-2xl border border-border/60 bg-card p-6 text-center space-y-4">
         <CheckCircle2 className="h-10 w-10 text-primary mx-auto" />
         <p className="font-semibold text-lg">
           {listing.instant_book ? "Booking confirmed!" : "Request sent!"}
@@ -121,149 +135,190 @@ export function BookingPanel({ listing }: Props) {
             ? "You're booked. Check your email for details."
             : "The host will confirm within 24 hours."}
         </p>
+        <div className="flex flex-col gap-2 pt-2">
+          <Button asChild>
+            <Link to="/my-bookings">View your bookings</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/search">Find another stay</Link>
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-card p-5 space-y-4 shadow-sm">
-      <div className="flex items-baseline justify-between">
-        <div>
-          <span className="text-2xl font-bold">₱{listing.nightly_php.toLocaleString()}</span>
-          <span className="text-sm text-muted-foreground"> / night</span>
-        </div>
-        {listing.instant_book && (
-          <span className="flex items-center gap-1 text-xs text-primary font-medium">
-            <Zap className="h-3.5 w-3.5" /> Instant book
-          </span>
-        )}
-      </div>
-
-      {/* Date picker */}
-      <Popover open={calOpen} onOpenChange={setCalOpen}>
-        <PopoverTrigger asChild>
-          <button className="w-full flex items-center gap-2 rounded-xl border border-border/60 px-3 py-2.5 text-sm text-left hover:border-primary/40 transition-colors">
-            <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
-            {range?.from ? (
-              range.to ? (
-                <span>
-                  {format(range.from, "MMM d")} – {format(range.to, "MMM d, yyyy")}
-                </span>
-              ) : (
-                <span>{format(range.from, "MMM d, yyyy")} – pick checkout</span>
-              )
-            ) : (
-              <span className="text-muted-foreground">Select dates</span>
-            )}
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="range"
-            selected={range}
-            onSelect={(r) => {
-              setRange(r);
-              if (r?.from && r?.to) setCalOpen(false);
-            }}
-            disabled={(date) =>
-              date < addDays(new Date(), 0) || isDateBooked(date)
-            }
-            numberOfMonths={2}
-            initialFocus
-          />
-          {listing.min_nights > 1 && (
-            <p className="text-xs text-muted-foreground text-center pb-2">
-              Minimum {listing.min_nights} nights
-            </p>
+    <>
+      <div className="rounded-2xl border border-border/60 bg-card p-5 space-y-4 shadow-sm">
+        <div className="flex items-baseline justify-between">
+          <div>
+            <span className="text-2xl font-bold">₱{listing.nightly_php.toLocaleString()}</span>
+            <span className="text-sm text-muted-foreground"> / night</span>
+          </div>
+          {listing.instant_book && (
+            <span className="flex items-center gap-1 text-xs text-primary font-medium">
+              <Zap className="h-3.5 w-3.5" /> Instant book
+            </span>
           )}
-        </PopoverContent>
-      </Popover>
-
-      {/* Guests */}
-      <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5">
-        <span className="flex items-center gap-2 text-sm">
-          <Users className="h-4 w-4 text-muted-foreground" /> Guests
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setGuests((g) => Math.max(1, g - 1))}
-            className="h-6 w-6 rounded-full border border-border/60 text-sm flex items-center justify-center hover:border-foreground/30 transition-colors"
-          >
-            –
-          </button>
-          <span className="text-sm w-4 text-center">{guests}</span>
-          <button
-            type="button"
-            onClick={() => setGuests((g) => Math.min(listing.max_guests, g + 1))}
-            className="h-6 w-6 rounded-full border border-border/60 text-sm flex items-center justify-center hover:border-foreground/30 transition-colors"
-          >
-            +
-          </button>
         </div>
+
+        {/* Date picker */}
+        <Popover open={calOpen} onOpenChange={setCalOpen}>
+          <PopoverTrigger asChild>
+            <button className="w-full flex items-center gap-2 rounded-xl border border-border/60 px-3 py-2.5 text-sm text-left hover:border-primary/40 transition-colors">
+              <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+              {range?.from ? (
+                range.to ? (
+                  <span>
+                    {format(range.from, "MMM d")} – {format(range.to, "MMM d, yyyy")}
+                  </span>
+                ) : (
+                  <span>{format(range.from, "MMM d, yyyy")} – pick checkout</span>
+                )
+              ) : (
+                <span className="text-muted-foreground">Select dates</span>
+              )}
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              selected={range}
+              onSelect={(r) => {
+                setRange(r);
+                if (r?.from && r?.to) setCalOpen(false);
+              }}
+              disabled={(date) =>
+                date < addDays(new Date(), 0) || isDateBooked(date)
+              }
+              numberOfMonths={2}
+              initialFocus
+            />
+            {listing.min_nights > 1 && (
+              <p className="text-xs text-muted-foreground text-center pb-2">
+                Minimum {listing.min_nights} nights
+              </p>
+            )}
+          </PopoverContent>
+        </Popover>
+
+        {/* Guests */}
+        <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5">
+          <span className="flex items-center gap-2 text-sm">
+            <Users className="h-4 w-4 text-muted-foreground" /> Guests
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setGuests((g) => Math.max(1, g - 1))}
+              className="h-6 w-6 rounded-full border border-border/60 text-sm flex items-center justify-center hover:border-foreground/30 transition-colors"
+            >
+              –
+            </button>
+            <span className="text-sm w-4 text-center">{guests}</span>
+            <button
+              type="button"
+              onClick={() => setGuests((g) => Math.min(listing.max_guests, g + 1))}
+              className="h-6 w-6 rounded-full border border-border/60 text-sm flex items-center justify-center hover:border-foreground/30 transition-colors"
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        {/* Validation hints */}
+        {tooShort && (
+          <p className="text-xs text-destructive">
+            Minimum stay is {listing.min_nights} nights — select at least {listing.min_nights} nights.
+          </p>
+        )}
+        {rangeInvalid && (
+          <p className="text-xs text-destructive">
+            Those dates include nights that are already booked. Please choose different dates.
+          </p>
+        )}
+
+        {/* Price breakdown */}
+        {nights >= listing.min_nights && !rangeInvalid && (
+          <div className="space-y-1.5 text-sm border-t border-border/60 pt-3">
+            <div className="flex justify-between text-muted-foreground">
+              <span>₱{listing.nightly_php.toLocaleString()} × {nights} nights</span>
+              <span>₱{subtotal.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Service fee (5%)</span>
+              <span>₱{serviceFee.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between font-semibold border-t border-border/60 pt-1.5">
+              <span>Total</span>
+              <span>₱{total.toLocaleString()}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Message */}
+        <Textarea
+          placeholder="Message to host (optional)"
+          rows={2}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          className="text-sm"
+        />
+
+        <Button
+          className="w-full"
+          disabled={!canBook || submitting}
+          onClick={user ? () => setShowLegalGate(true) : () => navigate("/auth")}
+        >
+          {submitting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : !user ? (
+            "Sign in to book"
+          ) : listing.instant_book ? (
+            "Book now"
+          ) : (
+            "Request to book"
+          )}
+        </Button>
+
+        {canBook && (
+          <p className="text-xs text-center text-muted-foreground">
+            {listing.instant_book ? "You won't be charged yet." : "No charge until the host confirms."}
+          </p>
+        )}
       </div>
 
-      {/* Validation hints */}
-      {tooShort && (
-        <p className="text-xs text-destructive">
-          Minimum stay is {listing.min_nights} nights — select at least {listing.min_nights} nights.
-        </p>
+      {user && (
+        <Dialog open={showLegalGate} onOpenChange={setShowLegalGate}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Renter Rules</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground -mt-2 mb-1">
+              Please read and accept our renter rules before booking.
+            </p>
+            <LegalScrollGate
+              userId={user.id}
+              role="guest"
+              contextId={listing.id}
+              documentId="renter-rules"
+              documentVersion={RENTER_RULES.version}
+              documentHash={RENTER_RULES_HASH}
+              checkboxLabel="I have read and agree to the Renter Rules."
+              legalContent={
+                <p className="text-sm whitespace-pre-wrap leading-relaxed font-sans">
+                  {RENTER_RULES.markdown}
+                </p>
+              }
+              onAccepted={async () => {
+                setShowLegalGate(false);
+                await book();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       )}
-      {rangeInvalid && (
-        <p className="text-xs text-destructive">
-          Those dates include nights that are already booked. Please choose different dates.
-        </p>
-      )}
-
-      {/* Price breakdown */}
-      {nights >= listing.min_nights && !rangeInvalid && (
-        <div className="space-y-1.5 text-sm border-t border-border/60 pt-3">
-          <div className="flex justify-between text-muted-foreground">
-            <span>₱{listing.nightly_php.toLocaleString()} × {nights} nights</span>
-            <span>₱{subtotal.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between text-muted-foreground">
-            <span>Service fee (5%)</span>
-            <span>₱{serviceFee.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between font-semibold border-t border-border/60 pt-1.5">
-            <span>Total</span>
-            <span>₱{total.toLocaleString()}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Message */}
-      <Textarea
-        placeholder="Message to host (optional)"
-        rows={2}
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        className="text-sm"
-      />
-
-      <Button
-        className="w-full"
-        disabled={!canBook || submitting}
-        onClick={user ? book : () => navigate("/auth")}
-      >
-        {submitting ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : !user ? (
-          "Sign in to book"
-        ) : listing.instant_book ? (
-          "Book now"
-        ) : (
-          "Request to book"
-        )}
-      </Button>
-
-      {canBook && (
-        <p className="text-xs text-center text-muted-foreground">
-          {listing.instant_book ? "You won't be charged yet." : "No charge until the host confirms."}
-        </p>
-      )}
-    </div>
+    </>
   );
 }

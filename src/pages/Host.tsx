@@ -179,10 +179,11 @@ function MyListings({ userId }: { userId: string }) {
 
 function HostApplicationForm() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [propertyType, setPropertyType] = useState("");
   const [location, setLocation] = useState("");
   const [message, setMessage] = useState("");
+  const [idPhotoUrls, setIdPhotoUrls] = useState<string[]>([]);
+  const [selfieUrls, setSelfieUrls] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -202,7 +203,7 @@ function HostApplicationForm() {
         <Seo title="Application submitted · CheapStays" description="Your host application is under review." path="/host" />
         <div className="text-4xl mb-4">✅</div>
         <h1 className="text-2xl font-semibold">Application submitted</h1>
-        <p className="text-muted-foreground mt-2">An admin will review your application within 24 hours and grant host access.</p>
+        <p className="text-muted-foreground mt-2">An admin will review your documents and grant host access within 24 hours.</p>
         <Button asChild className="mt-6" variant="outline"><Link to="/search">Browse listings</Link></Button>
       </div>
     );
@@ -216,15 +217,33 @@ function HostApplicationForm() {
     }
     setSubmitting(true);
     try {
-      const { error } = await supabase.functions.invoke("support-ticket", {
-        body: {
-          subject: "Host application",
-          message: `Property type: ${propertyType}\nLocation: ${location}\n\n${message.trim()}`,
-          category: "host_verification",
-          priority: "normal",
-        },
-      });
-      if (error) throw error;
+      const idPhotoUrl = idPhotoUrls[0] ?? null;
+      const selfieUrl = selfieUrls[0] ?? null;
+
+      const [ticketResult, profileResult] = await Promise.all([
+        supabase.functions.invoke("support-ticket", {
+          body: {
+            subject: "Host application",
+            message: `Property type: ${propertyType}\nLocation: ${location}${idPhotoUrl ? `\nID photo: ${idPhotoUrl}` : ""}${selfieUrl ? `\nSelfie: ${selfieUrl}` : ""}\n\n${message.trim()}`,
+            category: "host_verification",
+            priority: "normal",
+          },
+        }),
+        supabase.from("host_profiles").upsert(
+          {
+            user_id: user!.id,
+            location: location.trim(),
+            id_photo_url: idPhotoUrl,
+            selfie_url: selfieUrl,
+            verification_status: "pending",
+          },
+          { onConflict: "user_id" }
+        ),
+      ]);
+
+      if (ticketResult.error) throw ticketResult.error;
+      if (profileResult.error) throw profileResult.error;
+
       setSubmitted(true);
     } catch (err) {
       toast({ title: "Submission failed", description: (err as Error).message, variant: "destructive" });
@@ -269,6 +288,34 @@ function HostApplicationForm() {
               placeholder="Number of units, availability, pricing expectations…"
             />
           </div>
+
+          <div className="space-y-4 pt-2 border-t border-border/60">
+            <div>
+              <Label className="text-sm font-medium">Identity verification</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Upload a government ID and a selfie holding it. Required for host approval.</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Government-issued ID (passport, driver's license, UMID)</Label>
+              <ImageUploader
+                userId={user.id}
+                listingId="host-id"
+                value={idPhotoUrls}
+                onChange={setIdPhotoUrls}
+                maxFiles={1}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Selfie holding your ID</Label>
+              <ImageUploader
+                userId={user.id}
+                listingId="host-selfie"
+                value={selfieUrls}
+                onChange={setSelfieUrls}
+                maxFiles={1}
+              />
+            </div>
+          </div>
+
           <div className="flex gap-3 pt-2">
             <Button type="submit" disabled={submitting} className="flex-1">
               {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
