@@ -1,57 +1,302 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { format, eachDayOfInterval, parseISO, isSameDay, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import type { AppRole } from "@/lib/rbac";
 import { Seo } from "@/components/Seo";
+import { ChevronLeft, ChevronRight, Loader2, ExternalLink } from "lucide-react";
 
-type AuditRow = { id: string; target_user_id: string; role: AppRole; action: "granted" | "revoked"; created_at: string };
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type HostApp = {
+  id: string; user_id: string; full_legal_name: string; phone: string;
+  property_type: string; city: string; province: string; property_description: string;
+  id_type: string; id_front_path: string | null; selfie_path: string | null;
+  status: string; created_at: string;
+};
+type Booking = {
+  id: string; listing_id: string; guest_id: string; host_id: string;
+  check_in: string; check_out: string; status: string; total_php: number; created_at: string;
+};
 type Ticket = { id: string; ticket_num: number; subject: string; status: string; escalated: boolean; created_at: string };
 type UserRoleRow = { id: string; user_id: string; role: AppRole };
-type ProfileRow = { user_id: string; display_name: string | null };
-type HostProfile = { id: string; user_id: string; display_name: string | null; verification_status: string; created_at: string };
+type ProfileRow  = { user_id: string; display_name: string | null };
+type AuditRow    = {
+  id: string; command_id: string; command_source: string;
+  operation: string; target_user_id: string; reason_code: string;
+  before_state: Record<string, unknown>; after_state: Record<string, unknown>;
+  executed_by: string | null; created_at: string;
+};
 
 type UserView = { userId: string; displayName: string; initials: string; roles: AppRole[] };
-const MANAGED_ROLES: AppRole[] = ["admin", "host", "member"];
+const MANAGED_ROLES: AppRole[] = ["admin", "host"];
+
+const STATUS_COLORS: Record<string, string> = {
+  confirmed: "bg-emerald-500",
+  pending:   "bg-amber-400",
+  cancelled: "bg-red-400",
+  completed: "bg-blue-400",
+  no_show:   "bg-gray-400",
+};
+
+// ─── Booking Calendar ─────────────────────────────────────────────────────────
+
+function BookingCalendar({ bookings }: { bookings: Booking[] }) {
+  const [month, setMonth] = useState(new Date());
+  const days = eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) });
+  const startDow = startOfMonth(month).getDay();
+
+  function bookingsOnDay(day: Date) {
+    return bookings.filter((b) => {
+      const ci = parseISO(b.check_in);
+      const co = parseISO(b.check_out);
+      return day >= ci && day < co;
+    });
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={() => setMonth((m) => subMonths(m, 1))}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="font-medium text-sm">{format(month, "MMMM yyyy")}</span>
+        <Button variant="ghost" size="sm" onClick={() => setMonth((m) => addMonths(m, 1))}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-3 text-xs">
+        {Object.entries(STATUS_COLORS).map(([status, color]) => (
+          <span key={status} className="flex items-center gap-1.5">
+            <span className={`h-2.5 w-2.5 rounded-full ${color}`} />
+            {status}
+          </span>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-0.5">
+        {["Su","Mo","Tu","We","Th","Fr","Sa"].map((d) => (
+          <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
+        ))}
+        {/* Empty cells before month start */}
+        {Array.from({ length: startDow }).map((_, i) => <div key={`e${i}`} />)}
+        {days.map((day) => {
+          const bks = bookingsOnDay(day);
+          return (
+            <div key={day.toISOString()} className="min-h-[52px] border border-border/30 rounded p-0.5 text-xs">
+              <span className={`text-[10px] font-medium ${isSameDay(day, new Date()) ? "text-primary" : "text-muted-foreground"}`}>
+                {format(day, "d")}
+              </span>
+              <div className="flex flex-col gap-0.5 mt-0.5">
+                {bks.slice(0, 3).map((b) => (
+                  <span key={b.id} className={`block h-1.5 rounded-full ${STATUS_COLORS[b.status] ?? "bg-gray-400"}`} title={`${b.status} · ₱${b.total_php}`} />
+                ))}
+                {bks.length > 3 && <span className="text-[9px] text-muted-foreground">+{bks.length - 3}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Upcoming list */}
+      <div className="space-y-1.5 pt-2">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">This month</p>
+        {bookings
+          .filter((b) => {
+            const ci = parseISO(b.check_in);
+            return ci >= startOfMonth(month) && ci <= endOfMonth(month);
+          })
+          .sort((a, b) => a.check_in.localeCompare(b.check_in))
+          .slice(0, 20)
+          .map((b) => (
+            <div key={b.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border/40">
+              <div className="flex items-center gap-2">
+                <span className={`h-2 w-2 rounded-full shrink-0 ${STATUS_COLORS[b.status] ?? "bg-gray-400"}`} />
+                <span>{format(parseISO(b.check_in), "MMM d")} → {format(parseISO(b.check_out), "MMM d")}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-[10px]">{b.status}</Badge>
+                <span className="text-muted-foreground text-xs">₱{b.total_php.toLocaleString()}</span>
+              </div>
+            </div>
+          ))}
+        {bookings.filter((b) => {
+          const ci = parseISO(b.check_in);
+          return ci >= startOfMonth(month) && ci <= endOfMonth(month);
+        }).length === 0 && (
+          <p className="text-sm text-muted-foreground py-2">No bookings this month.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Host Application Review Dialog ──────────────────────────────────────────
+
+function AppReviewDialog({
+  app, open, onClose, onDecision,
+}: {
+  app: HostApp | null; open: boolean;
+  onClose: () => void; onDecision: (appId: string, userId: string, approve: boolean, reason?: string) => Promise<void>;
+}) {
+  const [idUrl, setIdUrl]       = useState<string | null>(null);
+  const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
+  const [busy, setBusy]           = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+
+  useEffect(() => {
+    if (!app) return;
+    setIdUrl(null); setSelfieUrl(null);
+
+    async function fetchUrls() {
+      if (app.id_front_path) {
+        const { data } = await supabase.storage.from("host-verification")
+          .createSignedUrl(app.id_front_path, 300);
+        setIdUrl(data?.signedUrl ?? null);
+      }
+      if (app.selfie_path) {
+        const { data } = await supabase.storage.from("host-verification")
+          .createSignedUrl(app.selfie_path, 300);
+        setSelfieUrl(data?.signedUrl ?? null);
+      }
+    }
+    fetchUrls();
+  }, [app]);
+
+  if (!app) return null;
+
+  async function decide(approve: boolean) {
+    setBusy(true);
+    await onDecision(app!.id, app!.user_id, approve, approve ? undefined : rejectReason);
+    setBusy(false);
+    onClose();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Host Application — {app.full_legal_name}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 text-sm">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+            {[
+              ["Phone",    app.phone],
+              ["Property", `${app.property_type} · ${app.city}, ${app.province}`],
+              ["ID type",  app.id_type],
+              ["Applied",  format(parseISO(app.created_at), "dd MMM yyyy")],
+            ].map(([k, v]) => (
+              <div key={k}><span className="text-muted-foreground">{k}: </span><strong>{v}</strong></div>
+            ))}
+          </div>
+
+          <div>
+            <p className="text-muted-foreground text-xs mb-1">Property description</p>
+            <p className="bg-secondary/50 rounded-lg p-3 text-sm leading-relaxed">{app.property_description}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">Government ID</p>
+              {idUrl ? (
+                <a href={idUrl} target="_blank" rel="noopener noreferrer">
+                  <img src={idUrl} alt="Government ID" className="rounded-lg border w-full object-cover max-h-48 hover:opacity-90 transition-opacity" />
+                  <p className="text-xs text-primary mt-1 flex items-center gap-1"><ExternalLink className="h-3 w-3" /> Open full size</p>
+                </a>
+              ) : (
+                <div className="rounded-lg border bg-secondary/50 flex items-center justify-center h-32 text-xs text-muted-foreground">
+                  {app.id_front_path ? "Loading…" : "Not uploaded"}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">Selfie with ID</p>
+              {selfieUrl ? (
+                <a href={selfieUrl} target="_blank" rel="noopener noreferrer">
+                  <img src={selfieUrl} alt="Selfie with ID" className="rounded-lg border w-full object-cover max-h-48 hover:opacity-90 transition-opacity" />
+                  <p className="text-xs text-primary mt-1 flex items-center gap-1"><ExternalLink className="h-3 w-3" /> Open full size</p>
+                </a>
+              ) : (
+                <div className="rounded-lg border bg-secondary/50 flex items-center justify-center h-32 text-xs text-muted-foreground">
+                  {app.selfie_path ? "Loading…" : "Not uploaded"}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Rejection reason */}
+          <div className="space-y-1.5">
+            <Label htmlFor="reject-reason" className="text-xs text-muted-foreground">Rejection reason (required to reject)</Label>
+            <Textarea id="reject-reason" rows={2} value={rejectReason} onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. ID not legible, selfie does not match ID…" />
+          </div>
+
+          <div className="flex gap-2 justify-end pt-1">
+            <Button variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
+            <Button variant="destructive" onClick={() => decide(false)} disabled={busy || !rejectReason.trim()}>
+              {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Reject
+            </Button>
+            <Button onClick={() => decide(true)} disabled={busy}>
+              {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Approve & grant host
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main Admin Page ──────────────────────────────────────────────────────────
 
 export default function Admin() {
-  const { roles, loading } = useAuth();
+  const { user, roles, loading } = useAuth();
   const [busy, setBusy] = useState(false);
-  const [audit, setAudit] = useState<AuditRow[]>([]);
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [userRoles, setUserRoles] = useState<UserRoleRow[]>([]);
-  const [profiles, setProfiles] = useState<ProfileRow[]>([]);
-  const [hostProfiles, setHostProfiles] = useState<HostProfile[]>([]);
+  const [tickets, setTickets]       = useState<Ticket[]>([]);
+  const [bookings, setBookings]     = useState<Booking[]>([]);
+  const [userRoles, setUserRoles]   = useState<UserRoleRow[]>([]);
+  const [profiles, setProfiles]     = useState<ProfileRow[]>([]);
+  const [hostApps, setHostApps]     = useState<HostApp[]>([]);
+  const [auditLog, setAuditLog]     = useState<AuditRow[]>([]);
+  const [reviewApp, setReviewApp]   = useState<HostApp | null>(null);
 
-  const fetchDashboard = useCallback(async () => {
-    const [auditRes, ticketRes, rolesRes, profilesRes, hostProfilesRes] = await Promise.all([
-      supabase.from("role_audit_log").select("id,target_user_id,role,action,created_at").order("created_at", { ascending: false }).limit(100),
+  const fetchAll = useCallback(async () => {
+    const [ticketRes, bookingRes, rolesRes, profilesRes, appsRes, auditRes] = await Promise.all([
       supabase.from("support_tickets").select("id,ticket_num,subject,status,escalated,created_at").order("created_at", { ascending: false }).limit(50),
+      supabase.from("bookings").select("id,listing_id,guest_id,host_id,check_in,check_out,status,total_php,created_at").order("check_in", { ascending: false }).limit(300),
       supabase.from("user_roles").select("id,user_id,role").order("created_at", { ascending: false }),
-      supabase.from("profiles").select("user_id,display_name").order("created_at", { ascending: false }).limit(200),
-      supabase.from("host_profiles").select("id,user_id,display_name,verification_status,created_at").order("created_at", { ascending: false }).limit(100),
+      supabase.from("profiles").select("user_id,display_name").limit(200),
+      supabase.from("host_applications").select("id,user_id,full_legal_name,phone,property_type,city,province,property_description,id_type,id_front_path,selfie_path,status,created_at").order("created_at", { ascending: false }).limit(100),
+      supabase.from("role_mutation_audit").select("id,command_id,command_source,operation,target_user_id,reason_code,before_state,after_state,executed_by,created_at").order("created_at", { ascending: false }).limit(100),
     ]);
 
-    if (auditRes.error || ticketRes.error || rolesRes.error || profilesRes.error) {
-      toast.error("Failed to load admin dashboard data.");
-      return;
+    if (ticketRes.error || bookingRes.error || rolesRes.error) {
+      toast.error("Failed to load some admin data.");
     }
 
-    setAudit((auditRes.data as AuditRow[]) ?? []);
     setTickets((ticketRes.data as Ticket[]) ?? []);
+    setBookings((bookingRes.data as Booking[]) ?? []);
     setUserRoles((rolesRes.data as UserRoleRow[]) ?? []);
     setProfiles((profilesRes.data as ProfileRow[]) ?? []);
-    setHostProfiles((hostProfilesRes.data as HostProfile[]) ?? []);
+    setHostApps((appsRes.data as HostApp[]) ?? []);
+    setAuditLog((auditRes.data as AuditRow[]) ?? []);
   }, []);
 
   useEffect(() => {
     if (!roles.includes("admin")) return;
-    fetchDashboard();
-  }, [fetchDashboard, roles]);
+    fetchAll();
+  }, [fetchAll, roles]);
 
   const users = useMemo<UserView[]>(() => {
     const roleMap = new Map<string, Set<AppRole>>();
@@ -59,141 +304,227 @@ export default function Admin() {
       if (!roleMap.has(row.user_id)) roleMap.set(row.user_id, new Set());
       roleMap.get(row.user_id)?.add(row.role);
     }
-
-    return profiles.map((profile) => {
-      const assignedRoles = Array.from(roleMap.get(profile.user_id) ?? new Set(["user" as AppRole]));
-      const label = profile.display_name?.trim() || profile.user_id;
+    return profiles.map((p) => {
+      const assigned = Array.from(roleMap.get(p.user_id) ?? new Set<AppRole>(["user"]));
+      const label = p.display_name?.trim() || p.user_id.slice(0, 8);
       const initials = label.split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("") || "U";
-      return { userId: profile.user_id, displayName: label, initials, roles: assignedRoles };
+      return { userId: p.user_id, displayName: label, initials, roles: assigned as AppRole[] };
     });
   }, [profiles, userRoles]);
 
-  const setRole = async (userId: string, role: AppRole, shouldHaveRole: boolean) => {
+  async function mutateRole(userId: string, operation: string, reasonCode = "admin-ui-direct") {
     setBusy(true);
     try {
-      if (shouldHaveRole) {
-        const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("user_roles").delete().match({ user_id: userId, role });
-        if (error) throw error;
-      }
-      await fetchDashboard();
-      toast.success(`${shouldHaveRole ? "Granted" : "Revoked"} ${role} role.`);
-    } catch {
-      toast.error(`Could not ${shouldHaveRole ? "grant" : "revoke"} ${role}.`);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const verifyHost = async (profileId: string, status: "verified" | "rejected") => {
-    setBusy(true);
-    try {
-      const { error } = await supabase.from("host_profiles").update({ verification_status: status }).eq("id", profileId);
+      const { error } = await supabase.functions.invoke("admin-role-mutation", {
+        body: { operation, target_user_id: userId, reason_code: reasonCode },
+      });
       if (error) throw error;
-      await fetchDashboard();
-      toast.success(`Host ${status}.`);
-    } catch {
-      toast.error("Could not update host status.");
+      await fetchAll();
+      toast.success(`${operation.replace("_", " ")} applied.`);
+    } catch (err) {
+      toast.error(`Failed: ${(err as Error).message}`);
     } finally {
       setBusy(false);
     }
-  };
+  }
 
-  if (loading) return <div className="container py-20">Loading…</div>;
-  if (!roles.includes("admin")) return <div className="container py-20 max-w-md text-center"><h1 className="text-2xl font-semibold">Admin only</h1><p className="text-muted-foreground mt-2">You don't have admin access.</p></div>;
+  async function handleAppDecision(appId: string, userId: string, approve: boolean, reason?: string) {
+    setBusy(true);
+    try {
+      if (approve) {
+        const { error: fnErr } = await supabase.functions.invoke("admin-role-mutation", {
+          body: { operation: "grant_host", target_user_id: userId, reason_code: "host-application-approved" },
+        });
+        if (fnErr) throw fnErr;
+      }
+      const { error: dbErr } = await supabase.from("host_applications").update({
+        status: approve ? "approved" : "rejected",
+        reviewed_by: user?.id,
+        reviewed_at: new Date().toISOString(),
+        ...(reason ? { rejection_reason: reason } : {}),
+      }).eq("id", appId);
+      if (dbErr) throw dbErr;
+      await fetchAll();
+      toast.success(approve ? "Application approved — host role granted." : "Application rejected.");
+    } catch (err) {
+      toast.error(`Failed: ${(err as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const pendingApps  = hostApps.filter((a) => a.status === "pending");
+  const resolvedApps = hostApps.filter((a) => a.status !== "pending");
+
+  if (loading) return <div className="container py-20 text-sm text-muted-foreground">Loading…</div>;
+  if (!roles.includes("admin")) return (
+    <div className="container py-20 max-w-md text-center">
+      <h1 className="text-2xl font-semibold">Admin only</h1>
+      <p className="text-muted-foreground mt-2">You don't have admin access.</p>
+    </div>
+  );
 
   return (
     <div>
-      <Seo title="CheapStays Admin" description="Admin dashboard for role management, users, and support oversight." path="/admin" />
-    <div className="container py-12 space-y-10">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">RBAC Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-2">Manage user roles, monitor support operations, and review role-change audit logs.</p>
-      </div>
+      <Seo title="CheapStays Admin" description="Admin dashboard." path="/admin" />
+      <div className="container py-10 max-w-5xl space-y-6">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Admin dashboard</h1>
+          <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
+            <span>{pendingApps.length} pending host {pendingApps.length === 1 ? "application" : "applications"}</span>
+            <span>·</span>
+            <span>{bookings.filter((b) => b.status === "confirmed").length} active bookings</span>
+            <span>·</span>
+            <span>{tickets.filter((t) => t.status === "open" || t.escalated).length} open tickets</span>
+          </div>
+        </div>
 
-      <section>
-        <h2 className="text-lg font-medium mb-3">Users & roles</h2>
-        <div className="grid gap-3">
-          {users.map((user) => (
-            <Card key={user.userId} className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-3">
-                <Avatar><AvatarFallback>{user.initials}</AvatarFallback></Avatar>
-                <div>
-                  <p className="font-medium">{user.displayName}</p>
-                  <p className="text-xs text-muted-foreground font-mono">{user.userId}</p>
+        <Tabs defaultValue="applications">
+          <TabsList className="flex-wrap h-auto">
+            <TabsTrigger value="applications" className="relative">
+              Applications
+              {pendingApps.length > 0 && (
+                <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none">
+                  {pendingApps.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="bookings">Bookings</TabsTrigger>
+            <TabsTrigger value="roles">Users & Roles</TabsTrigger>
+            <TabsTrigger value="tickets">Support</TabsTrigger>
+            <TabsTrigger value="audit">Audit log</TabsTrigger>
+          </TabsList>
+
+          {/* ── HOST APPLICATIONS ── */}
+          <TabsContent value="applications" className="space-y-6 pt-4">
+            <div>
+              <h2 className="text-base font-semibold mb-3">
+                Pending review
+                {pendingApps.length === 0 && <span className="text-muted-foreground font-normal ml-2">— all clear</span>}
+              </h2>
+              <div className="space-y-3">
+                {pendingApps.map((app) => (
+                  <Card key={app.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium">{app.full_legal_name}</p>
+                      <p className="text-sm text-muted-foreground">{app.property_type} · {app.city}, {app.province}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{app.id_type} · Applied {format(parseISO(app.created_at), "dd MMM yyyy")}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="secondary">pending</Badge>
+                      <Badge variant={app.id_front_path ? "default" : "destructive"} className="text-[10px]">
+                        {app.id_front_path ? "ID ✓" : "No ID"}
+                      </Badge>
+                      <Badge variant={app.selfie_path ? "default" : "destructive"} className="text-[10px]">
+                        {app.selfie_path ? "Selfie ✓" : "No selfie"}
+                      </Badge>
+                      <Button size="sm" onClick={() => setReviewApp(app)}>Review</Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {resolvedApps.length > 0 && (
+              <div>
+                <h2 className="text-base font-semibold mb-3 text-muted-foreground">Reviewed</h2>
+                <div className="space-y-2">
+                  {resolvedApps.slice(0, 20).map((app) => (
+                    <Card key={app.id} className="p-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">{app.full_legal_name}</p>
+                        <p className="text-xs text-muted-foreground">{app.city} · {format(parseISO(app.created_at), "dd MMM yyyy")}</p>
+                      </div>
+                      <Badge variant={app.status === "approved" ? "default" : "destructive"}>{app.status}</Badge>
+                    </Card>
+                  ))}
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {MANAGED_ROLES.map((role) => {
-                  const hasRole = user.roles.includes(role);
-                  return (
-                    <Button key={role} size="sm" variant={hasRole ? "default" : "outline"} disabled={busy} onClick={() => setRole(user.userId, role, !hasRole)}>
-                      {hasRole ? `Revoke ${role}` : `Grant ${role}`}
-                    </Button>
-                  );
-                })}
-              </div>
-            </Card>
-          ))}
-        </div>
-      </section>
+            )}
+          </TabsContent>
 
-      <section>
-        <h2 className="text-lg font-medium mb-3">Host verification</h2>
-        {hostProfiles.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No host profiles yet.</p>
-        ) : (
-          <div className="grid gap-3">
-            {hostProfiles.map((hp) => {
-              const displayName = profiles.find(p => p.user_id === hp.user_id)?.display_name ?? hp.user_id.slice(0, 8);
-              return (
-                <Card key={hp.id} className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          {/* ── BOOKINGS CALENDAR ── */}
+          <TabsContent value="bookings" className="pt-4">
+            <BookingCalendar bookings={bookings} />
+          </TabsContent>
+
+          {/* ── USERS & ROLES ── */}
+          <TabsContent value="roles" className="pt-4 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              All role changes are audited via the OmniHub system and recorded in the Audit log tab.
+            </p>
+            {users.map((u) => (
+              <Card key={u.userId} className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-3">
+                  <Avatar><AvatarFallback>{u.initials}</AvatarFallback></Avatar>
                   <div>
-                    <p className="font-medium">{hp.display_name ?? displayName}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{hp.user_id.slice(0, 8)}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(hp.created_at).toLocaleDateString()}</p>
+                    <p className="font-medium text-sm">{u.displayName}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{u.userId.slice(0, 12)}…</p>
+                    <div className="flex gap-1 mt-1 flex-wrap">
+                      {u.roles.map((r) => <Badge key={r} variant="secondary" className="text-[10px]">{r}</Badge>)}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={hp.verification_status === "verified" ? "default" : hp.verification_status === "rejected" ? "destructive" : "secondary"}>
-                      {hp.verification_status}
-                    </Badge>
-                    {hp.verification_status === "pending" || hp.verification_status === "unverified" ? (
-                      <>
-                        <Button size="sm" variant="outline" disabled={busy} onClick={() => verifyHost(hp.id, "verified")}>Verify</Button>
-                        <Button size="sm" variant="outline" disabled={busy} onClick={() => verifyHost(hp.id, "rejected")}>Reject</Button>
-                      </>
-                    ) : null}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </section>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {MANAGED_ROLES.map((role) => {
+                    const has = u.roles.includes(role);
+                    const op  = has ? `revoke_${role}` : `grant_${role}`;
+                    return (
+                      <Button key={role} size="sm" variant={has ? "default" : "outline"} disabled={busy}
+                        onClick={() => mutateRole(u.userId, op)}>
+                        {has ? `Revoke ${role}` : `Grant ${role}`}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </Card>
+            ))}
+          </TabsContent>
 
-      <section>
-        <h2 className="text-lg font-medium mb-3">Recent tickets</h2>
-        <div className="space-y-2">
-          {tickets.map((t) => (
-            <Card key={t.id} className="p-4 flex items-center justify-between">
-              <div><p className="font-medium">#{t.ticket_num} · {t.subject}</p><p className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleString()}</p></div>
-              <div className="flex gap-2">{t.escalated && <Badge variant="destructive">Escalated</Badge>}<Badge variant="secondary">{t.status}</Badge></div>
-            </Card>
-          ))}
-        </div>
-      </section>
+          {/* ── SUPPORT TICKETS ── */}
+          <TabsContent value="tickets" className="pt-4 space-y-2">
+            {tickets.length === 0 && <p className="text-sm text-muted-foreground">No tickets.</p>}
+            {tickets.map((t) => (
+              <Card key={t.id} className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">#{t.ticket_num} · {t.subject}</p>
+                  <p className="text-xs text-muted-foreground">{format(parseISO(t.created_at), "dd MMM yyyy HH:mm")}</p>
+                </div>
+                <div className="flex gap-2">
+                  {t.escalated && <Badge variant="destructive">Escalated</Badge>}
+                  <Badge variant="secondary">{t.status}</Badge>
+                </div>
+              </Card>
+            ))}
+          </TabsContent>
 
-      <section>
-        <h2 className="text-lg font-medium mb-3">Role audit log</h2>
-        <div className="space-y-2">
-          {audit.map((r) => (
-            <Card key={r.id} className="p-3 text-sm flex justify-between"><span>{r.action} <strong>{r.role}</strong> → <code className="text-xs">{r.target_user_id.slice(0, 8)}</code></span><span className="text-muted-foreground text-xs">{new Date(r.created_at).toLocaleString()}</span></Card>
-          ))}
-        </div>
-      </section>
-    </div>
+          {/* ── AUDIT LOG ── */}
+          <TabsContent value="audit" className="pt-4 space-y-2">
+            <p className="text-sm text-muted-foreground mb-3">Immutable record of all privileged role mutations.</p>
+            {auditLog.length === 0 && <p className="text-sm text-muted-foreground">No audit records yet.</p>}
+            {auditLog.map((r) => (
+              <Card key={r.id} className="p-3 text-xs space-y-1">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span>
+                    <Badge variant="outline" className="mr-2 text-[10px]">{r.command_source}</Badge>
+                    <strong>{r.operation}</strong>
+                    {" → "}<code className="bg-secondary px-1 rounded">{r.target_user_id.slice(0, 8)}</code>
+                  </span>
+                  <span className="text-muted-foreground">{format(parseISO(r.created_at), "dd MMM yyyy HH:mm")}</span>
+                </div>
+                <p className="text-muted-foreground">Reason: {r.reason_code} · Command: <code className="bg-secondary px-1 rounded text-[10px]">{r.command_id.slice(0, 28)}…</code></p>
+              </Card>
+            ))}
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      <AppReviewDialog
+        app={reviewApp}
+        open={reviewApp !== null}
+        onClose={() => setReviewApp(null)}
+        onDecision={handleAppDecision}
+      />
     </div>
   );
 }

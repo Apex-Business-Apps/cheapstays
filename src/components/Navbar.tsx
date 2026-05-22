@@ -2,6 +2,7 @@ import { Link, NavLink } from "react-router-dom";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
+import { isHost } from "@/lib/rbac";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -68,17 +69,32 @@ export function Navbar() {
           {/* LanguageSwitcher hidden on mobile — available in the hamburger drawer */}
           <span className="hidden sm:flex"><LanguageSwitcher /></span>
           <ThemeToggle />
-          <Button size="sm" variant="outline" asChild className="hidden sm:flex">
-            <Link to="/host?apply=1">Apply as Host</Link>
-          </Button>
-          {user ? (
-            <Button size="sm" variant="ghost" onClick={signOut} className="hidden sm:flex">
-              {t("nav.signOut")}
-            </Button>
-          ) : (
+          {/* CTA logic:
+              - Logged out  → Sign Up / Log In (single primary CTA)
+              - Logged in, not host → Apply as Host + Sign Out
+              - Logged in, host/admin → Host tools + Sign Out */}
+          {!user ? (
             <Button size="sm" asChild className="hidden sm:flex">
               <Link to="/auth?mode=signup">Sign Up / Log In</Link>
             </Button>
+          ) : isHost(roles) ? (
+            <>
+              <Button size="sm" variant="outline" asChild className="hidden sm:flex">
+                <Link to="/host">Host tools</Link>
+              </Button>
+              <Button size="sm" variant="ghost" onClick={signOut} className="hidden sm:flex">
+                {t("nav.signOut")}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button size="sm" variant="outline" asChild className="hidden sm:flex">
+                <Link to="/host/apply">Apply as Host</Link>
+              </Button>
+              <Button size="sm" variant="ghost" onClick={signOut} className="hidden sm:flex">
+                {t("nav.signOut")}
+              </Button>
+            </>
           )}
           {/* Hamburger button — mobile only */}
           <button
@@ -130,19 +146,30 @@ export function Navbar() {
                 </NavLink>
               </li>
             )}
-            {/* Auth + language in mobile drawer */}
+            {/* Auth + language in mobile drawer — mirrors desktop logic */}
             <li className="pt-2 border-t border-border/40 flex items-center gap-2 flex-wrap">
-              <Button size="sm" variant="outline" asChild className="min-h-[44px]">
-                <Link to="/host?apply=1" onClick={() => setMobileOpen(false)}>Apply as Host</Link>
-              </Button>
-              {user ? (
-                <Button size="sm" variant="ghost" onClick={() => { signOut(); setMobileOpen(false); }} className="min-h-[44px]">
-                  {t("nav.signOut")}
-                </Button>
-              ) : (
-                <Button size="sm" asChild onClick={() => setMobileOpen(false)} className="min-h-[44px]">
+              {!user ? (
+                <Button size="sm" asChild className="min-h-[44px]" onClick={() => setMobileOpen(false)}>
                   <Link to="/auth?mode=signup">Sign Up / Log In</Link>
                 </Button>
+              ) : isHost(roles) ? (
+                <>
+                  <Button size="sm" variant="outline" asChild className="min-h-[44px]">
+                    <Link to="/host" onClick={() => setMobileOpen(false)}>Host tools</Link>
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { signOut(); setMobileOpen(false); }} className="min-h-[44px]">
+                    {t("nav.signOut")}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button size="sm" variant="outline" asChild className="min-h-[44px]">
+                    <Link to="/host/apply" onClick={() => setMobileOpen(false)}>Apply as Host</Link>
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { signOut(); setMobileOpen(false); }} className="min-h-[44px]">
+                    {t("nav.signOut")}
+                  </Button>
+                </>
               )}
               <LanguageSwitcher />
             </li>
