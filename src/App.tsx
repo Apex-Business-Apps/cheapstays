@@ -17,6 +17,7 @@ const Membership = lazy(() => import("./pages/Membership"));
 const Host = lazy(() => import("./pages/Host"));
 const HostApply = lazy(() => import("./pages/HostApply"));
 const Support = lazy(() => import("./pages/Support"));
+const Notifications = lazy(() => import("./pages/Notifications"));
 const Admin = lazy(() => import("./pages/Admin"));
 const ListingDetail = lazy(() => import("./pages/ListingDetail"));
 
