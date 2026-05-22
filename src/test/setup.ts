@@ -13,3 +13,5 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: () => {},
   }),
 });
+
+(globalThis as { __CACHE_BUST__?: string }).__CACHE_BUST__ = 'test';

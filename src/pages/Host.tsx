@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 import { ImageUploader } from "@/components/ImageUploader";
 import { VideoUploader } from "@/components/VideoUploader";
 import { HostBookings } from "@/components/HostBookings";
+import { HostDashboard } from "@/components/HostDashboard";
 
 const LISTING_TYPES = [
   { value: "entire_place", label: "Entire place" },
@@ -75,6 +76,7 @@ function MyListings({ userId }: { userId: string }) {
   const [listings, setListings] = useState<ExistingListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase
@@ -82,7 +84,8 @@ function MyListings({ userId }: { userId: string }) {
       .select("id,title,status,images,video_url")
       .eq("host_id", userId)
       .order("created_at", { ascending: false })
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) setError(error.message);
         setListings((data ?? []) as ExistingListing[]);
         setLoading(false);
       });
@@ -109,6 +112,10 @@ function MyListings({ userId }: { userId: string }) {
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
+  }
+
+  if (error) {
+    return <div className="text-center py-12 text-destructive">Failed to load listings: {error}</div>;
   }
 
   if (listings.length === 0) {
@@ -300,10 +307,10 @@ export default function Host() {
     return (
       <div className="container py-24 max-w-xl text-center">
         <Seo title="Host on CheapStays" description="List your property and reach verified travelers directly." path="/host" />
-        <h1 className="text-2xl font-semibold">Sign in to host</h1>
+        <h1 className="text-2xl font-semibold">Sign up / log in to host</h1>
         <p className="text-muted-foreground mt-2">You need an account to list your property on CheapStays.</p>
-        <Link to="/auth">
-          <Button className="mt-6">Sign in or create account</Button>
+        <Link to="/auth?mode=signup">
+          <Button className="mt-6">Sign Up / Log In</Button>
         </Link>
       </div>
     );
@@ -315,11 +322,11 @@ export default function Host() {
         <Seo title="Become a Host · CheapStays" description="Apply to list your property on CheapStays." path="/host" />
         <h1 className="text-2xl font-semibold">Apply to become a host</h1>
         <p className="text-muted-foreground mt-3">
-          Your account doesn't have host access yet. Contact support and an admin will review your application — usually within 24 hours.
+          Your account doesn't have host access yet. Apply as Host and an admin will review your application — usually within 24 hours.
         </p>
         <div className="flex gap-3 justify-center mt-6">
           <Link to="/support">
-            <Button>Contact support</Button>
+            <Button>Apply as Host</Button>
           </Link>
           <Link to="/search">
             <Button variant="outline">Browse listings</Button>
@@ -338,8 +345,9 @@ export default function Host() {
           <p className="text-muted-foreground mt-2">Create and manage your listings.</p>
         </div>
 
-        <Tabs defaultValue="new">
-          <TabsList className="mb-8">
+        <Tabs defaultValue="dashboard">
+          <TabsList className="mb-8 flex-wrap h-auto">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="new" className="gap-2">
               <PlusCircle className="h-4 w-4" /> New listing
             </TabsTrigger>
@@ -348,6 +356,10 @@ export default function Host() {
               <CalendarDays className="h-4 w-4" /> Bookings
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dashboard">
+            <HostDashboard />
+          </TabsContent>
 
           {/* ── New listing tab ── */}
           <TabsContent value="new" className="space-y-8">
