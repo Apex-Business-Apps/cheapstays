@@ -299,32 +299,6 @@ export default function Admin() {
     fetchAll();
   }, [fetchAll, roles]);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchDashboard();
-    setRefreshing(false);
-    toast.success("Refreshed.");
-  };
-
-  const expandTicket = async (ticketId: string) => {
-    if (expandedTicketId === ticketId) {
-      setExpandedTicketId(null);
-      return;
-    }
-    setExpandedTicketId(ticketId);
-    if (ticketMessages.has(ticketId)) return;
-    setLoadingMessages(true);
-    const { data } = await supabase
-      .from("support_messages")
-      .select("id,sender,content,created_at")
-      .eq("ticket_id", ticketId)
-      .order("created_at", { ascending: true });
-    if (data) {
-      setTicketMessages((prev) => new Map(prev).set(ticketId, data as TicketMessage[]));
-    }
-    setLoadingMessages(false);
-  };
-
   const nameMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const p of profiles) map.set(p.user_id, p.display_name ?? p.user_id.slice(0, 8));
