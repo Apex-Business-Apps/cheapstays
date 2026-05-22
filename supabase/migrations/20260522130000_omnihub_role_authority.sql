@@ -6,12 +6,13 @@
 -- silently grant or revoke privileged roles.
 -- =========================================
 
--- 1. Corrective: remove hallucinated admin email from live trigger
+-- 1. Restore full admin email list in live trigger
 CREATE OR REPLACE FUNCTION public.auto_grant_admin_on_signup()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF NEW.email IN (
-    'james.plofino.ceo@cheapstays.me'
+    'james.plofino.ceo@cheapstays.me',
+    'jrmendozaceo@apexbusiness-systems.icu'
   ) THEN
     INSERT INTO public.user_roles (user_id, role)
     VALUES (NEW.id, 'admin')
