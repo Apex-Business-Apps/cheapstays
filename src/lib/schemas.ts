@@ -19,10 +19,21 @@ export const aiDescribeSchema = z.object({
 });
 export type AiDescribeInput = z.infer<typeof aiDescribeSchema>;
 
+export const supportCategories = [
+  "booking",
+  "payment_refund",
+  "host_verification",
+  "property_condition",
+  "incidentals_damage",
+  "safety_privacy_surveillance",
+  "account_access",
+  "technical_bug",
+] as const;
+
 export const supportTicketSchema = z.object({
   subject: z.string().min(3).max(200),
   message: z.string().min(5).max(4000),
-  category: z.string().max(64).optional(),
+  category: z.enum(supportCategories).default("booking"),
   priority: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
 });
 export type SupportTicketInput = z.infer<typeof supportTicketSchema>;
