@@ -177,6 +177,113 @@ function MyListings({ userId }: { userId: string }) {
   );
 }
 
+function HostApplicationForm() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [propertyType, setPropertyType] = useState("");
+  const [location, setLocation] = useState("");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  if (!user) {
+    return (
+      <div className="container py-24 max-w-xl text-center">
+        <Seo title="Become a Host · CheapStays" description="Apply to list your property on CheapStays." path="/host" />
+        <h1 className="text-2xl font-semibold">Sign in to apply as a host</h1>
+        <Button asChild className="mt-6"><Link to="/auth?mode=signup">Sign Up / Log In</Link></Button>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="container py-24 max-w-xl text-center">
+        <Seo title="Application submitted · CheapStays" description="Your host application is under review." path="/host" />
+        <div className="text-4xl mb-4">✅</div>
+        <h1 className="text-2xl font-semibold">Application submitted</h1>
+        <p className="text-muted-foreground mt-2">An admin will review your application within 24 hours and grant host access.</p>
+        <Button asChild className="mt-6" variant="outline"><Link to="/search">Browse listings</Link></Button>
+      </div>
+    );
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!propertyType.trim() || !location.trim()) {
+      toast({ title: "Please fill in all required fields.", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.functions.invoke("support-ticket", {
+        body: {
+          subject: "Host application",
+          message: `Property type: ${propertyType}\nLocation: ${location}\n\n${message.trim()}`,
+          category: "host_verification",
+          priority: "normal",
+        },
+      });
+      if (error) throw error;
+      setSubmitted(true);
+    } catch (err) {
+      toast({ title: "Submission failed", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="container py-16 max-w-lg">
+      <Seo title="Become a Host · CheapStays" description="Apply to list your property on CheapStays." path="/host" />
+      <h1 className="text-3xl font-semibold tracking-tight">Apply to become a host</h1>
+      <p className="text-muted-foreground mt-2">
+        Tell us about your property. An admin reviews every application — usually within 24 hours.
+      </p>
+      <Card className="mt-8 p-6">
+        <form onSubmit={submit} className="space-y-5">
+          <div className="space-y-2">
+            <Label>Property type *</Label>
+            <Input
+              value={propertyType}
+              onChange={(e) => setPropertyType(e.target.value)}
+              placeholder="Beachfront villa, condo, private room…"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Location *</Label>
+            <Input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="City, Province"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Anything else you'd like us to know? <span className="text-muted-foreground text-xs">(optional)</span></Label>
+            <Textarea
+              rows={4}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Number of units, availability, pricing expectations…"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button type="submit" disabled={submitting} className="flex-1">
+              {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Submit application
+            </Button>
+            <Button type="button" variant="outline" asChild>
+              <Link to="/search">Browse listings</Link>
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </div>
+  );
+}
+
 export default function Host() {
   const { user, roles, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -209,6 +316,7 @@ export default function Host() {
   const [images, setImages] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   async function generateDescription() {
     const parsed = aiDescribeSchema.safeParse({
@@ -317,23 +425,7 @@ export default function Host() {
   }
 
   if (!isHost(roles)) {
-    return (
-      <div className="container py-24 max-w-xl text-center">
-        <Seo title="Become a Host · CheapStays" description="Apply to list your property on CheapStays." path="/host" />
-        <h1 className="text-2xl font-semibold">Apply to become a host</h1>
-        <p className="text-muted-foreground mt-3">
-          Your account doesn't have host access yet. Apply as Host and an admin will review your application — usually within 24 hours.
-        </p>
-        <div className="flex gap-3 justify-center mt-6">
-          <Link to="/support">
-            <Button>Apply as Host</Button>
-          </Link>
-          <Link to="/search">
-            <Button variant="outline">Browse listings</Button>
-          </Link>
-        </div>
-      </div>
-    );
+    return <HostApplicationForm />;
   }
 
   return (
@@ -345,7 +437,7 @@ export default function Host() {
           <p className="text-muted-foreground mt-2">Create and manage your listings.</p>
         </div>
 
-        <Tabs defaultValue="dashboard">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-8 flex-wrap h-auto">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="new" className="gap-2">
@@ -358,7 +450,7 @@ export default function Host() {
           </TabsList>
 
           <TabsContent value="dashboard">
-            <HostDashboard hostId={user.id} />
+            <HostDashboard hostId={user.id} onTabChange={setActiveTab} />
           </TabsContent>
 
           {/* ── New listing tab ── */}

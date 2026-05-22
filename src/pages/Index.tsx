@@ -207,8 +207,9 @@ export default function Index() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.6, delay: idx * 0.05, ease }}
-                className={`group relative overflow-hidden rounded-2xl ring-1 ring-border/60 ${idx === 0 ? "sm:col-span-2 sm:row-span-2 aspect-[4/5] sm:aspect-auto" : "aspect-[4/5]"}`}
+                className={`group relative overflow-hidden rounded-2xl ring-1 ring-border/60 cursor-pointer ${idx === 0 ? "sm:col-span-2 sm:row-span-2 aspect-[4/5] sm:aspect-auto" : "aspect-[4/5]"}`}
               >
+                <Link to={`/search?q=${encodeURIComponent(d.name)}`} className="absolute inset-0 z-10" aria-label={`Search stays in ${d.name}`} />
                 <img
                   src={d.img}
                   alt={`${d.name} — ${d.tagline}`}
@@ -272,6 +273,7 @@ export default function Index() {
                   transition={{ duration: 0.6, delay: idx * 0.05, ease }}
                 >
                   <Card className="group relative overflow-hidden border-border/60 bg-card/95 p-0 h-full transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_30px_80px_-40px_hsl(150_30%_10%/0.5)]">
+                    <Link to={`/search?q=${encodeURIComponent(c.name)}`} className="absolute inset-0 z-10" aria-label={`Search stays in ${c.name}`} />
                     <div className="relative aspect-[5/4] overflow-hidden">
                       <img
                         src={c.img}

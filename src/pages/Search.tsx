@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -206,7 +206,9 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
 }
 
 export default function Search() {
-  const [query, setQuery] = useState("");
+  const [searchParams] = useSearchParams();
+  const initialQ = searchParams.get("q") ?? "";
+  const [query, setQuery] = useState(initialQ);
   const [results, setResults] = useState<Listing[]>([]);
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
@@ -216,6 +218,17 @@ export default function Search() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [browseListings, setBrowseListings] = useState<Listing[]>([]);
   const [browseLoading, setBrowseLoading] = useState(false);
+  const autoSearched = useRef(false);
+
+  // Auto-run search when arriving with a ?q= param (e.g. from destination cards)
+  useEffect(() => {
+    if (initialQ && !autoSearched.current) {
+      autoSearched.current = true;
+      const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+      run(fakeEvent, initialQ);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -242,9 +255,10 @@ export default function Search() {
     return () => { cancelled = true; };
   }, []);
 
-  async function run(e: React.FormEvent) {
+  async function run(e: React.FormEvent, overrideQuery?: string) {
     e.preventDefault();
-    const parsed = aiSearchSchema.safeParse({ query });
+    const q = overrideQuery ?? query;
+    const parsed = aiSearchSchema.safeParse({ query: q });
     if (!parsed.success) {
       toast({ title: "Refine your search", description: "Try at least a few words." });
       return;
@@ -252,7 +266,7 @@ export default function Search() {
     setLoading(true);
     setSearched(false);
     try {
-      const { data, error } = await supabase.functions.invoke("ai-search", { body: { query } });
+      const { data, error } = await supabase.functions.invoke("ai-search", { body: { query: q } });
       if (error) throw error;
       setResults(data?.results ?? []);
       setSummary(data?.summary ?? "");

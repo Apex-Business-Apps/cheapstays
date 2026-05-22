@@ -18,6 +18,7 @@ const Host = lazy(() => import("./pages/Host"));
 const Support = lazy(() => import("./pages/Support"));
 const Admin = lazy(() => import("./pages/Admin"));
 const ListingDetail = lazy(() => import("./pages/ListingDetail"));
+const MyBookings = lazy(() => import("./pages/MyBookings"));
 
 const queryClient = new QueryClient();
 
@@ -42,7 +43,8 @@ const App = () => (
                   <Route path="/search" element={<Search />} />
                   <Route path="/membership" element={<Membership />} />
                   <Route path="/host" element={<Host />} />
-                  <Route path="/support" element={<LegalDocumentPage docKey="support" />} />
+                  <Route path="/support" element={<Support />} />
+                  <Route path="/my-bookings" element={<MyBookings />} />
                   <Route path="/privacy" element={<LegalDocumentPage docKey="privacy" />} />
                   <Route path="/terms" element={<LegalDocumentPage docKey="terms" />} />
                   <Route path="/host-terms" element={<LegalDocumentPage docKey="host-terms" />} />

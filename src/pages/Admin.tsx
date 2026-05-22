@@ -14,7 +14,7 @@ import { Seo } from "@/components/Seo";
 import {
   RefreshCw, Users, TicketIcon, ShieldCheck, Clock,
   AlertTriangle, CheckCircle2, ChevronDown, ChevronUp,
-  ExternalLink, MessageSquare,
+  ExternalLink, MessageSquare, Loader2,
 } from "lucide-react";
 
 type AuditRow = {
@@ -117,6 +117,8 @@ export default function Admin() {
   const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
   const [ticketMessages, setTicketMessages] = useState<Map<string, TicketMessage[]>>(new Map());
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [replyInputs, setReplyInputs] = useState<Map<string, string>>(new Map());
+  const [sendingReply, setSendingReply] = useState<string | null>(null);
 
   const fetchDashboard = useCallback(async () => {
     const [auditRes, ticketRes, rolesRes, profilesRes, hostRes] = await Promise.all([
@@ -267,6 +269,32 @@ export default function Admin() {
       toast.error(`Could not ${grant ? "grant" : "revoke"} ${role}.`);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const sendAdminReply = async (ticketId: string) => {
+    const content = replyInputs.get(ticketId)?.trim();
+    if (!content) return;
+    setSendingReply(ticketId);
+    try {
+      const { error } = await supabase.from("support_messages").insert({
+        ticket_id: ticketId,
+        sender: "admin",
+        content,
+      });
+      if (error) throw error;
+      setReplyInputs((prev) => { const next = new Map(prev); next.set(ticketId, ""); return next; });
+      const { data } = await supabase
+        .from("support_messages")
+        .select("id,sender,content,created_at")
+        .eq("ticket_id", ticketId)
+        .order("created_at", { ascending: true });
+      if (data) setTicketMessages((prev) => new Map(prev).set(ticketId, data as TicketMessage[]));
+      toast.success("Reply sent.");
+    } catch {
+      toast.error("Could not send reply.");
+    } finally {
+      setSendingReply(null);
     }
   };
 
@@ -462,6 +490,27 @@ export default function Admin() {
                               </div>
                             ))
                           )}
+                          {/* Admin reply input */}
+                          <div className="flex gap-2 pt-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              value={replyInputs.get(t.id) ?? ""}
+                              onChange={(e) =>
+                                setReplyInputs((prev) => { const next = new Map(prev); next.set(t.id, e.target.value); return next; })
+                              }
+                              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAdminReply(t.id); } }}
+                              placeholder="Reply to user…"
+                              className="h-8 text-xs flex-1"
+                              disabled={sendingReply === t.id}
+                            />
+                            <Button
+                              size="sm"
+                              className="h-8 text-xs"
+                              disabled={!replyInputs.get(t.id)?.trim() || sendingReply === t.id}
+                              onClick={() => sendAdminReply(t.id)}
+                            >
+                              {sendingReply === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Send"}
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </Card>
