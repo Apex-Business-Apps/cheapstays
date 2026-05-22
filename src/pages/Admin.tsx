@@ -159,15 +159,16 @@ function AppReviewDialog({
     if (!app) return;
     setIdUrl(null); setSelfieUrl(null);
 
+    const current = app;
     async function fetchUrls() {
-      if (app.id_front_path) {
+      if (current.id_front_path) {
         const { data } = await supabase.storage.from("host-verification")
-          .createSignedUrl(app.id_front_path, 300);
+          .createSignedUrl(current.id_front_path, 300);
         setIdUrl(data?.signedUrl ?? null);
       }
-      if (app.selfie_path) {
+      if (current.selfie_path) {
         const { data } = await supabase.storage.from("host-verification")
-          .createSignedUrl(app.selfie_path, 300);
+          .createSignedUrl(current.selfie_path, 300);
         setSelfieUrl(data?.signedUrl ?? null);
       }
     }
