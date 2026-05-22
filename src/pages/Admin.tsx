@@ -43,7 +43,8 @@ type HostProfile = {
 type UserView = { userId: string; displayName: string; initials: string; roles: AppRole[] };
 
 const MANAGED_ROLES: AppRole[] = ["admin", "host", "member"];
-const TICKET_STATUSES = ["open", "pending", "resolved", "closed", "escalated"];
+type TicketStatus = "open" | "pending" | "resolved" | "closed" | "escalated";
+const TICKET_STATUSES: TicketStatus[] = ["open", "pending", "resolved", "closed", "escalated"];
 
 const PRIORITY_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   urgent: "destructive",
@@ -218,7 +219,7 @@ export default function Admin() {
     }
   };
 
-  const updateTicketStatus = async (ticketId: string, status: string) => {
+  const updateTicketStatus = async (ticketId: string, status: TicketStatus) => {
     setBusy(true);
     try {
       const { error } = await supabase.from("support_tickets").update({ status }).eq("id", ticketId);
@@ -351,7 +352,7 @@ export default function Admin() {
                         <p className="font-medium text-sm truncate">{t.subject}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">{new Date(t.created_at).toLocaleString()}</p>
                       </div>
-                      <Select value={t.status} onValueChange={(val) => updateTicketStatus(t.id, val)} disabled={busy}>
+                      <Select value={t.status} onValueChange={(val) => updateTicketStatus(t.id, val as TicketStatus)} disabled={busy}>
                         <SelectTrigger className="w-32 h-8 text-xs shrink-0">
                           <SelectValue />
                         </SelectTrigger>
