@@ -13,6 +13,6 @@ Use the links below:
 - [Safety Center](/safety)
 - [Account Deletion](/account-deletion)
 
-Official contact: [legal@cheapstays.com](mailto:legal@cheapstays.com)
+Official contact: [cheapstays.me@gmail.com](mailto:cheapstays.me@gmail.com)
 
 _Last updated: 2026-05-22_

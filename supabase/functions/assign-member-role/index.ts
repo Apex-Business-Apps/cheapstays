@@ -4,9 +4,10 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { getUserFromRequest } from "../_shared/auth.ts";
 
-// Only allow self-service roles (admin must be granted by an admin separately)
+// Self-service: only the non-privileged "member" role.
+// host / admin grants must go through the omnihub-role-authority edge function.
 const BodySchema = z.object({
-  role: z.enum(["member", "host"]),
+  role: z.enum(["member"]),
 });
 
 Deno.serve(async (req) => {

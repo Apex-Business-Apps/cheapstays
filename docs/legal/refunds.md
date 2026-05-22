@@ -8,6 +8,6 @@ Refund eligibility depends on cancellation timing, listing terms, and applicable
 - Partial refund may apply for late cancellation.
 - No refund for certain non-refundable rates unless required by law.
 
-For disputes, contact [support@cheapstays.com](mailto:support@cheapstays.com).
+For disputes, contact [cheapstays.me@gmail.com](mailto:cheapstays.me@gmail.com).
 
 _Last updated: 2026-05-22_

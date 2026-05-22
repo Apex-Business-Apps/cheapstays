@@ -105,7 +105,7 @@ We keep your data as long as we need it — then we delete it.
 | Security / rate-limit logs | 30 days |
 
 #### Your obligation
-Submit deletion requests to **support@cheapstays.me**. We will action them within **30 days**, subject to legal retention obligations.
+Submit deletion requests to **cheapstays.me@gmail.com**. We will action them within **30 days**, subject to legal retention obligations.
 
 #### Platform boundary
 We will delete or anonymise personal profile data on request. We cannot delete records we are legally required to retain (e.g., financial records). Anonymised aggregate data with no individual identifiers may be retained indefinitely for product analytics.
@@ -138,11 +138,11 @@ You have rights over your personal data. Here is how to exercise them.
 
 | Right | How to exercise it |
 |---|---|
-| Access | Email **support@cheapstays.me** — response within 30 days |
+| Access | Email **cheapstays.me@gmail.com** — response within 30 days |
 | Correction | Update directly in account settings, or email us |
-| Deletion | Email **support@cheapstays.me** — actioned within 30 days |
-| Portability | Email **support@cheapstays.me** — data provided in JSON or CSV |
-| Objection to processing | Email **support@cheapstays.me** — we will assess and respond |
+| Deletion | Email **cheapstays.me@gmail.com** — actioned within 30 days |
+| Portability | Email **cheapstays.me@gmail.com** — data provided in JSON or CSV |
+| Objection to processing | Email **cheapstays.me@gmail.com** — we will assess and respond |
 
 <!-- COUNSEL: Philippines — confirm response timelines against NPC requirements; confirm whether a Data Protection Officer must be designated and whether platform must register with NPC — [DATE] -->
 <!-- COUNSEL: Alberta — confirm PIPA response timelines and whether OIPC complaints process must be disclosed to users — [DATE] -->
@@ -206,7 +206,7 @@ Most scams targeting platform users are social-engineering attacks, not technica
 #### Your obligation
 - Conduct all booking communication through the CheapStays platform.
 - Never transfer money outside the platform (e.g., direct GCash or Maya transfer to a host) as a substitute for or precursor to a platform booking.
-- Report any request to pay outside the platform to **support@cheapstays.me** immediately.
+- Report any request to pay outside the platform to **cheapstays.me@gmail.com** immediately.
 
 #### Platform boundary
 CheapStays will never ask you for your sign-in link, a one-time code, or any credential via phone, SMS, or social media. Our security vulnerability contact is **security@apexbusinesssystems.ca**. We are not responsible for phishing or social-engineering attacks carried out on channels we do not control.

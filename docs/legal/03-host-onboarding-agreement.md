@@ -135,7 +135,7 @@ CheapStays can remove your listing or account for policy violations.
 - Do not re-list under a different account after suspension.
 
 ### Platform boundary
-Suspension may be temporary (pending investigation) or permanent. Serious violations — fraud, endangering guests, illegal activity — result in immediate suspension without prior notice. For lesser violations we will notify you and allow an opportunity to respond. Suspension decisions may be appealed by emailing **support@cheapstays.me**.
+Suspension may be temporary (pending investigation) or permanent. Serious violations — fraud, endangering guests, illegal activity — result in immediate suspension without prior notice. For lesser violations we will notify you and allow an opportunity to respond. Suspension decisions may be appealed by emailing **cheapstays.me@gmail.com**.
 
 ---
 

@@ -4,7 +4,7 @@ You can request account deletion by contacting support.
 
 ## Process
 
-1. Email [support@cheapstays.com](mailto:support@cheapstays.com) from your registered account.
+1. Email [cheapstays.me@gmail.com](mailto:cheapstays.me@gmail.com) from your registered account.
 2. Confirm identity and deletion request.
 3. We process eligible requests and send confirmation.
 
