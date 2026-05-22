@@ -59,7 +59,7 @@ export default function Auth() {
 
   return (
     <div>
-      <Seo title="CheapStays Login" description="Secure sign in and registration for CheapStays members and hosts." path="/auth" />
+      <Seo title="CheapStays Login" description="Secure sign up and login for CheapStays members and hosts." path="/auth" />
     <div className="container max-w-md py-20">
       <Card className="p-8">
         <h1 className="text-2xl font-semibold tracking-tight">
@@ -78,7 +78,7 @@ export default function Auth() {
             <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "…" : mode === "signin" ? "Sign in" : "Create account"}
+            {loading ? "…" : "Sign Up / Log In"}
           </Button>
         </form>
         <Button variant="outline" className="w-full mt-3" onClick={google} disabled={oauthLoading}>{oauthLoading ? "…" : "Continue with Google"}</Button>
