@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { supportTicketSchema, supportMessageSchema } from "@/lib/schemas";
+import { supportTicketSchema, supportMessageSchema, supportCategories } from "@/lib/schemas";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Seo } from "@/components/Seo";
@@ -22,6 +23,7 @@ export default function Support() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [category, setCategory] = useState<(typeof supportCategories)[number]>("booking");
   const [reply, setReply] = useState("");
 
   async function loadTickets() {
@@ -39,7 +41,7 @@ export default function Support() {
 
   async function createTicket(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = supportTicketSchema.safeParse({ subject, message });
+    const parsed = supportTicketSchema.safeParse({ subject, message, category });
     if (!parsed.success) {
       toast({ title: "Add a subject and message", variant: "destructive" });
       return;
@@ -50,7 +52,7 @@ export default function Support() {
       return;
     }
     toast({ title: `Ticket #${data.ticket_num} created`, description: data.escalated ? "Escalated to a human." : "AI responded." });
-    setSubject(""); setMessage("");
+    setSubject(""); setMessage(""); setCategory("booking");
     loadTickets();
   }
 
@@ -92,6 +94,24 @@ export default function Support() {
             <div className="space-y-1">
               <Label>Subject</Label>
               <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Category</Label>
+              <Select value={category} onValueChange={(value) => setCategory(value as (typeof supportCategories)[number])}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="booking">Booking</SelectItem>
+                  <SelectItem value="payment_refund">Payment / Refund</SelectItem>
+                  <SelectItem value="host_verification">Host Verification</SelectItem>
+                  <SelectItem value="property_condition">Property Condition</SelectItem>
+                  <SelectItem value="incidentals_damage">Incidentals / Damage</SelectItem>
+                  <SelectItem value="safety_privacy_surveillance">Safety / Privacy / Surveillance</SelectItem>
+                  <SelectItem value="account_access">Account / Access</SelectItem>
+                  <SelectItem value="technical_bug">Technical Bug</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label>Message</Label>
