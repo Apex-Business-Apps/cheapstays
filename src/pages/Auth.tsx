@@ -78,14 +78,15 @@ export default function Auth() {
             <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "…" : "Sign Up / Log In"}
+            {loading ? "…" : mode === "signin" ? "Log in" : "Sign up"}
           </Button>
         </form>
-        <Button variant="outline" className="w-full mt-3" onClick={google} disabled={oauthLoading}>{oauthLoading ? "…" : "Continue with Google"}</Button>
+        <Button variant="outline" className="w-full mt-3" onClick={google} disabled={oauthLoading}>{oauthLoading ? "…" : mode === "signin" ? "Log in with Google" : "Sign up with Google"}</Button>
         <button
           type="button"
           className="mt-4 text-sm text-muted-foreground hover:text-foreground w-full text-center"
           onClick={() => setMode((m) => (m === "signin" ? "signup" : "signin"))}
+          aria-live="polite"
         >
           {mode === "signin" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
         </button>

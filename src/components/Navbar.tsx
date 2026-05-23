@@ -79,13 +79,18 @@ export function Navbar() {
           <span className="hidden sm:flex"><LanguageSwitcher /></span>
           <ThemeToggle />
           {/* CTA logic:
-              - Logged out  → Sign Up / Log In (single primary CTA)
+              - Logged out  → Separate Sign up + Log in CTAs
               - Logged in, not host → Apply as Host + Sign Out
               - Logged in, host/admin → Host tools + Sign Out */}
           {!user ? (
-            <Button size="sm" asChild className="hidden sm:flex">
-              <Link to="/auth?mode=signup">Sign Up / Log In</Link>
-            </Button>
+            <div className="hidden sm:flex items-center gap-2">
+              <Button size="sm" variant="outline" asChild>
+                <Link to="/auth?mode=signin">Log in</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link to="/auth?mode=signup">Sign up</Link>
+              </Button>
+            </div>
           ) : isHost(roles) ? (
             <>
               <Button size="sm" variant="outline" asChild className="hidden sm:flex">
@@ -158,9 +163,14 @@ export function Navbar() {
             {/* Auth + language in mobile drawer — mirrors desktop logic */}
             <li className="pt-2 border-t border-border/40 flex items-center gap-2 flex-wrap">
               {!user ? (
-                <Button size="sm" asChild className="min-h-[44px]" onClick={() => setMobileOpen(false)}>
-                  <Link to="/auth?mode=signup">Sign Up / Log In</Link>
-                </Button>
+                <>
+                  <Button size="sm" variant="outline" asChild className="min-h-[44px]" onClick={() => setMobileOpen(false)}>
+                    <Link to="/auth?mode=signin">Log in</Link>
+                  </Button>
+                  <Button size="sm" asChild className="min-h-[44px]" onClick={() => setMobileOpen(false)}>
+                    <Link to="/auth?mode=signup">Sign up</Link>
+                  </Button>
+                </>
               ) : isHost(roles) ? (
                 <>
                   <Button size="sm" variant="outline" asChild className="min-h-[44px]">

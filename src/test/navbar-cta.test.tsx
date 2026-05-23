@@ -11,19 +11,22 @@ vi.mock("react-i18next", async (importOriginal) => {
 });
 
 describe("Navbar CTAs", () => {
-  it("logged-out: shows only Sign Up / Log In, no Apply as Host", () => {
+  it("logged-out: shows separate Log in and Sign up actions, no Apply as Host", () => {
     mockAuth.user = null;
     mockAuth.roles = [];
     render(<MemoryRouter><Navbar /></MemoryRouter>);
-    expect(screen.getAllByText("Sign Up / Log In").length).toBe(1);
+    expect(screen.getAllByText("Log in").length).toBe(1);
+    expect(screen.getAllByText("Sign up").length).toBe(1);
+    expect(screen.queryByText("Sign Up / Log In")).not.toBeInTheDocument();
     expect(screen.queryByText("Apply as Host")).not.toBeInTheDocument();
   });
 
-  it("logged-in non-host: shows Apply as Host and Sign Out, no Sign Up", () => {
+  it("logged-in non-host: shows Apply as Host and Sign Out, no logged-out auth actions", () => {
     mockAuth.user = { id: "u1", email: "user@test.com" };
     mockAuth.roles = ["user"];
     render(<MemoryRouter><Navbar /></MemoryRouter>);
-    expect(screen.queryByText("Sign Up / Log In")).not.toBeInTheDocument();
+    expect(screen.queryByText("Log in")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sign up")).not.toBeInTheDocument();
     expect(screen.getByText("Apply as Host")).toBeInTheDocument();
   });
 
@@ -31,7 +34,8 @@ describe("Navbar CTAs", () => {
     mockAuth.user = { id: "u1", email: "host@test.com" };
     mockAuth.roles = ["host"];
     render(<MemoryRouter><Navbar /></MemoryRouter>);
-    expect(screen.queryByText("Sign Up / Log In")).not.toBeInTheDocument();
+    expect(screen.queryByText("Log in")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sign up")).not.toBeInTheDocument();
     expect(screen.queryByText("Apply as Host")).not.toBeInTheDocument();
     expect(screen.getByText("Host tools")).toBeInTheDocument();
   });
