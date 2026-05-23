@@ -17,7 +17,7 @@
 | `payment-intent` | user | Create payment intent | dual-provider; Stripe gated |
 | `support-ticket` | user | Create support ticket | auto-escalates on urgent/extreme keywords |
 | `support-message` | user | Post message to ticket | requires author_user_id = auth.uid() |
-| `ai-chat` | user | Streaming Groq chat | rate limit: 40/60s; guardrail-checked |
+| `ai-chat` | user | Streaming Groq chat — frontend brand name: **Pip** | rate limit: 40/60s; guardrail-checked |
 | `ai-search` | - | AI listing search | returns ≤6 ranked results |
 | `ai-describe` | - | AI listing description | tone: confident/playful/minimal |
 | `membership-webhook` | none (sig) | PayMongo membership events | idempotent via webhook_events |

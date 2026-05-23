@@ -18,13 +18,14 @@
 - concepts: two-path-host-verification.md, rls-silent-failure-pattern.md
 - decisions: host-approval-paths, rls-author-field-required, stripe-byok-gated, omnihub-role-authority
 - corrections: react-hook-dependency, ticket-status-enum
-- open_loops: pip-ai-concierge (unverified — needs src/ check)
+- open_loops: pip-ai-concierge (CLOSED — brand name for AiChatBubble/ai-chat)
 - directives: omni-recall-core-directives, cheapstays-coding-directives (D1–D7)
 
 ## Health
 
 - last_health_check: 2026-05-23 (Phase D)
 - contradictions: 0
-- orphaned_decisions: 0 (stripe-byok-gated cross-linked)
-- unresolved_open_loops: 1 (Pip)
+- orphaned_decisions: 0
+- unresolved_open_loops: 0
 - corrections_promoted_to_directives: 3/3
+- installation_complete: true
