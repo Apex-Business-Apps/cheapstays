@@ -3,13 +3,13 @@ import { test, expect } from "@playwright/test";
 test.describe("Auth page", () => {
   test("default mode is login and mode labels are explicit", async ({ page }) => {
     await page.goto("/auth");
-    await expect(page.getByRole("button", { name: "Log in", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Log in$/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "Log in with Google" })).toBeVisible();
   });
 
   test("signup query mode shows signup-specific labels", async ({ page }) => {
     await page.goto("/auth?mode=signup");
-    await expect(page.getByRole("button", { name: "Sign up", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Sign up$/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sign up with Google" })).toBeVisible();
   });
 
