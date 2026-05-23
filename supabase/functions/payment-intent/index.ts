@@ -2,267 +2,73 @@ import { z } from "npm:zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
+import { buildRefundWindow, isProviderAllowed, validatePaymentMethod } from "../_shared/payments.ts";
 
 const BodySchema = z.object({
   booking_id: z.string().uuid(),
-  payment_method: z.enum(["gcash", "maya", "card"]),
+  provider: z.string().default("paymongo"),
+  payment_method: z.string(),
+  requires_incidental_hold: z.boolean().default(true),
 });
 
 const PAYMONGO_BASE = "https://api.paymongo.com/v1";
 
 function paymongoHeaders(secretKey: string): Record<string, string> {
-  const encoded = btoa(`${secretKey}:`);
-  return {
-    Authorization: `Basic ${encoded}`,
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  };
+  return { Authorization: `Basic ${btoa(`${secretKey}:`)}`, "Content-Type": "application/json", Accept: "application/json" };
 }
 
-async function paymongoPost(
-  path: string,
-  body: unknown,
-  secretKey: string,
-): Promise<{ ok: boolean; status: number; data: unknown }> {
-  const res = await fetch(`${PAYMONGO_BASE}${path}`, {
-    method: "POST",
-    headers: paymongoHeaders(secretKey),
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  return { ok: res.ok, status: res.status, data };
+async function paymongoPost(path: string, body: unknown, secretKey: string) {
+  const res = await fetch(`${PAYMONGO_BASE}${path}`, { method: "POST", headers: paymongoHeaders(secretKey), body: JSON.stringify(body) });
+  return { ok: res.ok, status: res.status, data: await res.json() };
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const ip = req.headers.get("x-forwarded-for") ?? "anon";
-    const rl = rateLimit(`payment-intent:${ip}`, 5, 60_000);
-    if (!rl.ok) {
-      return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const rl = rateLimit(`payment-intent:${req.headers.get("x-forwarded-for") ?? "anon"}`, 5, 60_000);
+    if (!rl.ok) return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // --- Auth: verify caller via their JWT ---
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const supabaseUser = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-
+    const supabaseUser = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
     const { data: { user } } = await supabaseUser.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // --- Validate request body ---
     const parsed = BodySchema.safeParse(await req.json());
-    if (!parsed.success) {
-      return new Response(JSON.stringify({ error: parsed.error.flatten() }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten() }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    const { booking_id, provider, payment_method, requires_incidental_hold } = parsed.data;
+    if (!isProviderAllowed(provider)) return new Response(JSON.stringify({ error: "Provider blocked pending legal approval" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    const methodCheck = validatePaymentMethod(payment_method, requires_incidental_hold);
+    if (!methodCheck.ok) return new Response(JSON.stringify({ error: methodCheck.reason }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: booking } = await adminClient.from("bookings").select("id, listing_id, guest_id, check_in, check_out, total_php, status, payment_status").eq("id", booking_id).eq("guest_id", user.id).single();
+    if (!booking) return new Response(JSON.stringify({ error: "Booking not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!['pending', 'confirmed'].includes(booking.status) || booking.payment_status !== 'unpaid') return new Response(JSON.stringify({ error: "Booking is not payable" }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    const { data: listing } = await adminClient.from("listings").select("title").eq("id", booking.listing_id).single();
+    const refundWindow = buildRefundWindow(booking.check_in);
+
+    if (provider === "stripe") {
+      await adminClient.from("bookings").update({ payment_provider: "stripe", payment_method, payment_state: "intent_created", payment_status: "pending", refundable_until: refundWindow.refundable_until, payout_release_on: refundWindow.payout_release_on }).eq("id", booking_id);
+      return new Response(JSON.stringify({ provider: "stripe", action: "intent_created", message: "Stripe adapter enabled; complete integration with STRIPE_SECRET_KEY" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { booking_id, payment_method } = parsed.data;
-
-    const adminClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    // --- Fetch booking — must belong to this guest and be payable ---
-    const { data: booking, error: bookingError } = await adminClient
-      .from("bookings")
-      .select("id, listing_id, guest_id, check_in, check_out, total_php, status, payment_status")
-      .eq("id", booking_id)
-      .eq("guest_id", user.id)
-      .single();
-
-    if (bookingError || !booking) {
-      return new Response(JSON.stringify({ error: "Booking not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (!["pending", "confirmed"].includes(booking.status)) {
-      return new Response(
-        JSON.stringify({ error: "Booking is not in a payable state" }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    if (booking.payment_status !== "unpaid") {
-      return new Response(
-        JSON.stringify({ error: "Booking payment is already in progress or completed" }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    // --- Fetch listing title for description ---
-    const { data: listing } = await adminClient
-      .from("listings")
-      .select("title")
-      .eq("id", booking.listing_id)
-      .single();
-
-    const listingTitle = listing?.title ?? "CheapStays property";
-
-    // --- Require PayMongo secret key ---
     const paymongoKey = Deno.env.get("PAYMONGO_SECRET_KEY");
-    if (!paymongoKey) {
-      // In production, a missing key is a configuration error — reject hard.
-      if (Deno.env.get("ENVIRONMENT") === "production") {
-        return new Response(
-          JSON.stringify({ error: "Payment gateway is not configured. Please contact support." }),
-          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
+    if (!paymongoKey) return new Response(JSON.stringify({ error: "PayMongo not configured" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-      // Non-production demo mode: acknowledge but do NOT auto-confirm the booking
-      // so that the demo does not silently bypass payment verification.
-      return new Response(
-        JSON.stringify({
-          demo_mode: true,
-          booking_id,
-          total_php: booking.total_php,
-          message: "Payment gateway not configured. Running in demo mode — booking is NOT confirmed.",
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    // --- Step 1: Create PayMongo payment intent ---
-    const intentPayload = {
-      data: {
-        attributes: {
-          amount: Math.round(Number(booking.total_php) * 100), // centavos
-          payment_method_allowed: ["card", "gcash", "paymaya"],
-          payment_method_options: { card: { request_three_d_secure: "any" } },
-          currency: "PHP",
-          capture_type: "automatic",
-          description: `CheapStays booking: ${listingTitle} (${booking.check_in} to ${booking.check_out})`,
-          metadata: { booking_id },
-        },
-      },
-    };
-
+    const intentPayload = { data: { attributes: { amount: Math.round(Number(booking.total_php) * 100), payment_method_allowed: ["card", "gcash", "paymaya"], payment_method_options: { card: { request_three_d_secure: "any" } }, currency: "PHP", capture_type: "automatic", description: `CheapStays booking: ${listing?.title ?? "property"} (${booking.check_in} to ${booking.check_out})`, metadata: { booking_id } } } };
     const intentRes = await paymongoPost("/payment_intents", intentPayload, paymongoKey);
-    if (!intentRes.ok) {
-      return new Response(
-        JSON.stringify({
-          error: "Failed to create payment intent",
-          detail: (intentRes.data as Record<string, unknown>)?.errors ?? intentRes.data,
-        }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    if (!intentRes.ok) return new Response(JSON.stringify({ error: "Failed to create payment intent", detail: intentRes.data }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const intentData = intentRes.data as {
-      data: {
-        id: string;
-        attributes: {
-          client_key: string;
-          next_action?: { redirect?: { url?: string } };
-        };
-      };
-    };
-    const intentId = intentData.data.id;
-    const clientKey = intentData.data.attributes.client_key;
-
-    // --- Step 2: Create PayMongo payment method ---
-    const pmType =
-      payment_method === "gcash" ? "gcash"
-      : payment_method === "maya" ? "paymaya"
-      : "card";
-
-    const pmPayload = {
-      data: {
-        attributes: { type: pmType },
-      },
-    };
-
-    const pmRes = await paymongoPost("/payment_methods", pmPayload, paymongoKey);
-    if (!pmRes.ok) {
-      return new Response(
-        JSON.stringify({
-          error: "Failed to create payment method",
-          detail: (pmRes.data as Record<string, unknown>)?.errors ?? pmRes.data,
-        }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const pmData = pmRes.data as { data: { id: string } };
-    const paymentMethodId = pmData.data.id;
-
-    // --- Step 3: Attach payment method to payment intent ---
-    const attachRes = await paymongoPost(
-      `/payment_intents/${intentId}/attach`,
-      { data: { attributes: { payment_method: paymentMethodId } } },
-      paymongoKey,
-    );
-
-    if (!attachRes.ok) {
-      return new Response(
-        JSON.stringify({
-          error: "Failed to attach payment method",
-          detail: (attachRes.data as Record<string, unknown>)?.errors ?? attachRes.data,
-        }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const attachData = attachRes.data as {
-      data: {
-        id: string;
-        attributes: {
-          next_action?: { redirect?: { url?: string } };
-        };
-      };
-    };
-
-    const nextAction = attachData.data.attributes.next_action;
-    const checkoutUrl = nextAction?.redirect?.url ?? null;
-
-    // --- Step 4: Update booking with PayMongo intent reference ---
-    await adminClient
-      .from("bookings")
-      .update({
-        paymongo_payment_intent_id: intentId,
-        payment_method,
-        payment_status: "pending",
-      })
-      .eq("id", booking_id);
-
-    return new Response(
-      JSON.stringify({
-        payment_intent_id: intentId,
-        client_key: clientKey,
-        next_action: nextAction ?? null,
-        checkout_url: checkoutUrl,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    const intentData = intentRes.data as { data: { id: string; attributes: { client_key: string } } };
+    await adminClient.from("bookings").update({ payment_provider: "paymongo", paymongo_payment_intent_id: intentData.data.id, payment_method, payment_state: "intent_created", payment_status: "pending", refundable_until: refundWindow.refundable_until, payout_release_on: refundWindow.payout_release_on }).eq("id", booking_id);
+    return new Response(JSON.stringify({ payment_intent_id: intentData.data.id, client_key: intentData.data.attributes.client_key, provider: "paymongo", refund_window: refundWindow }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({ error: (err as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

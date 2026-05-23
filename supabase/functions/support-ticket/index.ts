@@ -5,14 +5,27 @@ import { groqChat } from "../_shared/groq.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { getUserFromRequest } from "../_shared/auth.ts";
 
+const SUPPORT_CATEGORIES = [
+  "booking",
+  "payment_refund",
+  "host_verification",
+  "property_condition",
+  "incidentals_damage",
+  "safety_privacy_surveillance",
+  "account_access",
+  "technical_bug",
+] as const;
+
 const BodySchema = z.object({
   subject: z.string().min(3).max(200),
   message: z.string().min(5).max(4000),
-  category: z.string().max(64).optional(),
+  category: z.enum(SUPPORT_CATEGORIES).default("booking"),
   priority: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
 });
 
-const ESCALATE_KEYWORDS = ["refund", "fraud", "chargeback", "scam", "urgent", "legal", "lawsuit", "stolen"];
+const EXTREME_ESCALATION_KEYWORDS = [
+  "fraud", "chargeback", "scam", "stolen", "threat", "assault", "harassment", "fire", "police", "lawsuit",
+];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -41,7 +54,8 @@ Deno.serve(async (req) => {
 
     const { subject, message, category, priority } = parsed.data;
     const lc = (subject + " " + message).toLowerCase();
-    const escalated = ESCALATE_KEYWORDS.some((k) => lc.includes(k)) || priority === "urgent";
+    // Escalate only subjective/extreme outliers to avoid noisy manual queues.
+    const escalated = priority === "urgent" || EXTREME_ESCALATION_KEYWORDS.some((k) => lc.includes(k));
 
     // service-role client for writes that bypass RLS in a controlled way
     const admin = createClient(
