@@ -4,6 +4,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { groqChat } from "../_shared/groq.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { getUserFromRequest } from "../_shared/auth.ts";
+import { dispatchNotification } from "../_shared/notify.ts";
 
 const SUPPORT_CATEGORIES = [
   "booking",
@@ -23,6 +24,7 @@ const BodySchema = z.object({
   priority: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
 });
 
+// Escalate only subjective/extreme outliers — keeps manual queue signal-to-noise high.
 const EXTREME_ESCALATION_KEYWORDS = [
   "fraud", "chargeback", "scam", "stolen", "threat", "assault", "harassment", "fire", "police", "lawsuit",
 ];
@@ -54,10 +56,8 @@ Deno.serve(async (req) => {
 
     const { subject, message, category, priority } = parsed.data;
     const lc = (subject + " " + message).toLowerCase();
-    // Escalate only subjective/extreme outliers to avoid noisy manual queues.
     const escalated = priority === "urgent" || EXTREME_ESCALATION_KEYWORDS.some((k) => lc.includes(k));
 
-    // service-role client for writes that bypass RLS in a controlled way
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -75,7 +75,6 @@ Deno.serve(async (req) => {
       .single();
     if (tErr) throw tErr;
 
-    // user's first message
     await admin.from("support_messages").insert({
       ticket_id: ticket.id, sender: "user", author_user_id: user.id, content: message,
     });
@@ -94,10 +93,30 @@ Deno.serve(async (req) => {
           ticket_id: ticket.id, sender: "ai", content: ai_response,
         });
         await admin.from("support_tickets").update({ ai_response, status: "pending" }).eq("id", ticket.id);
-      } catch (e) {
+
+        // Notify user: AI has responded to their new ticket
+        await dispatchNotification(admin, {
+          userId: user.id,
+          type: "support_ticket_updated",
+          title: `Support reply — Ticket #${ticket.ticket_num}`,
+          body: "We've responded to your support ticket. Check in to continue the conversation.",
+          data: { ticket_id: ticket.id, ticket_num: ticket.ticket_num },
+          url: "/support",
+        });
+      } catch {
         ai_response = null;
         await admin.from("support_tickets").update({ escalated: true, status: "escalated" }).eq("id", ticket.id);
       }
+    } else {
+      // Escalated: notify user their ticket is being handled by a human
+      await dispatchNotification(admin, {
+        userId: user.id,
+        type: "support_ticket_updated",
+        title: `Ticket #${ticket.ticket_num} escalated`,
+        body: "Your ticket has been flagged for human review. Our team will follow up shortly.",
+        data: { ticket_id: ticket.id, ticket_num: ticket.ticket_num, escalated: true },
+        url: "/support",
+      });
     }
 
     return new Response(

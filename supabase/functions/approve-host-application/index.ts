@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { getUserFromRequest } from "../_shared/auth.ts";
+import { dispatchNotification } from "../_shared/notify.ts";
 
 const BodySchema = z.object({
   application_id: z.string().uuid(),
@@ -103,6 +104,16 @@ Deno.serve(async (req) => {
       after_state: { host_status: true, application_id, reviewer_notes },
       executed_by: user.id,
       ip_address: ip,
+    });
+
+    // Notify the applicant their host status is approved (push eligible — high-value event)
+    await dispatchNotification(adminClient, {
+      userId: target_user_id,
+      type: "host_status_approved",
+      title: "Host application approved!",
+      body: "Your host profile is approved. You can now publish listings and accept bookings.",
+      data: { application_id },
+      url: "/host",
     });
 
     return new Response(JSON.stringify({ success: true, application_id, target_user_id, host_status: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
