@@ -327,6 +327,11 @@ export default function Admin() {
   };
 
   const pendingApps  = hostApps.filter((a) => a.status === "pending" || a.status === "manual_review");
+  const pendingVerificationTickets = useMemo(() =>
+    tickets.filter((t) => t.category === "host_verification" && t.status !== "resolved" && t.status !== "closed"),
+    [tickets]
+  );
+  const totalPendingApprovals = pendingApps.length + pendingVerificationTickets.length;
 
   if (loading) return <div className="container py-20 text-sm text-muted-foreground">Loading…</div>;
   if (!roles.includes("admin")) return (
@@ -343,7 +348,7 @@ export default function Admin() {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Admin dashboard</h1>
           <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
-            <span>{pendingApps.length} pending host {pendingApps.length === 1 ? "application" : "applications"}</span>
+            <span>{totalPendingApprovals} pending host {totalPendingApprovals === 1 ? "application" : "applications"}</span>
             <span>·</span>
             <span>{bookings.filter((b) => b.status === "confirmed").length} active bookings</span>
             <span>·</span>
@@ -355,9 +360,9 @@ export default function Admin() {
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="applications" className="relative">
               Applications
-              {pendingApps.length > 0 && (
+              {totalPendingApprovals > 0 && (
                 <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none">
-                  {pendingApps.length}
+                  {totalPendingApprovals}
                 </span>
               )}
             </TabsTrigger>
@@ -376,10 +381,58 @@ export default function Admin() {
           </TabsList>
 
           {/* ── HOST APPLICATIONS ── */}
-          <TabsContent value="applications" className="space-y-6 pt-4">
-            {tickets.filter((t) => t.category === "host_verification" && t.status !== "resolved" && t.status !== "closed").length > 0 && (
-              <div className="rounded-lg border border-amber-400/40 bg-amber-50/40 dark:bg-amber-950/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
-                <strong>{tickets.filter((t) => t.category === "host_verification" && t.status !== "resolved" && t.status !== "closed").length}</strong> host verification {tickets.filter((t) => t.category === "host_verification" && t.status !== "resolved" && t.status !== "closed").length === 1 ? "request" : "requests"} pending in the <button onClick={() => document.querySelector<HTMLButtonElement>('[data-value="tickets"]')?.click()} className="underline hover:no-underline font-medium">Support tab</button>.
+          <TabsContent value="applications" className="space-y-8 pt-4">
+            {pendingVerificationTickets.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-base font-semibold">
+                  Verification requests
+                  <span className="text-muted-foreground font-normal ml-2 text-sm">via Support chat</span>
+                </h2>
+                {pendingVerificationTickets.map((t) => {
+                  const isExpanded = expandedTicketId === t.id;
+                  const messages = ticketMessages.get(t.id) ?? [];
+                  return (
+                    <Card key={t.id} className="overflow-hidden">
+                      <div className="p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="font-mono text-xs text-muted-foreground">#{t.ticket_num}</span>
+                            <Badge variant="outline" className="text-[10px] h-4 px-1.5">Host Verification</Badge>
+                          </div>
+                          <p className="font-medium text-sm">{t.subject}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{new Date(t.created_at).toLocaleString()}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => expandTicket(t.id)}>
+                            {isExpanded ? "Hide" : "View details"}
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => updateTicketStatus(t.id, "closed")} disabled={busy}>
+                            Dismiss
+                          </Button>
+                          <Button size="sm" className="h-8 text-xs" onClick={() => grantHostRole(t.id, t.user_id)} disabled={grantingHost === t.id}>
+                            {grantingHost === t.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                            Approve as Host
+                          </Button>
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <div className="border-t bg-muted/20 p-4 space-y-2">
+                          {loadingMessages && !ticketMessages.has(t.id) ? (
+                            <p className="text-xs text-muted-foreground">Loading messages…</p>
+                          ) : messages.filter((m) => m.sender === "user").length === 0 ? (
+                            <p className="text-xs text-muted-foreground">No applicant messages found.</p>
+                          ) : (
+                            messages.filter((m) => m.sender === "user").map((msg) => (
+                              <div key={msg.id} className="text-sm bg-muted rounded-lg px-3 py-2 whitespace-pre-wrap">
+                                {msg.content}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
               </div>
             )}
             <HostApplicationReview hostApps={hostApps} onDecision={handleAppDecision} />
