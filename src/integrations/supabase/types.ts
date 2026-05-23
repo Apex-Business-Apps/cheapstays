@@ -42,6 +42,7 @@ export type Database = {
           payout_release_on: string | null
           refundable_until: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          stripe_payment_intent_id: string | null
           total_php: number
           updated_at: string
         }
@@ -72,6 +73,7 @@ export type Database = {
           payout_release_on?: string | null
           refundable_until?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
+          stripe_payment_intent_id?: string | null
           total_php: number
           updated_at?: string
         }
@@ -102,6 +104,7 @@ export type Database = {
           payout_release_on?: string | null
           refundable_until?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
+          stripe_payment_intent_id?: string | null
           total_php?: number
           updated_at?: string
         }
