@@ -4,6 +4,8 @@ import { MemoryRouter } from "react-router-dom";
 import Notifications from "@/pages/Notifications";
 
 vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({ user: null, roles: [], signOut: vi.fn() }) }));
+// Force desktop mode so the page renders rather than redirecting or returning null.
+vi.mock("@/hooks/use-mobile", () => ({ useIsDesktop: () => true, useIsMobile: () => false }));
 
 describe("Notifications page", () => {
   it("requires sign in when unauthenticated", () => {

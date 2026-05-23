@@ -1,13 +1,13 @@
+import { Component, type ReactNode } from "react";
 import { Bell, BellOff, BellRing, BookCheck, Calendar, CheckCheck, Info, Star } from "lucide-react";
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsDesktop } from "@/hooks/use-mobile";
 import { useNotifications } from "@/hooks/useNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
@@ -107,14 +107,31 @@ function PushSection() {
   );
 }
 
+/** Silent error boundary — hides PushSection if it throws rather than crashing the page. */
+class PushSectionBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() {
+    if (this.state.failed) return null;
+    return this.props.children;
+  }
+}
+
 export default function Notifications() {
   const { user } = useAuth();
-  const isMobile = useIsMobile();
+  const isDesktop = useIsDesktop();
   const { items, loading, unreadCount, markAllRead, markAsRead } = useNotifications();
   const [tab, setTab] = useState<"all" | "unread">("all");
 
-  // Redirect mobile/tablet users – they use the in-navbar modal instead
-  if (isMobile) {
+  // Hold render while we measure the viewport — prevents a flash of the desktop
+  // page on mobile/tablet before the redirect fires.
+  if (isDesktop === undefined) {
+    return null;
+  }
+
+  // Redirect mobile AND tablet users — they access notifications via the bell
+  // icon modal in the Navbar (NotificationsModal), not this page.
+  if (!isDesktop) {
     return <Navigate to="/" replace />;
   }
 
@@ -151,23 +168,36 @@ export default function Notifications() {
         )}
       </div>
 
-      {/* Push notification control (desktop only) */}
-      <PushSection />
+      {/* Push notification control — isolated so any browser-specific failure doesn't crash the page */}
+      <PushSectionBoundary>
+        <PushSection />
+      </PushSectionBoundary>
 
       {/* Filter tabs */}
-      <Tabs value={tab} onValueChange={(v) => setTab(v as "all" | "unread")}>
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="unread">
-            Unread
-            {unreadCount > 0 && (
-              <span className="ml-2 h-5 w-5 rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center">
-                {unreadCount > 9 ? "9+" : unreadCount}
+      <div className="flex gap-1 border-b border-border/40 pb-2">
+        {(["all", "unread"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+              tab === t
+                ? "bg-secondary text-secondary-foreground font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+            }`}
+          >
+            {t === "all" ? "All" : (
+              <span className="flex items-center gap-1.5">
+                Unread
+                {unreadCount > 0 && (
+                  <span className="h-5 w-5 rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </span>
             )}
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+          </button>
+        ))}
+      </div>
 
       {/* Notification list */}
       <Card className="overflow-hidden">

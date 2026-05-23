@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,6 +16,9 @@ export function useNotifications() {
   const { user } = useAuth();
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
+  // Unique per hook instance — prevents duplicate-subscribe throw when the hook is mounted
+  // in both NotificationsModal (Navbar) and the Notifications page simultaneously.
+  const instanceId = useRef(Math.random().toString(36).slice(2));
 
   const unreadCount = useMemo(() => items.filter((n) => !n.read).length, [items]);
 
@@ -58,7 +61,7 @@ export function useNotifications() {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel(`notifications:${user.id}`)
+      .channel(`notifications:${user.id}:${instanceId.current}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
