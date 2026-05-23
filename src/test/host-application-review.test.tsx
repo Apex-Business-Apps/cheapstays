@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { HostApplicationReview, type HostApp } from "@/features/admin/HostApplicationReview";
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -49,7 +49,7 @@ describe("HostApplicationReview", () => {
     fireEvent.click(screen.getByRole("button", { name: "Review" }));
     fireEvent.click(screen.getByRole("button", { name: "Approve host application" }));
 
-    expect(onDecision).toHaveBeenCalledWith("app-1", "user-1", true, undefined);
+    await waitFor(() => expect(onDecision).toHaveBeenCalledWith("app-1", "user-1", true, undefined));
   });
 
   it("requires rejection reason and sends it on reject", async () => {
@@ -64,6 +64,6 @@ describe("HostApplicationReview", () => {
     expect(rejectBtn).not.toBeDisabled();
     fireEvent.click(rejectBtn);
 
-    expect(onDecision).toHaveBeenCalledWith("app-1", "user-1", false, "Missing selfie");
+    await waitFor(() => expect(onDecision).toHaveBeenCalledWith("app-1", "user-1", false, "Missing selfie"));
   });
 });

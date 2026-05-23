@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ExternalLink, Loader2 } from "lucide-react";
@@ -59,7 +59,7 @@ function AppReviewDialog({ app, open, onClose, onDecision }: {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Host Application — {app.full_legal_name}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Host Application — {app.full_legal_name}</DialogTitle><DialogDescription>Review identity evidence and approve or reject this host application.</DialogDescription></DialogHeader>
         <div className="space-y-4 text-sm">
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
             <div><span className="text-muted-foreground">Phone: </span><strong>{app.phone}</strong></div>
