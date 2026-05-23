@@ -192,7 +192,10 @@ function HostApplicationForm() {
       <div className="container py-24 max-w-xl text-center">
         <Seo title="Become a Host · CheapStays" description="Apply to list your property on CheapStays." path="/host" />
         <h1 className="text-2xl font-semibold">Sign in to apply as a host</h1>
-        <Button asChild className="mt-6"><Link to="/auth?mode=signup">Sign Up / Log In</Link></Button>
+        <div className="mt-6 flex items-center justify-center gap-2">
+          <Button asChild variant="outline"><Link to="/auth?mode=signin">Log in</Link></Button>
+          <Button asChild><Link to="/auth?mode=signup">Sign up</Link></Button>
+        </div>
       </div>
     );
   }
