@@ -199,7 +199,7 @@ export default function Admin() {
     setUserRoles((rolesRes.data as UserRoleRow[]) ?? []);
     setProfiles((profilesRes.data as ProfileRow[]) ?? []);
     setHostApps((appsRes.data as HostApp[]) ?? []);
-    setAuditLog((auditRes.data as AuditRow[]) ?? []);
+    setAuditLog((auditRes.data as unknown as AuditRow[]) ?? []);
   }, []);
 
   useEffect(() => {
