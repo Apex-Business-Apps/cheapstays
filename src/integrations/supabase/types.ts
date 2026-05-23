@@ -262,6 +262,45 @@ export type Database = {
         }
         Relationships: []
       }
+      role_mutation_audit: {
+        Row: {
+          after_state: Json
+          before_state: Json
+          command_id: string | null
+          command_source: string
+          created_at: string
+          executed_by: string | null
+          id: string
+          operation: string
+          reason_code: string | null
+          target_user_id: string
+        }
+        Insert: {
+          after_state?: Json
+          before_state?: Json
+          command_id?: string | null
+          command_source: string
+          created_at?: string
+          executed_by?: string | null
+          id?: string
+          operation: string
+          reason_code?: string | null
+          target_user_id: string
+        }
+        Update: {
+          after_state?: Json
+          before_state?: Json
+          command_id?: string | null
+          command_source?: string
+          created_at?: string
+          executed_by?: string | null
+          id?: string
+          operation?: string
+          reason_code?: string | null
+          target_user_id?: string
+        }
+        Relationships: []
+      }
       incidental_reviews: {
         Row: {
           booking_id: string
