@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { setLang } from "@/i18n";
+import { LANG_BCP47, LANG_TTS_PREFIXES } from "@/i18n/bcp47";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -16,10 +17,12 @@ const CHAT_URL = `${SUPABASE_URL}/functions/v1/ai-chat`;
 
 type SpeechRecognitionResult = { 0: { transcript: string } };
 type SpeechRecognitionEvent = Event & { results: ArrayLike<SpeechRecognitionResult> };
+type SpeechRecognitionErrorEvent = Event & { error: string };
 interface SR extends EventTarget {
   lang: string; interimResults: boolean; continuous: boolean;
   onresult: (e: SpeechRecognitionEvent) => void;
-  onend: () => void; onerror: () => void;
+  onend: () => void;
+  onerror: (e: SpeechRecognitionErrorEvent) => void;
   start(): void; stop(): void;
 }
 type SRConstructor = new () => SR;
@@ -108,38 +111,51 @@ export function AiChatBubble() {
     const synth = window.speechSynthesis;
     synth.cancel();
 
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.93;
-    u.pitch = 1.15;
-    u.volume = 1;
+    const attemptSpeak = (voices: SpeechSynthesisVoice[]) => {
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.93;
+      u.pitch = 1.15;
+      u.volume = 1;
 
+      // Use the canonical prefix list so Filipino ("fil") never resolves to Finnish ("fi").
+      const prefixes = LANG_TTS_PREFIXES[i18n.language] ?? ["en"];
+      const matchesLang = (v: SpeechSynthesisVoice) =>
+        prefixes.some((p) => v.lang.toLowerCase().startsWith(p));
+
+      const pick = (fn: (v: SpeechSynthesisVoice) => boolean) => voices.find(fn);
+      const voice =
+        pick((v) => matchesLang(v) && /google/i.test(v.name))                           ??
+        pick((v) => matchesLang(v) && /natural|neural|premium/i.test(v.name))            ??
+        pick((v) => matchesLang(v) && !v.localService)                                   ??
+        pick((v) => matchesLang(v))                                                      ??
+        pick((v) => v.lang.startsWith("en") && /google uk english female/i.test(v.name)) ??
+        pick((v) => v.lang.startsWith("en") && /google/i.test(v.name))                  ??
+        pick((v) => v.lang.startsWith("en") && !v.localService)                         ??
+        null;
+
+      if (voice) u.voice = voice;
+      synth.speak(u);
+    };
+
+    // iOS Safari populates voices asynchronously; desktop browsers return them synchronously.
     const voices = synth.getVoices();
-    const lang = (i18n.language ?? "en").slice(0, 2);
-    const pick = (fn: (v: SpeechSynthesisVoice) => boolean) => voices.find(fn);
-    const voice =
-      pick(v => v.lang.startsWith(lang) && /google/i.test(v.name)) ??
-      pick(v => v.lang.startsWith(lang) && /natural|neural|premium/i.test(v.name)) ??
-      pick(v => v.lang.startsWith(lang) && !v.localService) ??
-      pick(v => v.lang.startsWith("en") && /google uk english female/i.test(v.name)) ??
-      pick(v => v.lang.startsWith("en") && /google/i.test(v.name)) ??
-      pick(v => v.lang.startsWith("en") && !v.localService) ??
-      null;
-
-    if (voice) u.voice = voice;
-    synth.speak(u);
+    if (voices.length > 0) {
+      attemptSpeak(voices);
+    } else {
+      synth.onvoiceschanged = () => {
+        synth.onvoiceschanged = null;
+        attemptSpeak(synth.getVoices());
+      };
+    }
   }
 
-  function toggleListen() {
+  function startRecognition(langCode: string, isRetry = false) {
     const w = window as Window & { SpeechRecognition?: SRConstructor; webkitSpeechRecognition?: SRConstructor };
     const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!Ctor) return;
-    if (listening) {
-      recogRef.current?.stop();
-      setListening(false);
-      return;
-    }
+
     const r: SR = new Ctor();
-    r.lang = "en-US";
+    r.lang = langCode;
     r.interimResults = true;
     r.continuous = false;
     r.onresult = (e: SpeechRecognitionEvent) => {
@@ -147,10 +163,28 @@ export function AiChatBubble() {
       setInput(text);
     };
     r.onend = () => setListening(false);
-    r.onerror = () => setListening(false);
+    r.onerror = (e: SpeechRecognitionErrorEvent) => {
+      // Some browsers reject non-English language codes for speech recognition.
+      // Retry once with en-US so the user isn't left with a broken mic button.
+      if (e.error === "language-not-supported" && !isRetry) {
+        recogRef.current = null;
+        startRecognition("en-US", true);
+        return;
+      }
+      setListening(false);
+    };
     recogRef.current = r;
     r.start();
     setListening(true);
+  }
+
+  function toggleListen() {
+    if (listening) {
+      recogRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    startRecognition(LANG_BCP47[i18n.language] ?? "en-US");
   }
 
   const tryVoiceRoute = useCallback(

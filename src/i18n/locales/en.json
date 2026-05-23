@@ -97,6 +97,7 @@
     "listen": "Speak",
     "stopListen": "Stop listening",
     "open": "Open Pip, the concierge",
+    "role": "Concierge",
     "error": "Could not reach the server. Try again in a sec.",
     "q1": "Palawan under ₱3k",
     "q2": "5 nights in Siargao",
