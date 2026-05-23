@@ -121,6 +121,7 @@ export default function MyBookings() {
   const { user, loading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState<string | null>(null);
 
   useEffect(() => {
@@ -131,13 +132,17 @@ export default function MyBookings() {
       .eq("guest_id", user.id)
       .order("check_in", { ascending: false })
       .limit(50)
-      .then(({ data }) => {
-        setBookings(
-          (data ?? []).map((b) => ({
-            ...b,
-            listings: Array.isArray(b.listings) ? (b.listings[0] ?? null) : b.listings,
-          })) as Booking[]
-        );
+      .then(({ data, error }) => {
+        if (error) {
+          setFetchError(error.message);
+        } else {
+          setBookings(
+            (data ?? []).map((b) => ({
+              ...b,
+              listings: Array.isArray(b.listings) ? (b.listings[0] ?? null) : b.listings,
+            })) as Booking[]
+          );
+        }
         setLoading(false);
       });
   }, [user]);
@@ -193,6 +198,10 @@ export default function MyBookings() {
         {loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : fetchError ? (
+          <div className="py-16 text-center text-muted-foreground">
+            <p className="text-sm">Could not load bookings — {fetchError}</p>
           </div>
         ) : bookings.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">

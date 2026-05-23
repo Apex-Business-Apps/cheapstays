@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const rl = rateLimit(`support-ticket:${user.id}`, 10, 60_000);
+    const rl = await rateLimit(`support-ticket:${user.id}`, 10, 60_000);
     if (!rl.ok) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
         status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
