@@ -25,6 +25,7 @@ type Booking = {
 type SupportTicket = {
   id: string; ticket_num: number; subject: string; status: string;
   priority: string; category: string; escalated: boolean; created_at: string;
+  user_id: string;
 };
 type TicketMessage = { id: string; sender: string; content: string; created_at: string };
 type TicketStatus  = "open" | "pending" | "resolved" | "closed" | "escalated";
@@ -158,6 +159,7 @@ function BookingCalendar({ bookings }: { bookings: Booking[] }) {
 export default function Admin() {
   const { user, roles, loading } = useAuth();
   const [busy, setBusy]                   = useState(false);
+  const [grantingHost, setGrantingHost]   = useState<string | null>(null);
   const [tickets, setTickets]             = useState<SupportTicket[]>([]);
   const [bookings, setBookings]           = useState<Booking[]>([]);
   const [userRoles, setUserRoles]         = useState<UserRoleRow[]>([]);
@@ -175,7 +177,7 @@ export default function Admin() {
   const fetchAll = useCallback(async () => {
     const [ticketRes, bookingRes, rolesRes, profilesRes, appsRes, auditRes] = await Promise.all([
       supabase.from("support_tickets")
-        .select("id,ticket_num,subject,status,priority,category,escalated,created_at")
+        .select("id,ticket_num,subject,status,priority,category,escalated,created_at,user_id")
         .order("created_at", { ascending: false }).limit(200),
       supabase.from("bookings")
         .select("id,listing_id,guest_id,host_id,check_in,check_out,status,total_php,created_at")
@@ -273,6 +275,22 @@ export default function Admin() {
     }
   };
 
+  const grantHostRole = async (ticketId: string, targetUserId: string) => {
+    setGrantingHost(ticketId);
+    try {
+      const { error } = await supabase.functions.invoke("grant-host-role", {
+        body: { target_user_id: targetUserId, operation: "grant", reason_code: "host-verified-via-support-ticket" },
+      });
+      if (error) throw error;
+      await updateTicketStatus(ticketId, "resolved");
+      toast.success("Host role granted and ticket resolved.");
+    } catch (err) {
+      toast.error(`Failed to grant host role: ${(err as Error).message}`);
+    } finally {
+      setGrantingHost(null);
+    }
+  };
+
   const expandTicket = useCallback(async (ticketId: string) => {
     if (expandedTicketId === ticketId) { setExpandedTicketId(null); return; }
     setExpandedTicketId(ticketId);
@@ -293,7 +311,7 @@ export default function Admin() {
     if (!content) return;
     setSendingReply(ticketId);
     try {
-      const { error } = await supabase.from("support_messages").insert({ ticket_id: ticketId, sender: "admin", content });
+      const { error } = await supabase.from("support_messages").insert({ ticket_id: ticketId, sender: "admin", author_user_id: user?.id, content });
       if (error) throw error;
       setReplyInputs((prev) => { const next = new Map(prev); next.set(ticketId, ""); return next; });
       const { data } = await supabase
@@ -359,6 +377,11 @@ export default function Admin() {
 
           {/* ── HOST APPLICATIONS ── */}
           <TabsContent value="applications" className="space-y-6 pt-4">
+            {tickets.filter((t) => t.category === "host_verification" && t.status !== "resolved" && t.status !== "closed").length > 0 && (
+              <div className="rounded-lg border border-amber-400/40 bg-amber-50/40 dark:bg-amber-950/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+                <strong>{tickets.filter((t) => t.category === "host_verification" && t.status !== "resolved" && t.status !== "closed").length}</strong> host verification {tickets.filter((t) => t.category === "host_verification" && t.status !== "resolved" && t.status !== "closed").length === 1 ? "request" : "requests"} pending in the <button onClick={() => document.querySelector<HTMLButtonElement>('[data-value="tickets"]')?.click()} className="underline hover:no-underline font-medium">Support tab</button>.
+              </div>
+            )}
             <HostApplicationReview hostApps={hostApps} onDecision={handleAppDecision} />
           </TabsContent>
 
@@ -506,6 +529,16 @@ export default function Admin() {
                                 <p className="whitespace-pre-wrap">{msg.content}</p>
                               </div>
                             ))
+                          )}
+                          {t.category === "host_verification" && t.status !== "resolved" && (
+                            <div className="flex items-center gap-2 pt-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
+                              <span className="text-xs text-muted-foreground flex-1">This is a host verification request.</span>
+                              <Button size="sm" className="h-8 text-xs shrink-0"
+                                disabled={grantingHost === t.id}
+                                onClick={() => grantHostRole(t.id, t.user_id)}>
+                                {grantingHost === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve as Host"}
+                              </Button>
+                            </div>
                           )}
                           <div className="flex gap-2 pt-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
                             <Input

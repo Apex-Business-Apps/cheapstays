@@ -14,29 +14,36 @@ export type NotificationRow = {
 
 export function useNotifications() {
   const { user } = useAuth();
+  const userId = user?.id;
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const unreadCount = useMemo(() => items.filter((n) => !n.read).length, [items]);
 
   const loadData = useCallback(async () => {
-    if (!user) { setItems([]); setLoading(false); return; }
+    if (!userId) { setItems([]); setLoading(false); return; }
     setLoading(true);
-    const { data, error } = await supabase
-      .from("notifications")
-      .select("id,type,title,body,read,created_at")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (error) {
-      toast({ title: "Failed to load notifications", description: error.message, variant: "destructive" });
-    } else {
-      setItems((data as NotificationRow[]) ?? []);
+    try {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("id,type,title,body,read,created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) {
+        toast({ title: "Failed to load notifications", description: error.message, variant: "destructive" });
+      } else {
+        setItems((data as NotificationRow[]) ?? []);
+      }
+    } catch (err) {
+      toast({ title: "Failed to load notifications", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [user]);
+  }, [userId]);
 
   const markAllRead = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
     const ids = items.filter((n) => !n.read).map((n) => n.id);
     if (!ids.length) return;
     const { error } = await supabase.from("notifications").update({ read: true }).in("id", ids);
@@ -45,7 +52,7 @@ export function useNotifications() {
       return;
     }
     setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, [user, items]);
+  }, [userId, items]);
 
   const markAsRead = useCallback(async (id: string) => {
     const { error } = await supabase.from("notifications").update({ read: true }).eq("id", id);
@@ -56,19 +63,19 @@ export function useNotifications() {
 
   // Realtime: insert + update
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     const channel = supabase
-      .channel(`notifications:${user.id}`)
+      .channel(`notifications:${userId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
         (payload) => {
           setItems((prev) => [payload.new as NotificationRow, ...prev].slice(0, 50));
         },
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
         (payload) => {
           setItems((prev) =>
             prev.map((n) => (n.id === (payload.new as NotificationRow).id ? { ...n, ...(payload.new as NotificationRow) } : n)),
@@ -77,7 +84,7 @@ export function useNotifications() {
       )
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [user]);
+  }, [userId]);
 
   return { items, loading, unreadCount, markAllRead, markAsRead, refetch: loadData };
 }
