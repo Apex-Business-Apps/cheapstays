@@ -258,6 +258,7 @@ export default function Search() {
     if (!data) return;
     const grouped = new Map<string, number[]>();
     for (const row of data) {
+      if (!row.reviewee_id) continue;
       if (!grouped.has(row.reviewee_id)) grouped.set(row.reviewee_id, []);
       grouped.get(row.reviewee_id)!.push(row.rating);
     }
