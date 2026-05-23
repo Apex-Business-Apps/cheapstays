@@ -225,7 +225,7 @@ export function AiChatBubble() {
           apikey: ANON,
           Authorization: `Bearer ${ANON}`,
         },
-        body: JSON.stringify({ messages: next.slice(-20) }),
+        body: JSON.stringify({ messages: next.slice(-20), lang: i18n.language }),
       });
       if (!res.ok || !res.body) throw new Error(`Chat error ${res.status}`);
       const reader = res.body.getReader();
