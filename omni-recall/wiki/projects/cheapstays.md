@@ -35,7 +35,7 @@
 ## Open Loops
 
 - Historical backfill of prior Claude/ChatGPT session exports: pending (user to provide)
-- [[pip-ai-concierge]] — "Pip" feature referenced in PRs #12/#15, not in CLAUDE.md; unverified
+- [[pip-ai-concierge]] — closed: Pip is the brand name for `AiChatBubble` → `ai-chat` edge function
 
 ## Related Pages
 

@@ -1,21 +1,19 @@
-# Open Loop: "Pip" AI Concierge
+# Open Loop: "Pip" AI Concierge — CLOSED
 
-- opened: 2026-05-23 (mined from git log)
-- source: commits f53d3b4 (#12) and b59a233 (#15)
-- status: unresolved
+- opened: 2026-05-23
+- closed: 2026-05-23
+- resolution: verified — frontend brand name for AiChatBubble component
 
-## What Is Known
+## Verified State
 
-"Pip" is referenced in two commit messages as an AI concierge context feature wired to listings and bookings. It appears alongside the core listing flow (#12) and the advanced search/ratings layer (#15).
+Pip is the user-facing brand name for the floating AI chat widget (`src/components/AiChatBubble.tsx`). It calls the `ai-chat` edge function directly via `${SUPABASE_URL}/functions/v1/ai-chat`. There is no separate "pip" edge function.
 
-It is not documented in CLAUDE.md and not visible in the edge function registry (`ai-chat`, `ai-search`, `ai-describe` are documented; no `pip` function listed).
+Surface appearances:
+- Floating chat bubble — present on any page that renders `<AiChatBubble />`
+- Membership page: listed as "Priority Pip support" feature
+- Index page: testimonial copy references Pip by name
+- i18n keys: `pip.greeting`, `pip.q1–3`, `pip.role`, `pip.online`, `pip.thinking`, etc.
 
-## Open Questions
+## CLAUDE.md Gap
 
-- Is Pip a frontend-only component or does it call a backend function?
-- Is it the same as or distinct from `ai-chat`?
-- Is it still active or was it renamed/removed?
-
-## Action
-
-Read `src/` for Pip references before assuming it's live. Do not document it as active until verified.
+Pip is not mentioned in CLAUDE.md. The `ai-chat` entry covers the backend. No update needed — Pip is purely a frontend brand alias with no backend distinction.
