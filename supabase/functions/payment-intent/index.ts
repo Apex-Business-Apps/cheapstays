@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const rl = rateLimit(`payment-intent:${req.headers.get("x-forwarded-for") ?? "anon"}`, 5, 60_000);
+    const rl = await rateLimit(`payment-intent:${req.headers.get("x-forwarded-for") ?? "anon"}`, 5, 60_000);
     if (!rl.ok) return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const authHeader = req.headers.get("Authorization");

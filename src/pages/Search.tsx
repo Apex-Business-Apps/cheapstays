@@ -239,6 +239,7 @@ export default function Search() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [browseListings, setBrowseListings] = useState<Listing[]>([]);
   const [browseLoading, setBrowseLoading] = useState(false);
+  const [browseError, setBrowseError] = useState<string | null>(null);
   const [hostRatings, setHostRatings] = useState<Map<string, GuestRating>>(new Map());
   const [dailyCount, setDailyCount] = useState(() => getDailySearchCount());
   const autoSearched = useRef(false);
@@ -301,8 +302,8 @@ export default function Search() {
           setBrowseListings(listings);
           fetchHostRatings(listings);
         }
-      } catch {
-        // silent — browse listings are non-critical
+      } catch (err) {
+        if (!cancelled) setBrowseError((err as Error).message ?? "Failed to load listings");
       } finally {
         if (!cancelled) setBrowseLoading(false);
       }
@@ -580,6 +581,12 @@ export default function Search() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3, 4, 5, 6].map((n) => <CardSkeleton key={n} />)}
             </div>
+          </div>
+        )}
+
+        {!loading && !searched && !browseLoading && browseError && (
+          <div className="mt-10 text-center text-muted-foreground">
+            <p className="text-sm">Could not load listings — {browseError}</p>
           </div>
         )}
 

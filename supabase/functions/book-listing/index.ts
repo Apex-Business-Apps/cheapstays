@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
 
   try {
     const ip = req.headers.get("x-forwarded-for") ?? "anon";
-    const rl = rateLimit(`book-listing:${ip}`, 10, 60_000);
+    const rl = await rateLimit(`book-listing:${ip}`, 10, 60_000);
     if (!rl.ok) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
         status: 429,
@@ -151,8 +151,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // --- Calculate totals ---
-    const total_php = nights * Number(listing.nightly_php);
+    // --- Calculate totals (5% service fee matches BookingPanel.tsx display) ---
+    const SERVICE_FEE_RATE = 0.05;
+    const total_php = Math.round(nights * Number(listing.nightly_php) * (1 + SERVICE_FEE_RATE));
     const status = listing.instant_book ? "confirmed" : "pending";
 
     // --- Insert booking (use service role so we can write on behalf of the user) ---

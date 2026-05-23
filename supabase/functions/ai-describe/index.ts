@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
 
   try {
     const ip = req.headers.get("x-forwarded-for") ?? "anon";
-    const rl = rateLimit(`ai-describe:${ip}`, 15, 60_000);
+    const rl = await rateLimit(`ai-describe:${ip}`, 15, 60_000);
     if (!rl.ok) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
         status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },

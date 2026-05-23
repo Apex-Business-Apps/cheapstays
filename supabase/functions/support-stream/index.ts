@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const rl = rateLimit(`support-stream:${user.id}`, 20, 60_000);
+  const rl = await rateLimit(`support-stream:${user.id}`, 20, 60_000);
   if (!rl.ok) {
     return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
       status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  const violations = detectGuardrailViolation(parsed.success ? parsed.data.prompt : "");
+  const violations = detectGuardrailViolation(parsed.data.prompt);
   if (violations.length) {
     await logAiDecision({ surface: "support", decision: "blocked", actor_id: user.id, prompt_version: AI_PROMPT_VERSION_REGISTRY.support, reason: "guardrail_violation", payload: { violations } });
     return new Response(JSON.stringify({ error: fallbackGuardrailResponse() }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });

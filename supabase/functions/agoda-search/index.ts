@@ -93,7 +93,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-  if (!rateLimit(ip, 20, 60_000).ok) {
+  const _agodaRl = await rateLimit(`agoda-search:${ip}`, 20, 60_000);
+  if (!_agodaRl.ok) {
     return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
       status: 429,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

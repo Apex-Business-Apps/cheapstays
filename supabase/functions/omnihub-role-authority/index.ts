@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
 
   try {
     const ip = req.headers.get("x-forwarded-for") ?? "anon";
-    const rl = rateLimit(`omnihub-role-authority:${ip}`, 20, 60_000);
+    const rl = await rateLimit(`omnihub-role-authority:${ip}`, 20, 60_000);
     if (!rl.ok) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
         status: 429,
