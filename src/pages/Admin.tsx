@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { HostApplicationReview, type HostApp } from "@/features/admin/HostApplicationReview";
-import { submitHostApplicationDecision } from "@/features/admin/adminHostApproval.service";
+import { submitHostApplicationDecision, submitDirectHostRoleChange } from "@/features/admin/adminHostApproval.service";
 import type { AppRole } from "@/lib/rbac";
 import { Seo } from "@/components/Seo";
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Loader2, MessageSquare } from "lucide-react";
@@ -313,8 +313,7 @@ export default function Admin() {
   async function grantHostRole(targetUserId: string) {
     setBusy(true);
     try {
-      const { error } = await supabase.from("user_roles").upsert({ user_id: targetUserId, role: "host" }, { onConflict: "user_id,role" });
-      if (error) throw error;
+      await submitDirectHostRoleChange({ targetUserId, operation: "grant", reasonCode: "admin-direct-grant" });
       await fetchAll();
       toast.success("Host role granted.");
     } catch (err) {
@@ -327,8 +326,7 @@ export default function Admin() {
   async function revokeHostRole(targetUserId: string) {
     setBusy(true);
     try {
-      const { error } = await supabase.from("user_roles").delete().eq("user_id", targetUserId).eq("role", "host");
-      if (error) throw error;
+      await submitDirectHostRoleChange({ targetUserId, operation: "revoke", reasonCode: "admin-direct-revoke" });
       await fetchAll();
       toast.success("Host role revoked.");
     } catch (err) {

@@ -56,6 +56,7 @@ const App = () => (
                   <Route path="/safety" element={<LegalDocumentPage docKey="safety" />} />
                   <Route path="/account-deletion" element={<LegalDocumentPage docKey="account-deletion" />} />
                   <Route path="/legal" element={<LegalDocumentPage docKey="legal" />} />
+                  <Route path="/support-policy" element={<LegalDocumentPage docKey="support" />} />
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/listing/:id" element={<ListingDetail />} />

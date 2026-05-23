@@ -30,6 +30,11 @@ Eligibility, the verification process, listing accuracy requirements, honouring 
 **[Safety Center](/safety)**
 Surveillance rules for properties (what is banned, what must be disclosed), what to do if you find a suspicious device, online scam protection, and emergency contacts.
 
+### Support
+
+**[Support Policy](/support-policy)**
+Contact information, response SLAs, what to include in a ticket, escalation keywords, and the dispute process.
+
 ### Account
 
 **[Account Deletion](/account-deletion)**
