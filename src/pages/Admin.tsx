@@ -185,7 +185,7 @@ export default function Admin() {
       supabase.from("host_applications")
         .select("id,user_id,full_legal_name,phone,property_type,city,province,property_description,id_type,id_front_path,selfie_path,status,created_at")
         .order("created_at", { ascending: false }).limit(100),
-      supabase.from("role_mutation_audit")
+      (supabase as any).from("role_mutation_audit")
         .select("id,command_id,command_source,operation,target_user_id,reason_code,before_state,after_state,executed_by,created_at")
         .order("created_at", { ascending: false }).limit(100),
     ]);
@@ -199,7 +199,7 @@ export default function Admin() {
     setUserRoles((rolesRes.data as UserRoleRow[]) ?? []);
     setProfiles((profilesRes.data as ProfileRow[]) ?? []);
     setHostApps((appsRes.data as HostApp[]) ?? []);
-    setAuditLog((auditRes.data as AuditRow[]) ?? []);
+    setAuditLog((auditRes.data as unknown as AuditRow[]) ?? []);
   }, []);
 
   useEffect(() => {
