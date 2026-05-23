@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Mic, MicOff, Send, Sparkles, Volume2, VolumeX, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -27,55 +27,18 @@ interface SR extends EventTarget {
 }
 type SRConstructor = new () => SR;
 
-// Voice-command routing: intercept navigation and language-switch intents before
-// sending to the LLM so responses are instant and fully local.
-const VOICE_ROUTES: {
-  pattern: RegExp;
-  action: (nav: ReturnType<typeof useNavigate>) => void;
-  response: string;
-}[] = [
-  { pattern: /\b(go to |open |show |take me to )the search( page)?\b/i,
-    action: (nav) => nav("/search"),      response: "Opening the search page for you." },
-  { pattern: /\b(go to |open |show )?(membership|become a member|join|subscribe)\b/i,
-    action: (nav) => nav("/membership"),  response: "Opening the membership page." },
-  { pattern: /\b(go to |open |show )?(host|list my (place|property|home)|become a host)\b/i,
-    action: (nav) => nav("/host"),        response: "Taking you to the host page." },
-  { pattern: /\b(go to |open |show )?(support|help|contact|ticket)\b/i,
-    action: (nav) => nav("/support"),     response: "Opening the support page." },
-  { pattern: /\b(go |take me )?(home|homepage|main page)\b/i,
-    action: (nav) => nav("/"),            response: "Going back to the home page." },
-  { pattern: /\b(sign in|log in|login)\b/i,
-    action: (nav) => nav("/auth"),        response: "Opening the sign-in page." },
-  { pattern: /\b(my bookings?|view bookings?|manage bookings?|booking (tab|dashboard|list))\b/i,
-    action: (nav) => nav("/host"),        response: "Opening your bookings dashboard." },
-  { pattern: /\b(confirm (a )?booking|decline (a )?booking|approve booking|reject booking)\b/i,
-    action: (nav) => nav("/host"),        response: "Head to the Host dashboard to confirm or decline bookings." },
-  { pattern: /\b(rate (a )?guest|review (a )?guest|guest review)\b/i,
-    action: (nav) => nav("/host"),        response: "You can rate a guest from your bookings dashboard after their confirmed stay." },
-  { pattern: /\b(filter (listings?|results?|search)|sort (by|listings?|results?)|cheapest (listings?|places?|stays?)|highest rated|best rated|search filters?)\b/i,
-    action: (nav) => nav("/search"),      response: "Heading to search — tap the Filters button to filter by price, bedrooms, amenities, and more. Use the Sort dropdown for deal score, price, or rating." },
-  { pattern: /\b(instant book|owner.?direct|book instantly)\b/i,
-    action: (nav) => nav("/search"),      response: "Opening search — you can filter by Instant Book or Owner Direct in the Filters panel." },
-  { pattern: /\b(check (my |the )?(ratings?|reviews?|stars?)|how.*(rated|rating|stars?))\b/i,
-    action: (nav) => nav("/search"),      response: "Ratings show as star badges on each listing and host profile. Browse search to compare — use Sort by Highest Rated to surface the best." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(filipino|tagalog)\b/i,
-    action: () => setLang("fil"),         response: "Switched to Filipino." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?english\b/i,
-    action: () => setLang("en"),          response: "Switched to English." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(chinese|mandarin)\b/i,
-    action: () => setLang("zh"),          response: "Switched to Chinese." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(malay|bahasa melayu)\b/i,
-    action: () => setLang("ms"),          response: "Switched to Malay." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(indonesian|bahasa indonesia)\b/i,
-    action: () => setLang("id"),          response: "Switched to Indonesian." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?korean\b/i,
-    action: () => setLang("ko"),          response: "Switched to Korean." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(vietnamese|viet)\b/i,
-    action: () => setLang("vi"),          response: "Switched to Vietnamese." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?japanese\b/i,
-    action: () => setLang("ja"),          response: "Switched to Japanese." },
-  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?thai\b/i,
-    action: () => setLang("th"),          response: "Switched to Thai." },
+// Language-switch patterns: keyed by BCP-47-adjacent trigger words → app language code.
+// Kept at module level because they don't depend on t() or component state.
+const LANG_SWITCH_ROUTES: { pattern: RegExp; code: string }[] = [
+  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(filipino|tagalog)\b/i, code: "fil" },
+  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?english\b/i,           code: "en"  },
+  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(chinese|mandarin)\b/i, code: "zh" },
+  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(malay|bahasa melayu)\b/i, code: "ms" },
+  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(indonesian|bahasa indonesia)\b/i, code: "id" },
+  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?korean\b/i,            code: "ko"  },
+  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?(vietnamese|viet)\b/i, code: "vi"  },
+  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?japanese\b/i,          code: "ja"  },
+  { pattern: /\b(switch (to )?|change (to )?language |speak |use )?thai\b/i,              code: "th"  },
 ];
 
 export function AiChatBubble() {
@@ -92,6 +55,36 @@ export function AiChatBubble() {
   const [tts, setTts] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recogRef = useRef<SR | null>(null);
+
+  // Navigation voice routes built inside the component so response() calls t()
+  // at the moment the route fires, not at module parse time. This ensures the
+  // response is always in the user's current language.
+  const NAV_VOICE_ROUTES = useMemo(() => [
+    { pattern: /\b(go to |open |show |take me to )the search( page)?\b/i,
+      action: () => navigate("/search"),     response: () => t("pip.voice.search") },
+    { pattern: /\b(go to |open |show )?(membership|become a member|join|subscribe)\b/i,
+      action: () => navigate("/membership"), response: () => t("pip.voice.membership") },
+    { pattern: /\b(go to |open |show )?(host|list my (place|property|home)|become a host)\b/i,
+      action: () => navigate("/host"),       response: () => t("pip.voice.host") },
+    { pattern: /\b(go to |open |show )?(support|help|contact|ticket)\b/i,
+      action: () => navigate("/support"),    response: () => t("pip.voice.support") },
+    { pattern: /\b(go |take me )?(home|homepage|main page)\b/i,
+      action: () => navigate("/"),           response: () => t("pip.voice.home") },
+    { pattern: /\b(sign in|log in|login)\b/i,
+      action: () => navigate("/auth"),       response: () => t("pip.voice.auth") },
+    { pattern: /\b(my bookings?|view bookings?|manage bookings?|booking (tab|dashboard|list))\b/i,
+      action: () => navigate("/host"),       response: () => t("pip.voice.bookings") },
+    { pattern: /\b(confirm (a )?booking|decline (a )?booking|approve booking|reject booking)\b/i,
+      action: () => navigate("/host"),       response: () => t("pip.voice.confirmBooking") },
+    { pattern: /\b(rate (a )?guest|review (a )?guest|guest review)\b/i,
+      action: () => navigate("/host"),       response: () => t("pip.voice.rateGuest") },
+    { pattern: /\b(filter (listings?|results?|search)|sort (by|listings?|results?)|cheapest (listings?|places?|stays?)|highest rated|best rated|search filters?)\b/i,
+      action: () => navigate("/search"),     response: () => t("pip.voice.filters") },
+    { pattern: /\b(instant book|owner.?direct|book instantly)\b/i,
+      action: () => navigate("/search"),     response: () => t("pip.voice.instantBook") },
+    { pattern: /\b(check (my |the )?(ratings?|reviews?|stars?)|how.*(rated|rating|stars?))\b/i,
+      action: () => navigate("/search"),     response: () => t("pip.voice.ratings") },
+  ], [navigate, t]);
 
   useEffect(() => {
     setMessages((prev) => {
@@ -187,17 +180,35 @@ export function AiChatBubble() {
     startRecognition(LANG_BCP47[i18n.language] ?? "en-US");
   }
 
+  // When a language switch fires we must: (1) apply the new language,
+  // (2) build the confirmation in the NEW language immediately (i18n.changeLanguage
+  // is sync so t() resolves correctly on the next call), (3) speak it in the
+  // new TTS voice. This gives instant audible + visual feedback in the target language.
+  const handleLangSwitch = useCallback((code: string) => {
+    setLang(code);
+    const langName = t("lang." + code);
+    const confirmation = t("pip.voice.langSwitch", { language: langName });
+    return confirmation;
+  }, [t]);
+
   const tryVoiceRoute = useCallback(
     (text: string): string | null => {
-      for (const route of VOICE_ROUTES) {
+      // Check navigation routes first (evaluated with current t())
+      for (const route of NAV_VOICE_ROUTES) {
         if (route.pattern.test(text)) {
-          route.action(navigate);
-          return route.response;
+          route.action();
+          return route.response();
+        }
+      }
+      // Check language-switch routes
+      for (const route of LANG_SWITCH_ROUTES) {
+        if (route.pattern.test(text)) {
+          return handleLangSwitch(route.code);
         }
       }
       return null;
     },
-    [navigate],
+    [NAV_VOICE_ROUTES, handleLangSwitch],
   );
 
   async function send(text?: string) {

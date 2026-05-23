@@ -101,7 +101,22 @@
     "error": "Could not reach the server. Try again in a sec.",
     "q1": "Palawan under ₱3k",
     "q2": "5 nights in Siargao",
-    "q3": "Pet-friendly Baguio cabin"
+    "q3": "Pet-friendly Baguio cabin",
+    "voice": {
+      "search":         "Opening the search page for you.",
+      "membership":     "Opening the membership page.",
+      "host":           "Taking you to the host page.",
+      "support":        "Opening the support page.",
+      "home":           "Going back to the home page.",
+      "auth":           "Opening the sign-in page.",
+      "bookings":       "Opening your bookings dashboard.",
+      "confirmBooking": "Head to the Host dashboard to confirm or decline bookings.",
+      "rateGuest":      "You can rate a guest from your bookings dashboard after their stay.",
+      "filters":        "Heading to search — tap Filters to narrow by price, bedrooms, and amenities.",
+      "instantBook":    "Opening search — filter by Instant Book or Owner Direct in the Filters panel.",
+      "ratings":        "Browse search and use Sort by Highest Rated to surface the best stays.",
+      "langSwitch":     "Switched to {{language}}."
+    }
   },
   "membership": {
     "heading": "Membership",

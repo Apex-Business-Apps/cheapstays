@@ -101,7 +101,22 @@
     "error": "Tidak dapat menghubungi pelayan. Cuba lagi sebentar.",
     "q1": "Palawan bawah ₱3k",
     "q2": "5 malam di Siargao",
-    "q3": "Kabin mesra haiwan di Baguio"
+    "q3": "Kabin mesra haiwan di Baguio",
+    "voice": {
+      "search":         "Membuka halaman carian untuk anda.",
+      "membership":     "Membuka halaman keahlian.",
+      "host":           "Membawa anda ke halaman hos.",
+      "support":        "Membuka halaman sokongan.",
+      "home":           "Kembali ke laman utama.",
+      "auth":           "Membuka halaman log masuk.",
+      "bookings":       "Membuka papan pemuka tempahan anda.",
+      "confirmBooking": "Pergi ke papan pemuka Hos untuk mengesahkan atau menolak tempahan.",
+      "rateGuest":      "Anda boleh menilai tetamu dari papan pemuka tempahan selepas penginapan mereka.",
+      "filters":        "Menuju ke carian — ketik Penapis untuk menyaring mengikut harga, bilik tidur, dan kemudahan.",
+      "instantBook":    "Membuka carian — tapis mengikut Tempahan Segera atau Terus Pemilik dalam panel Penapis.",
+      "ratings":        "Layari carian dan gunakan Susun mengikut Rating Tertinggi untuk mencari penginapan terbaik.",
+      "langSwitch":     "Ditukar ke {{language}}."
+    }
   },
   "membership": {
     "heading": "Keahlian",

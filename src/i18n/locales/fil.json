@@ -101,7 +101,22 @@
     "error": "Hindi ma-reach ang server. Subukan ulit sa sandaling ito.",
     "q1": "Palawan under ₱3k",
     "q2": "5 gabi sa Siargao",
-    "q3": "Pet-friendly cabin sa Baguio"
+    "q3": "Pet-friendly cabin sa Baguio",
+    "voice": {
+      "search":         "Binubuksan ang pahina ng paghahanap.",
+      "membership":     "Binubuksan ang pahina ng membership.",
+      "host":           "Dinadala ka sa pahina ng host.",
+      "support":        "Binubuksan ang pahina ng suporta.",
+      "home":           "Bumabalik sa home page.",
+      "auth":           "Binubuksan ang pahina ng pag-sign in.",
+      "bookings":       "Binubuksan ang iyong dashboard ng mga booking.",
+      "confirmBooking": "Pumunta sa Host dashboard para kumpirmahin o tanggihan ang mga booking.",
+      "rateGuest":      "Maaari mong i-rate ang isang bisita mula sa iyong dashboard pagkatapos ng kanilang pamamalagi.",
+      "filters":        "Pumunta sa paghahanap — i-tap ang Filters para salain ayon sa presyo, kwarto, at amenities.",
+      "instantBook":    "Binubuksan ang paghahanap — i-filter sa pamamagitan ng Instant Book o Owner Direct sa Filters panel.",
+      "ratings":        "I-browse ang paghahanap at gamitin ang Sort by Highest Rated para makita ang pinakamahusay na lugar.",
+      "langSwitch":     "Lumipat sa {{language}}."
+    }
   },
   "membership": {
     "heading": "Membership",
