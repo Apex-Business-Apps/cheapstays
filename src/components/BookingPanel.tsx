@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { CalendarDays, ChevronDown, Loader2, Users, Zap, CheckCircle2 } from "lucide-react";
+import { CalendarDays, ChevronDown, CreditCard, Loader2, Smartphone, Users, Wallet, Zap, CheckCircle2 } from "lucide-react";
 import { LegalScrollGate } from "@/components/LegalScrollGate";
 import { legalDocs } from "@/pages/legal/content";
 import { isMember } from "@/lib/rbac";
@@ -27,6 +27,9 @@ type BookedInterval = { start: Date; end: Date };
 
 type Props = { listing: Listing };
 
+type Step = "form" | "pay" | "done";
+type PayMethod = "gcash" | "maya" | "card";
+
 const SERVICE_FEE_RATE = 0.05;
 
 function djb2(str: string): string {
@@ -40,6 +43,12 @@ function djb2(str: string): string {
 const RENTER_RULES = legalDocs["renter-rules"];
 const RENTER_RULES_HASH = djb2(RENTER_RULES.markdown);
 
+const PAYMENT_METHODS: { id: PayMethod; label: string; Icon: React.ElementType; description: string }[] = [
+  { id: "gcash", label: "GCash", Icon: Smartphone, description: "Pay via GCash e-wallet" },
+  { id: "maya", label: "Maya", Icon: Wallet, description: "Pay via Maya (PayMaya)" },
+  { id: "card", label: "Credit / Debit card", Icon: CreditCard, description: "Visa, Mastercard, JCB" },
+];
+
 export function BookingPanel({ listing }: Props) {
   const { user, roles } = useAuth();
   const navigate = useNavigate();
@@ -50,7 +59,10 @@ export function BookingPanel({ listing }: Props) {
   const [message, setMessage] = useState("");
   const [bookedDates, setBookedDates] = useState<BookedInterval[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
+  const [step, setStep] = useState<Step>("form");
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [payMethod, setPayMethod] = useState<PayMethod>("gcash");
+  const [paying, setPaying] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
   const [showLegalGate, setShowLegalGate] = useState(false);
 
@@ -107,7 +119,7 @@ export function BookingPanel({ listing }: Props) {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.functions.invoke("book-listing", {
+      const { data, error } = await supabase.functions.invoke("book-listing", {
         body: {
           listing_id: listing.id,
           check_in: format(range.from, "yyyy-MM-dd"),
@@ -117,7 +129,12 @@ export function BookingPanel({ listing }: Props) {
         },
       });
       if (error) throw error;
-      setConfirmed(true);
+      setBookingId(data.booking_id);
+      if (data.status === "confirmed") {
+        setStep("pay");
+      } else {
+        setStep("done");
+      }
     } catch (err) {
       toast({ title: "Booking failed", description: (err as Error).message, variant: "destructive" });
     } finally {
@@ -125,7 +142,74 @@ export function BookingPanel({ listing }: Props) {
     }
   }
 
-  if (confirmed) {
+  async function pay() {
+    if (!bookingId) return;
+    setPaying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("booking-checkout", {
+        body: { booking_id: bookingId, payment_method: payMethod },
+      });
+      if (error) throw error;
+      if (data?.checkout_url) {
+        window.location.href = data.checkout_url as string;
+        return;
+      }
+      // Payment not configured — booking is still valid, just pay at check-in
+      toast({ title: "Online payment unavailable", description: "Your booking is confirmed. You can pay at check-in." });
+      setStep("done");
+    } catch (err) {
+      toast({ title: "Payment error", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  if (step === "pay") {
+    return (
+      <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-5">
+        <div className="text-center space-y-1">
+          <CheckCircle2 className="h-8 w-8 text-primary mx-auto" />
+          <p className="font-semibold text-lg">Booking confirmed!</p>
+          <p className="text-sm text-muted-foreground">Choose how you'd like to pay to secure your stay.</p>
+        </div>
+
+        <div className="space-y-2">
+          {PAYMENT_METHODS.map(({ id, label, Icon, description }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setPayMethod(id)}
+              className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
+                payMethod === id
+                  ? "border-primary bg-primary/5"
+                  : "border-border/60 hover:border-primary/40"
+              }`}
+            >
+              <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">{label}</p>
+                <p className="text-xs text-muted-foreground">{description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <Button className="w-full" onClick={pay} disabled={paying}>
+          {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : `Pay with ${PAYMENT_METHODS.find((m) => m.id === payMethod)?.label}`}
+        </Button>
+
+        <button
+          type="button"
+          onClick={() => setStep("done")}
+          className="w-full text-xs text-center text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Skip — I'll pay at check-in
+        </button>
+      </div>
+    );
+  }
+
+  if (step === "done") {
     return (
       <div className="rounded-2xl border border-border/60 bg-card p-6 text-center space-y-4">
         <CheckCircle2 className="h-10 w-10 text-primary mx-auto" />

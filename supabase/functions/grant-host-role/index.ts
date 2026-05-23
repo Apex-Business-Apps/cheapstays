@@ -1,3 +1,6 @@
+// DEPRECATED: Host role assignment is now handled by approve-host-application.
+// This function is retained for backwards-compatibility with older admin tooling
+// but should not be called directly. Use the host-application workflow instead.
 import { z } from "npm:zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";

@@ -50,9 +50,7 @@ export function usePushNotifications() {
       });
 
       const json = sub.toJSON();
-      // push_subscriptions is a new table not in generated types – cast required
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from("push_subscriptions").upsert(
+      await supabase.from("push_subscriptions").upsert(
         {
           user_id: user.id,
           endpoint: json.endpoint!,
@@ -74,8 +72,7 @@ export function usePushNotifications() {
     if (!reg) return;
     const sub = await reg.pushManager.getSubscription();
     if (!sub) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+    await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
     await sub.unsubscribe();
     setIsSubscribed(false);
   }, [reg]);

@@ -14,7 +14,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { aiSearchSchema } from "@/lib/schemas";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Zap, Users, BedDouble, Star, SlidersHorizontal, X, Lock } from "lucide-react";
+import { ExternalLink, Loader2, Sparkles, Zap, Users, BedDouble, Star, SlidersHorizontal, X, Lock } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,6 +41,20 @@ type Listing = {
   review_count: number;
   why_its_a_deal: string;
   score: number;
+};
+
+type AgodaResult = {
+  id: string;
+  title: string;
+  city: string;
+  star_rating: number;
+  review_score: number;
+  review_count: number;
+  nightly_php: number;
+  image_url: string;
+  booking_url: string;
+  is_partner: true;
+  source: "agoda";
 };
 
 type SortKey = "score" | "price_asc" | "price_desc" | "rating" | "newest";
@@ -237,6 +251,7 @@ export default function Search() {
   const [sort, setSort] = useState<SortKey>("score");
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [agodaResults, setAgodaResults] = useState<AgodaResult[]>([]);
   const [browseListings, setBrowseListings] = useState<Listing[]>([]);
   const [browseLoading, setBrowseLoading] = useState(false);
   const [browseError, setBrowseError] = useState<string | null>(null);
@@ -326,6 +341,7 @@ export default function Search() {
     }
     setLoading(true);
     setSearched(false);
+    setAgodaResults([]);
     try {
       const { data, error } = await supabase.functions.invoke("ai-search", { body: { query: q } });
       if (error) throw error;
@@ -338,6 +354,13 @@ export default function Search() {
         incrementDailySearchCount();
         setDailyCount(getDailySearchCount());
       }
+      // Fire-and-forget Agoda partner results (non-blocking)
+      supabase.functions.invoke("agoda-search", { body: { query: q } })
+        .then(({ data: agodaData }) => {
+          const partners: AgodaResult[] = agodaData?.results ?? [];
+          setAgodaResults(partners);
+        })
+        .catch(() => { /* Agoda unavailable — silently skip */ });
     } catch (err) {
       toast({ title: "Search failed", description: (err as Error).message, variant: "destructive" });
     } finally {
@@ -572,6 +595,63 @@ export default function Search() {
         {!loading && filtered.length > 0 && (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((r) => <ListingCard key={r.id} listing={r} guestRating={hostRatings.get(r.host_id)} />)}
+          </div>
+        )}
+
+        {!loading && searched && agodaResults.length > 0 && (
+          <div className="mt-10">
+            <div className="flex items-center gap-2 mb-4">
+              <h2 className="text-lg font-medium">Partner hotels</h2>
+              <Badge variant="outline" className="text-[10px]">via Agoda</Badge>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {agodaResults.map((h) => (
+                <a
+                  key={h.id}
+                  href={h.booking_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block rounded-2xl border border-border/60 bg-card hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden"
+                >
+                  <div className="h-44 bg-gradient-to-br from-secondary/60 to-accent/10 flex items-center justify-center relative overflow-hidden">
+                    {h.image_url ? (
+                      <img src={h.image_url} alt={h.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" loading="lazy" />
+                    ) : (
+                      <span className="text-4xl opacity-20 select-none">🏨</span>
+                    )}
+                    <Badge variant="secondary" className="absolute top-3 right-3 text-[10px]">Partner</Badge>
+                  </div>
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors">{h.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{h.city}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-semibold text-sm">₱{h.nightly_php.toLocaleString()}</p>
+                        <p className="text-[10px] text-muted-foreground">/ night</p>
+                      </div>
+                    </div>
+                    {(h.review_score > 0 || h.star_rating > 0) && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {h.star_rating > 0 && <span>{"★".repeat(Math.round(h.star_rating))}</span>}
+                        {h.review_score > 0 && (
+                          <span className="flex items-center gap-0.5">
+                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                            {h.review_score.toFixed(1)}
+                            {h.review_count > 0 && <span className="ml-0.5">({h.review_count})</span>}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground pt-1">
+                      <ExternalLink className="h-3 w-3" />
+                      <span>Book on Agoda</span>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
           </div>
         )}
 
