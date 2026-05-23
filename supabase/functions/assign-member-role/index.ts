@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   try {
     // --- Rate limit ---
     const ip = req.headers.get("x-forwarded-for") ?? "anon";
-    const rl = rateLimit(`assign-member-role:${ip}`, 10, 60_000);
+    const rl = await rateLimit(`assign-member-role:${ip}`, 10, 60_000);
     if (!rl.ok) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
         status: 429,

@@ -1,5 +1,6 @@
 import { z } from "npm:zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import Stripe from "npm:stripe@14.21.0";
 import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { buildRefundWindow, isProviderAllowed, validatePaymentMethod } from "../_shared/payments.ts";
@@ -26,7 +27,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const rl = rateLimit(`payment-intent:${req.headers.get("x-forwarded-for") ?? "anon"}`, 5, 60_000);
+    const rl = await rateLimit(`payment-intent:${req.headers.get("x-forwarded-for") ?? "anon"}`, 5, 60_000);
     if (!rl.ok) return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const authHeader = req.headers.get("Authorization");
@@ -54,8 +55,36 @@ Deno.serve(async (req) => {
     const refundWindow = buildRefundWindow(booking.check_in);
 
     if (provider === "stripe") {
-      await adminClient.from("bookings").update({ payment_provider: "stripe", payment_method, payment_state: "intent_created", payment_status: "pending", refundable_until: refundWindow.refundable_until, payout_release_on: refundWindow.payout_release_on }).eq("id", booking_id);
-      return new Response(JSON.stringify({ provider: "stripe", action: "intent_created", message: "Stripe adapter enabled; complete integration with STRIPE_SECRET_KEY" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!stripeKey) {
+        return new Response(JSON.stringify({ error: "Stripe not configured" }), {
+          status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const stripeClient = new Stripe(stripeKey, {
+        apiVersion: "2024-06-20",
+        httpClient: Stripe.createFetchHttpClient(),
+      });
+      const pi = await stripeClient.paymentIntents.create({
+        amount: Math.round(Number(booking.total_php) * 100), // PHP centavos
+        currency: "php",
+        automatic_payment_methods: { enabled: true },
+        description: `CheapStays booking: ${listing?.title ?? "property"} (${booking.check_in} to ${booking.check_out})`,
+        metadata: { booking_id },
+      });
+      await adminClient.from("bookings").update({
+        payment_provider: "stripe",
+        stripe_payment_intent_id: pi.id,
+        payment_method,
+        payment_state: "intent_created",
+        payment_status: "pending",
+        refundable_until: refundWindow.refundable_until,
+        payout_release_on: refundWindow.payout_release_on,
+      }).eq("id", booking_id);
+      return new Response(
+        JSON.stringify({ payment_intent_id: pi.id, client_secret: pi.client_secret, provider: "stripe", refund_window: refundWindow }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const paymongoKey = Deno.env.get("PAYMONGO_SECRET_KEY");

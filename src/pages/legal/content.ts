@@ -19,7 +19,7 @@ export type LegalDocMeta = {
 export const LEGAL_CONTACT_EMAIL = "cheapstays.me@gmail.com";
 
 export const legalDocs: Record<string, LegalDocMeta> = {
-  support: { title: "Support", path: "/support", version: "v1.0", publishedOn: "2026-05-22", markdown: supportDoc },
+  support: { title: "Support", path: "/support-policy", version: "v1.0", publishedOn: "2026-05-22", markdown: supportDoc },
   privacy: { title: "Privacy Policy", path: "/privacy", version: "v1.0", publishedOn: "2026-05-22", markdown: privacyDoc },
   terms: { title: "Terms of Service", path: "/terms", version: "v1.0", publishedOn: "2026-05-22", markdown: termsDoc },
   "host-terms": { title: "Host Terms", path: "/host-terms", version: "v1.0", publishedOn: "2026-05-22", markdown: hostTermsDoc },

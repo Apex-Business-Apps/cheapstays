@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
 
   try {
     const ip = req.headers.get("x-forwarded-for") ?? "anon";
-    const rl = rateLimit(`ai-chat:${ip}`, 40, 60_000);
+    const rl = await rateLimit(`ai-chat:${ip}`, 40, 60_000);
     if (!rl.ok) {
       return new Response(JSON.stringify({ error: "Slow down a bit." }), {
         status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
