@@ -34,7 +34,7 @@ type SupportTicket = {
   priority: string; category: string; escalated: boolean; created_at: string;
 };
 type TicketMessage = { id: string; sender: string; content: string; created_at: string };
-type TicketStatus  = "open" | "pending" | "in_progress" | "resolved" | "closed";
+type TicketStatus  = "open" | "pending" | "resolved" | "closed" | "escalated";
 type UserRoleRow   = { id: string; user_id: string; role: AppRole };
 type ProfileRow    = { user_id: string; display_name: string | null };
 type AuditRow      = {
@@ -62,7 +62,7 @@ const PRIORITY_VARIANT: Record<string, "default" | "secondary" | "destructive" |
   low:    "outline",
 };
 
-const TICKET_STATUSES: TicketStatus[] = ["open", "pending", "in_progress", "resolved", "closed"];
+const TICKET_STATUSES: TicketStatus[] = ["open", "pending", "resolved", "closed", "escalated"];
 
 const SENDER_LABEL: Record<string, string> = {
   user:   "User",
