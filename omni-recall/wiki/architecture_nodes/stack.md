@@ -28,7 +28,7 @@ in-app (always if enabled) → push (VAPID, high-value events) → email (Resend
 
 ## Payment Architecture
 
-- PayMongo default; Stripe gated behind `ENABLE_UNAPPROVED_PROVIDERS=true`
+- PayMongo default; Stripe gated behind `ENABLE_UNAPPROVED_PROVIDERS=true` — see [[stripe-byok-gated]] (decisions)
 - Refund window: -2d from check-in
 - Payout release: +1d from check-in
 - Blocked methods: prepaid, gift, anonymous_reloadable
