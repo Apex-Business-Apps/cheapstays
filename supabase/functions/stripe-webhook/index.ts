@@ -7,6 +7,38 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
   httpClient: Stripe.createFetchHttpClient(),
 });
 
+// Booking state-machine: define which (payment_status, status) pairs allow
+// each incoming event to mutate the booking. Prevents replayed or out-of-order
+// events from corrupting already-settled bookings.
+type BookingRow = {
+  id: string;
+  status: string;
+  payment_status: string;
+  payment_state: string | null;
+};
+
+function isTransitionAllowed(event: string, booking: BookingRow): boolean {
+  const { payment_status, status } = booking;
+  switch (event) {
+    case "payment_intent.succeeded":
+      // Only apply if not already paid or cancelled.
+      return payment_status !== "paid" && status !== "cancelled";
+    case "payment_intent.payment_failed":
+    case "payment_intent.canceled":
+      // Only apply if payment has not already succeeded or been refunded.
+      return payment_status !== "paid" && payment_status !== "refunded";
+    case "charge.captured":
+      return payment_status !== "paid";
+    case "charge.refunded":
+      // Only refund a booking that was paid.
+      return payment_status === "paid";
+    case "charge.expired":
+      return payment_status !== "paid" && payment_status !== "refunded";
+    default:
+      return true;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") {
@@ -41,25 +73,50 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  async function findBookingId(piId?: string, metadataBookingId?: string): Promise<string | null> {
-    if (metadataBookingId) return metadataBookingId;
+  // ── Idempotency check ────────────────────────────────────────────────────────
+  // Stripe retries events on 5xx or timeout. We record every processed event_id
+  // so duplicate deliveries are acknowledged but not re-applied.
+  const { data: existing } = await admin
+    .from("webhook_events")
+    .select("id")
+    .eq("provider", "stripe")
+    .eq("event_id", event.id)
+    .maybeSingle();
+
+  if (existing) {
+    return new Response(
+      JSON.stringify({ received: true, skipped: "duplicate event", event_id: event.id }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  // ── Resolve booking ──────────────────────────────────────────────────────────
+  async function findBooking(piId?: string, metadataBookingId?: string): Promise<BookingRow | null> {
+    if (metadataBookingId) {
+      const { data } = await admin
+        .from("bookings")
+        .select("id,status,payment_status,payment_state")
+        .eq("id", metadataBookingId)
+        .maybeSingle();
+      return data ?? null;
+    }
     if (!piId) return null;
     const { data } = await admin
       .from("bookings")
-      .select("id")
+      .select("id,status,payment_status,payment_state")
       .eq("stripe_payment_intent_id", piId)
       .maybeSingle();
-    return data?.id ?? null;
+    return data ?? null;
   }
 
   const updates: Record<string, unknown> = {};
-  let bookingId: string | null = null;
+  let booking: BookingRow | null = null;
 
   try {
     switch (event.type) {
       case "payment_intent.succeeded": {
         const pi = event.data.object as Stripe.PaymentIntent;
-        bookingId = await findBookingId(pi.id, pi.metadata?.booking_id);
+        booking = await findBooking(pi.id, pi.metadata?.booking_id);
         Object.assign(updates, {
           payment_status: "paid",
           payment_state: "captured",
@@ -72,19 +129,19 @@ Deno.serve(async (req) => {
       }
       case "payment_intent.payment_failed": {
         const pi = event.data.object as Stripe.PaymentIntent;
-        bookingId = await findBookingId(pi.id, pi.metadata?.booking_id);
+        booking = await findBooking(pi.id, pi.metadata?.booking_id);
         Object.assign(updates, { payment_status: "failed", payment_state: "failed" });
         break;
       }
       case "payment_intent.canceled": {
         const pi = event.data.object as Stripe.PaymentIntent;
-        bookingId = await findBookingId(pi.id, pi.metadata?.booking_id);
+        booking = await findBooking(pi.id, pi.metadata?.booking_id);
         Object.assign(updates, { payment_status: "failed", payment_state: "cancelled" });
         break;
       }
       case "charge.refunded": {
         const ch = event.data.object as Stripe.Charge;
-        bookingId = await findBookingId(
+        booking = await findBooking(
           typeof ch.payment_intent === "string" ? ch.payment_intent : undefined,
           ch.metadata?.booking_id,
         );
@@ -93,7 +150,7 @@ Deno.serve(async (req) => {
       }
       case "charge.captured": {
         const ch = event.data.object as Stripe.Charge;
-        bookingId = await findBookingId(
+        booking = await findBooking(
           typeof ch.payment_intent === "string" ? ch.payment_intent : undefined,
           ch.metadata?.booking_id,
         );
@@ -102,7 +159,7 @@ Deno.serve(async (req) => {
       }
       case "charge.expired": {
         const ch = event.data.object as Stripe.Charge;
-        bookingId = await findBookingId(
+        booking = await findBooking(
           typeof ch.payment_intent === "string" ? ch.payment_intent : undefined,
           ch.metadata?.booking_id,
         );
@@ -116,18 +173,56 @@ Deno.serve(async (req) => {
         );
     }
 
-    if (!bookingId) {
+    if (!booking) {
+      // Still record so we don't process this unknown event repeatedly.
+      await admin.from("webhook_events").insert({
+        provider: "stripe",
+        event_id: event.id,
+        event_type: event.type,
+        booking_id: null,
+      });
       return new Response(
-        JSON.stringify({ received: true, skipped: "booking not resolved" }),
+        JSON.stringify({ received: true, skipped: "booking not resolved", event_id: event.id }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const { error } = await admin.from("bookings").update(updates).eq("id", bookingId);
-    if (error) throw error;
+    // ── State-machine guard ───────────────────────────────────────────────────
+    if (!isTransitionAllowed(event.type, booking)) {
+      await admin.from("webhook_events").insert({
+        provider: "stripe",
+        event_id: event.id,
+        event_type: event.type,
+        booking_id: booking.id,
+      });
+      return new Response(
+        JSON.stringify({
+          received: true,
+          skipped: "transition not allowed",
+          current_state: { status: booking.status, payment_status: booking.payment_status },
+          event_type: event.type,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // ── Apply update ─────────────────────────────────────────────────────────
+    const { error: updateErr } = await admin
+      .from("bookings")
+      .update(updates)
+      .eq("id", booking.id);
+    if (updateErr) throw updateErr;
+
+    // ── Record as processed (after successful update) ─────────────────────────
+    await admin.from("webhook_events").insert({
+      provider: "stripe",
+      event_id: event.id,
+      event_type: event.type,
+      booking_id: booking.id,
+    });
 
     return new Response(
-      JSON.stringify({ received: true, booking_id: bookingId, type: event.type }),
+      JSON.stringify({ received: true, booking_id: booking.id, type: event.type }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
