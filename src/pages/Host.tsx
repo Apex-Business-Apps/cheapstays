@@ -419,7 +419,7 @@ export default function Host() {
         host_id: user.id,
         title: title.trim(),
         description: form.description.trim(),
-        type: form.type,
+        type: form.type as "entire_place" | "glamping" | "private_room" | "resort" | "shared_room" | "villa",
         city: form.city.trim(),
         province: form.province.trim(),
         address: form.address.trim() || null,
