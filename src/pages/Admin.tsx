@@ -275,17 +275,24 @@ export default function Admin() {
     }
   };
 
-  const grantHostRole = async (ticketId: string, targetUserId: string) => {
+  const grantHostRole = async (ticketId: string) => {
     setGrantingHost(ticketId);
     try {
-      const { error } = await supabase.functions.invoke("grant-host-role", {
-        body: { target_user_id: targetUserId, operation: "grant", reason_code: "host-verified-via-support-ticket" },
+      const { data, error } = await supabase.functions.invoke("approve-host-via-ticket", {
+        body: { ticket_id: ticketId },
       });
-      if (error) throw error;
-      await updateTicketStatus(ticketId, "resolved");
-      toast.success("Host role granted and ticket resolved.");
+      if (error) {
+        let msg = error.message;
+        try {
+          const body = await (error as { context?: Response }).context?.json() as { error?: string } | undefined;
+          if (body?.error) msg = body.error;
+        } catch { /* ignore */ }
+        throw new Error(msg);
+      }
+      setTickets((prev) => prev.map((t) => t.id === ticketId ? { ...t, status: "resolved" } : t));
+      toast.success(data?.already_host ? "User already a host — ticket resolved." : "Host approved and ticket resolved.");
     } catch (err) {
-      toast.error(`Failed to grant host role: ${(err as Error).message}`);
+      toast.error(`Approval failed: ${(err as Error).message}`);
     } finally {
       setGrantingHost(null);
     }
@@ -409,7 +416,7 @@ export default function Admin() {
                           <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => updateTicketStatus(t.id, "closed")} disabled={busy}>
                             Dismiss
                           </Button>
-                          <Button size="sm" className="h-8 text-xs" onClick={() => grantHostRole(t.id, t.user_id)} disabled={grantingHost === t.id}>
+                          <Button size="sm" className="h-8 text-xs" onClick={() => grantHostRole(t.id)} disabled={grantingHost === t.id}>
                             {grantingHost === t.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
                             Approve as Host
                           </Button>
@@ -588,7 +595,7 @@ export default function Admin() {
                               <span className="text-xs text-muted-foreground flex-1">This is a host verification request.</span>
                               <Button size="sm" className="h-8 text-xs shrink-0"
                                 disabled={grantingHost === t.id}
-                                onClick={() => grantHostRole(t.id, t.user_id)}>
+                                onClick={() => grantHostRole(t.id)}>
                                 {grantingHost === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve as Host"}
                               </Button>
                             </div>
