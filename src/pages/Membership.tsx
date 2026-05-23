@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,44 +19,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { Check, Loader2, CreditCard } from "lucide-react";
 import { Seo } from "@/components/Seo";
 
-const tiers = [
-  {
-    name: "Libre",
-    price: "₱0",
-    blurb: "Hunt PH deals casually.",
-    features: [
-      "AI search (5 searches/day)",
-      "Public PH listings",
-      "Weekly peso drop email",
-    ],
-    highlight: false,
-  },
-  {
-    name: "Member",
-    price: "₱249",
-    period: "/month",
-    blurb: "Every PH deal, the moment it lands.",
-    features: [
-      "Unlimited AI search",
-      "Real-time peso alerts",
-      "Owner-direct host contacts",
-      "Hidden island inventory",
-      "Priority Pip support",
-    ],
-    highlight: true,
-  },
-];
-
-const featureMatrix = [
-  { feature: "AI-powered deal search", libre: "5/day", member: "Unlimited" },
-  { feature: "Public listings", libre: true, member: true },
-  { feature: "Owner-direct contacts", libre: false, member: true },
-  { feature: "Real-time price alerts", libre: false, member: true },
-  { feature: "Hidden island inventory", libre: false, member: true },
-  { feature: "Weekly peso drop email", libre: true, member: true },
-  { feature: "Priority Pip support", libre: false, member: true },
-  { feature: "GCash / Maya payments", libre: true, member: true },
-  { feature: "Instant booking access", libre: false, member: true },
+const FEATURE_MATRIX: { key: string; libre: boolean | "per_day"; member: boolean | "unlimited" }[] = [
+  { key: "ai_search",        libre: "per_day",  member: "unlimited" },
+  { key: "public_listings",  libre: true,       member: true },
+  { key: "owner_contacts",   libre: false,      member: true },
+  { key: "price_alerts",     libre: false,      member: true },
+  { key: "hidden_inventory", libre: false,      member: true },
+  { key: "weekly_email",     libre: true,       member: true },
+  { key: "pip_support",      libre: false,      member: true },
+  { key: "gcash_maya",       libre: true,       member: true },
+  { key: "instant_booking",  libre: false,      member: true },
 ];
 
 const testimonials = [
@@ -81,15 +54,13 @@ type PaymentMethod = "gcash" | "maya" | "card" | null;
 export default function Membership() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [payDialogOpen, setPayDialogOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null);
   const [paying, setPaying] = useState(false);
 
   function handleGoMember() {
-    if (!user) {
-      navigate("/auth?mode=signup");
-      return;
-    }
+    if (!user) { navigate("/auth?mode=signup"); return; }
     setPayDialogOpen(true);
   }
 
@@ -112,7 +83,6 @@ export default function Membership() {
         window.location.href = data.checkout_url;
         return;
       }
-
       toast({
         title: "Membership payment unavailable",
         description: "Host support at cheapstays.me@gmail.com while we finish membership checkout setup.",
@@ -131,9 +101,9 @@ export default function Membership() {
   }
 
   const pmOptions: { id: PaymentMethod; label: string; hint: string }[] = [
-    { id: "gcash", label: "GCash", hint: "Most popular in PH" },
-    { id: "maya", label: "Maya", hint: "Instant transfer" },
-    { id: "card", label: "Credit / Debit card", hint: "Visa, Mastercard, JCB" },
+    { id: "gcash", label: "GCash",                    hint: t("membership.gcash_hint") },
+    { id: "maya",  label: "Maya",                     hint: t("membership.maya_hint") },
+    { id: "card",  label: t("membership.card_label"), hint: t("membership.card_hint") },
   ];
 
   return (
@@ -146,97 +116,93 @@ export default function Membership() {
       <div className="container py-16">
         {/* Header */}
         <div className="max-w-2xl">
-          <h1 className="text-4xl font-semibold tracking-tight">Membership</h1>
-          <p className="mt-3 text-muted-foreground">
-            One tier. Everything unlocked. Cancel anytime.
-          </p>
+          <h1 className="text-4xl font-semibold tracking-tight">{t("membership.heading")}</h1>
+          <p className="mt-3 text-muted-foreground">{t("membership.subheading")}</p>
         </div>
 
         {/* Tier cards */}
         <div className="mt-10 grid gap-4 md:grid-cols-2 max-w-3xl">
-          {tiers.map((t) => (
-            <Card
-              key={t.name}
-              className={`p-6 flex flex-col ${
-                t.highlight ? "border-accent ring-1 ring-accent" : ""
-              }`}
-            >
-              {t.highlight && (
-                <Badge className="self-start mb-3 bg-accent text-accent-foreground">
-                  Best value
-                </Badge>
-              )}
-              <h3 className="text-xl font-medium">{t.name}</h3>
-              <p className="text-3xl font-semibold mt-2">
-                {t.price}
-                {t.period && (
-                  <span className="text-base font-normal text-muted-foreground">
-                    {t.period}
-                  </span>
-                )}
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">{t.blurb}</p>
-              <ul className="mt-4 space-y-2 text-sm flex-1">
-                {t.features.map((f) => (
-                  <li key={f} className="flex gap-2">
-                    <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Button
-                className="w-full mt-6"
-                variant={t.highlight ? "default" : "outline"}
-                onClick={t.highlight ? handleGoMember : handleStayFree}
-              >
-                {t.highlight ? "Go member" : "Stay free"}
-              </Button>
-            </Card>
-          ))}
+          {/* Libre */}
+          <Card className="p-6 flex flex-col">
+            <h3 className="text-xl font-medium">{t("membership.col_libre")}</h3>
+            <p className="text-3xl font-semibold mt-2">₱0</p>
+            <p className="mt-2 text-sm text-muted-foreground">{t("membership.tier_libre_blurb")}</p>
+            <ul className="mt-4 space-y-2 text-sm flex-1">
+              {["AI search (5 searches/day)", "Public PH listings", "Weekly peso drop email"].map((f) => (
+                <li key={f} className="flex gap-2">
+                  <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Button className="w-full mt-6" variant="outline" onClick={handleStayFree}>
+              {t("membership.tier_libre_cta")}
+            </Button>
+          </Card>
+
+          {/* Member */}
+          <Card className="p-6 flex flex-col border-accent ring-1 ring-accent">
+            <Badge className="self-start mb-3 bg-accent text-accent-foreground">
+              {t("membership.tier_badge")}
+            </Badge>
+            <h3 className="text-xl font-medium">{t("membership.col_member")}</h3>
+            <p className="text-3xl font-semibold mt-2">
+              ₱249
+              <span className="text-base font-normal text-muted-foreground">{t("membership.period")}</span>
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">{t("membership.tier_member_blurb")}</p>
+            <ul className="mt-4 space-y-2 text-sm flex-1">
+              {["Unlimited AI search", "Real-time peso alerts", "Owner-direct host contacts", "Hidden island inventory", "Priority Pip support"].map((f) => (
+                <li key={f} className="flex gap-2">
+                  <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Button className="w-full mt-6" onClick={handleGoMember}>
+              {t("membership.tier_member_cta")}
+            </Button>
+          </Card>
         </div>
 
         <p className="mt-4 text-xs text-muted-foreground max-w-3xl">
-          Billed monthly in Philippine pesos. Pay via GCash, Maya, or card. Cancel anytime from your account settings.
+          {t("membership.billing_note")}
         </p>
 
         <Separator className="my-12 max-w-4xl" />
 
         {/* Feature comparison table */}
         <div className="max-w-3xl">
-          <h2 className="text-2xl font-semibold mb-6">What you get</h2>
+          <h2 className="text-2xl font-semibold mb-6">{t("membership.what_you_get")}</h2>
           <div className="rounded-lg border overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/50">
                   <th className="text-left px-4 py-3 font-medium">Feature</th>
-                  <th className="text-center px-4 py-3 font-medium">Libre</th>
-                  <th className="text-center px-4 py-3 font-medium text-primary">Member</th>
+                  <th className="text-center px-4 py-3 font-medium">{t("membership.col_libre")}</th>
+                  <th className="text-center px-4 py-3 font-medium text-primary">{t("membership.col_member")}</th>
                 </tr>
               </thead>
               <tbody>
-                {featureMatrix.map((row, i) => (
-                  <tr key={row.feature} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-                    <td className="px-4 py-2.5">{row.feature}</td>
+                {FEATURE_MATRIX.map((row, i) => (
+                  <tr key={row.key} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                    <td className="px-4 py-2.5">{t(`membership.${row.key}`)}</td>
                     <td className="px-4 py-2.5 text-center">
-                      {typeof row.libre === "boolean" ? (
-                        row.libre ? (
-                          <Check className="h-4 w-4 text-green-600 mx-auto" />
-                        ) : (
-                          <span className="text-muted-foreground">--</span>
-                        )
+                      {row.libre === "per_day" ? (
+                        <span className="text-muted-foreground">{t("membership.per_day")}</span>
+                      ) : row.libre ? (
+                        <Check className="h-4 w-4 text-green-600 mx-auto" />
                       ) : (
-                        <span className="text-muted-foreground">{row.libre}</span>
+                        <span className="text-muted-foreground">--</span>
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-center">
-                      {typeof row.member === "boolean" ? (
-                        row.member ? (
-                          <Check className="h-4 w-4 text-green-600 mx-auto" />
-                        ) : (
-                          <span className="text-muted-foreground">--</span>
-                        )
+                      {row.member === "unlimited" ? (
+                        <span className="font-medium text-primary">{t("membership.unlimited")}</span>
+                      ) : row.member ? (
+                        <Check className="h-4 w-4 text-green-600 mx-auto" />
                       ) : (
-                        <span className="font-medium text-primary">{row.member}</span>
+                        <span className="text-muted-foreground">--</span>
                       )}
                     </td>
                   </tr>
@@ -250,16 +216,14 @@ export default function Membership() {
 
         {/* Testimonials */}
         <div className="max-w-4xl">
-          <h2 className="text-2xl font-semibold mb-6">What Filipino travelers are saying</h2>
+          <h2 className="text-2xl font-semibold mb-6">{t("membership.testimonials_heading")}</h2>
           <div className="grid gap-4 md:grid-cols-3">
-            {testimonials.map((t) => (
-              <Card key={t.name} className="p-5">
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  "{t.quote}"
-                </p>
+            {testimonials.map((tm) => (
+              <Card key={tm.name} className="p-5">
+                <p className="text-sm leading-relaxed text-muted-foreground">"{tm.quote}"</p>
                 <div className="mt-4">
-                  <p className="text-sm font-semibold">{t.name}</p>
-                  <p className="text-xs text-muted-foreground">{t.location}</p>
+                  <p className="text-sm font-semibold">{tm.name}</p>
+                  <p className="text-xs text-muted-foreground">{tm.location}</p>
                 </div>
               </Card>
             ))}
@@ -271,25 +235,21 @@ export default function Membership() {
       <Dialog open={payDialogOpen} onOpenChange={(open) => !open && setPayDialogOpen(false)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Upgrade to Member</DialogTitle>
-            <DialogDescription>
-              Unlock unlimited AI search, owner-direct contacts, and real-time peso alerts.
-            </DialogDescription>
+            <DialogTitle>{t("membership.dialog_title")}</DialogTitle>
+            <DialogDescription>{t("membership.dialog_desc")}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Plan summary */}
             <div className="rounded-md bg-muted p-3 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">Member plan</p>
-                <p className="text-xs text-muted-foreground">Billed monthly</p>
+                <p className="text-sm font-medium">{t("membership.plan_name")}</p>
+                <p className="text-xs text-muted-foreground">{t("membership.plan_billing")}</p>
               </div>
               <p className="text-lg font-semibold">₱249</p>
             </div>
 
-            {/* Payment method */}
             <div className="space-y-2">
-              <p className="text-sm font-medium">Payment method</p>
+              <p className="text-sm font-medium">{t("membership.payment_method")}</p>
               {pmOptions.map((pm) => (
                 <button
                   key={pm.id}
@@ -312,16 +272,12 @@ export default function Membership() {
           </div>
 
           <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setPayDialogOpen(false)}
-              disabled={paying}
-            >
-              Cancel
+            <Button variant="outline" onClick={() => setPayDialogOpen(false)} disabled={paying}>
+              {t("membership.cancel")}
             </Button>
             <Button onClick={handlePay} disabled={paying || !paymentMethod}>
               {paying && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Pay ₱249
+              {t("membership.pay_cta")}
             </Button>
           </DialogFooter>
         </DialogContent>
