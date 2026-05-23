@@ -310,6 +310,34 @@ export default function Admin() {
 
   const pendingApps  = hostApps.filter((a) => a.status === "pending" || a.status === "manual_review");
 
+  async function grantHostRole(targetUserId: string) {
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("user_roles").upsert({ user_id: targetUserId, role: "host" }, { onConflict: "user_id,role" });
+      if (error) throw error;
+      await fetchAll();
+      toast.success("Host role granted.");
+    } catch (err) {
+      toast.error(`Failed: ${(err as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function revokeHostRole(targetUserId: string) {
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("user_roles").delete().eq("user_id", targetUserId).eq("role", "host");
+      if (error) throw error;
+      await fetchAll();
+      toast.success("Host role revoked.");
+    } catch (err) {
+      toast.error(`Failed: ${(err as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loading) return <div className="container py-20 text-sm text-muted-foreground">Loading…</div>;
   if (!roles.includes("admin")) return (
     <div className="container py-20 max-w-md text-center">
@@ -405,24 +433,37 @@ export default function Admin() {
 
           {/* ── USERS & ROLES ── */}
           <TabsContent value="roles" className="pt-4 space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Role changes are read-only here. Host status is granted only through pending host application approvals.
-            </p>
-            {users.map((u) => (
-              <Card key={u.userId} className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar><AvatarFallback>{u.initials}</AvatarFallback></Avatar>
-                  <div>
-                    <p className="font-medium text-sm">{u.displayName}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{u.userId.slice(0, 12)}…</p>
-                    <div className="flex gap-1 mt-1 flex-wrap">
-                      {u.roles.map((r) => <Badge key={r} variant="secondary" className="text-[10px]">{r}</Badge>)}
+            {users.map((u) => {
+              const isHostAlready = u.roles.includes("host");
+              const isAdminUser   = u.roles.includes("admin");
+              return (
+                <Card key={u.userId} className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-center gap-3">
+                    <Avatar><AvatarFallback>{u.initials}</AvatarFallback></Avatar>
+                    <div>
+                      <p className="font-medium text-sm">{u.displayName}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{u.userId.slice(0, 12)}…</p>
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        {u.roles.map((r) => <Badge key={r} variant={r === "admin" ? "default" : r === "host" ? "secondary" : "outline"} className="text-[10px] capitalize">{r}</Badge>)}
+                      </div>
                     </div>
                   </div>
-                </div>
-
-              </Card>
-            ))}
+                  {!isAdminUser && (
+                    <div className="shrink-0">
+                      {isHostAlready ? (
+                        <Button size="sm" variant="outline" disabled={busy} onClick={() => revokeHostRole(u.userId)}>
+                          Revoke host
+                        </Button>
+                      ) : (
+                        <Button size="sm" disabled={busy} onClick={() => grantHostRole(u.userId)}>
+                          Grant host
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
           </TabsContent>
 
           {/* ── SUPPORT TICKETS ── */}
