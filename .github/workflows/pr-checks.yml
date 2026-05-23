@@ -89,6 +89,8 @@ jobs:
     needs: build
     timeout-minutes: 10
     permissions:
+      contents: read
+      issues: write
       pull-requests: write
     steps:
       - name: Checkout
@@ -118,6 +120,7 @@ jobs:
         uses: actions/github-script@v7
         if: always()
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const body = `### Cloudflare Pages Preview
 
@@ -128,7 +131,7 @@ jobs:
             | Check | Status |
             |---|---|
             | Build | ✅ Passed |
-            | Preview deploy | ${{ steps.deploy.outcome == 'success' && '✅ Deployed' || '❌ Failed (CLOUDFLARE_API_TOKEN may not be set)' }} |
+            | Preview deploy | ${{ steps.deploy.outcome == 'success' && '✅ Deployed' || '❌ Failed (CLOUDFLARE_AGENT_TOKEN may not be set)' }} |
             `;
             github.rest.issues.createComment({
               issue_number: context.issue.number,
