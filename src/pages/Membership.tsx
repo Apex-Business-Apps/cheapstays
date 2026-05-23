@@ -104,39 +104,27 @@ export default function Membership() {
     }
     setPaying(true);
     try {
-      const { data, error } = await supabase.functions.invoke("payment-intent", {
-        body: { booking_id: "membership", payment_method: paymentMethod },
+      const { data, error } = await supabase.functions.invoke("membership-payment-intent", {
+        body: { payment_method: paymentMethod },
       });
       if (error) throw error;
       if (data?.checkout_url) {
         window.location.href = data.checkout_url;
         return;
       }
-      if (data?.demo_mode) {
-        toast({
-          title: "Payment gateway coming soon.",
-          description: "Your account has been upgraded!",
-        });
-        // Assign member role via edge function (service role bypasses RLS)
-        await supabase.functions.invoke("assign-member-role", {
-          body: { role: "member" },
-        });
-        setPayDialogOpen(false);
-        return;
-      }
-      // Fallback: treat any response without checkout_url as demo mode
+
       toast({
-        title: "Payment gateway coming soon.",
-        description: "Your account has been upgraded!",
+        title: "Membership payment unavailable",
+        description: "Host support at cheapstays.me@gmail.com while we finish membership checkout setup.",
+        variant: "destructive",
       });
       setPayDialogOpen(false);
-    } catch (_err) {
-      // Even on error, show demo success (payment intent may not be deployed yet)
+    } catch (err) {
       toast({
-        title: "Payment gateway coming soon.",
-        description: "Your account has been upgraded!",
+        title: "Membership payment unavailable",
+        description: (err as Error).message || "Host support at cheapstays.me@gmail.com while we finish membership checkout setup.",
+        variant: "destructive",
       });
-      setPayDialogOpen(false);
     } finally {
       setPaying(false);
     }

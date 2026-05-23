@@ -1,10 +1,16 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Auth page", () => {
-  test("renders sign-in form", async ({ page }) => {
+  test("default mode is login and mode labels are explicit", async ({ page }) => {
     await page.goto("/auth");
-    await expect(page.locator("input[type='email']")).toBeVisible();
-    await expect(page.locator("input[type='password']")).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Log in$/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Log in with Google" })).toBeVisible();
+  });
+
+  test("signup query mode shows signup-specific labels", async ({ page }) => {
+    await page.goto("/auth?mode=signup");
+    await expect(page.getByRole("button", { name: /^Sign up$/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sign up with Google" })).toBeVisible();
   });
 
   test("Google OAuth button is present and initially enabled", async ({ page }) => {
