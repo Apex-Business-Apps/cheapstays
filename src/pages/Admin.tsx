@@ -276,12 +276,30 @@ export default function Admin() {
   };
 
   const grantHostRole = async (ticketId: string, targetUserId: string) => {
+    if (targetUserId === user?.id) {
+      toast.error("You cannot approve your own application. Have another admin review it.");
+      return;
+    }
     setGrantingHost(ticketId);
     try {
       const { error } = await supabase.functions.invoke("grant-host-role", {
         body: { target_user_id: targetUserId, operation: "grant", reason_code: "host-verified-via-support-ticket" },
       });
-      if (error) throw error;
+      if (error) {
+        // Parse actual error body — Supabase wraps it in FunctionsHttpError
+        let msg = error.message;
+        try {
+          const body = await (error as { context?: Response }).context?.json() as { error?: string } | undefined;
+          if (body?.error) msg = body.error;
+        } catch { /* ignore parse failures */ }
+        // If user is already a host, the ticket is stale — resolve it cleanly
+        if (msg.toLowerCase().includes("already has host role")) {
+          await updateTicketStatus(ticketId, "resolved");
+          toast.success("User already has host status — ticket resolved.");
+          return;
+        }
+        throw new Error(msg);
+      }
       await updateTicketStatus(ticketId, "resolved");
       toast.success("Host role granted and ticket resolved.");
     } catch (err) {
