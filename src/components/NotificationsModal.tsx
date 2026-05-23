@@ -1,4 +1,20 @@
-import { Bell, BellRing, BookCheck, Calendar, CheckCheck, Star } from "lucide-react";
+import {
+  AlertTriangle,
+  Bell,
+  BellRing,
+  BookCheck,
+  Calendar,
+  CheckCheck,
+  CreditCard,
+  FileWarning,
+  Home,
+  Key,
+  MessageSquare,
+  RefreshCw,
+  Siren,
+  Star,
+  Wallet,
+} from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,10 +31,20 @@ import { useAuth } from "@/hooks/useAuth";
 
 function typeIcon(type: string) {
   switch (type) {
-    case "booking_status": return <BookCheck className="h-4 w-4 text-primary shrink-0" />;
-    case "review":         return <Star className="h-4 w-4 text-yellow-500 shrink-0" />;
-    case "calendar":       return <Calendar className="h-4 w-4 text-blue-500 shrink-0" />;
-    default:               return <Bell className="h-4 w-4 text-muted-foreground shrink-0" />;
+    case "booking_status":
+    case "booking_status_changed":  return <BookCheck className="h-4 w-4 text-primary shrink-0" />;
+    case "payment_failed":          return <CreditCard className="h-4 w-4 text-destructive shrink-0" />;
+    case "host_status_approved":    return <Home className="h-4 w-4 text-green-500 shrink-0" />;
+    case "check_in_access_shared":  return <Key className="h-4 w-4 text-blue-500 shrink-0" />;
+    case "refund_processed":        return <RefreshCw className="h-4 w-4 text-cyan-500 shrink-0" />;
+    case "payout_released":         return <Wallet className="h-4 w-4 text-emerald-500 shrink-0" />;
+    case "support_ticket_updated":  return <MessageSquare className="h-4 w-4 text-violet-500 shrink-0" />;
+    case "evidence_requested":      return <FileWarning className="h-4 w-4 text-orange-500 shrink-0" />;
+    case "dispute_status_changed":  return <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />;
+    case "safety_admin_action":     return <Siren className="h-4 w-4 text-destructive shrink-0" />;
+    case "review":                  return <Star className="h-4 w-4 text-yellow-500 shrink-0" />;
+    case "calendar":                return <Calendar className="h-4 w-4 text-blue-500 shrink-0" />;
+    default:                        return <Bell className="h-4 w-4 text-muted-foreground shrink-0" />;
   }
 }
 
@@ -71,18 +97,17 @@ export function NotificationsModal() {
             )}
           </div>
           <div className="flex gap-1 mt-2">
-            <button
-              onClick={() => setFilter("all")}
-              className={`text-xs rounded-full px-3 py-1 transition-colors ${filter === "all" ? "bg-secondary text-secondary-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setFilter("unread")}
-              className={`text-xs rounded-full px-3 py-1 transition-colors ${filter === "unread" ? "bg-secondary text-secondary-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Unread {unreadCount > 0 && <span className="ml-1 text-destructive font-semibold">{unreadCount}</span>}
-            </button>
+            {(["all", "unread"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`text-xs rounded-full px-3 py-1 transition-colors capitalize ${filter === f ? "bg-secondary text-secondary-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {f === "unread" && unreadCount > 0 ? (
+                  <>{f} <span className="ml-1 text-destructive font-semibold">{unreadCount}</span></>
+                ) : f}
+              </button>
+            ))}
           </div>
         </SheetHeader>
 
@@ -133,10 +158,13 @@ export function NotificationsModal() {
 
         {user && (
           <div className="px-4 py-3 border-t border-border/60 text-center">
-            <p className="text-xs text-muted-foreground">
-              Push notifications available on desktop.{" "}
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Desktop only</Badge>
-            </p>
+            <Link
+              to="/notifications"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setOpen(false)}
+            >
+              Manage preferences →
+            </Link>
           </div>
         )}
       </SheetContent>

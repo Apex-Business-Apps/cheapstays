@@ -31,13 +31,10 @@ vi.mock("@/features/admin/HostApplicationReview", () => ({
 }));
 
 function tableResponse(data: unknown[] = []) {
-  const resolved = async () => ({ data, error: null });
-  const terminal = { limit: resolved, range: resolved };
   return {
     select: () => ({
-      order: () => terminal,
-      limit: resolved,
-      range: resolved,
+      order: () => ({ limit: async () => ({ data, error: null }) }),
+      limit: async () => ({ data, error: null }),
     }),
   };
 }

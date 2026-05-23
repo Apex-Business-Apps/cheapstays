@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { HostApplicationReview, type HostApp } from "@/features/admin/HostApplicationReview";
-import { submitHostApplicationDecision, submitDirectHostRoleChange } from "@/features/admin/adminHostApproval.service";
+import { submitHostApplicationDecision } from "@/features/admin/adminHostApproval.service";
 import type { AppRole } from "@/lib/rbac";
 import { Seo } from "@/components/Seo";
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Loader2, MessageSquare } from "lucide-react";
@@ -54,8 +54,6 @@ const PRIORITY_VARIANT: Record<string, "default" | "secondary" | "destructive" |
 };
 
 const TICKET_STATUSES: TicketStatus[] = ["open", "pending", "resolved", "closed", "escalated"];
-
-const PAGE_SIZE = 50;
 
 const SENDER_LABEL: Record<string, string> = {
   user:   "User",
@@ -166,12 +164,6 @@ export default function Admin() {
   const [profiles, setProfiles]           = useState<ProfileRow[]>([]);
   const [hostApps, setHostApps]           = useState<HostApp[]>([]);
   const [auditLog, setAuditLog]           = useState<AuditRow[]>([]);
-  const [ticketsHasMore, setTicketsHasMore]     = useState(false);
-  const [bookingsHasMore, setBookingsHasMore]   = useState(false);
-  const [profilesHasMore, setProfilesHasMore]   = useState(false);
-  const [ticketsLoading, setTicketsLoading]     = useState(false);
-  const [bookingsLoading, setBookingsLoading]   = useState(false);
-  const [profilesLoading, setProfilesLoading]   = useState(false);
   const [userSearch, setUserSearch]       = useState("");
   const [ticketFilter, setTicketFilter]   = useState("all");
   const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
@@ -184,12 +176,12 @@ export default function Admin() {
     const [ticketRes, bookingRes, rolesRes, profilesRes, appsRes, auditRes] = await Promise.all([
       supabase.from("support_tickets")
         .select("id,ticket_num,subject,status,priority,category,escalated,created_at")
-        .order("created_at", { ascending: false }).range(0, PAGE_SIZE - 1),
+        .order("created_at", { ascending: false }).limit(200),
       supabase.from("bookings")
         .select("id,listing_id,guest_id,host_id,check_in,check_out,status,total_php,created_at")
-        .order("check_in", { ascending: false }).range(0, PAGE_SIZE - 1),
+        .order("check_in", { ascending: false }).limit(300),
       supabase.from("user_roles").select("id,user_id,role").order("created_at", { ascending: false }),
-      supabase.from("profiles").select("user_id,display_name").range(0, PAGE_SIZE - 1),
+      supabase.from("profiles").select("user_id,display_name").limit(200),
       supabase.from("host_applications")
         .select("id,user_id,full_legal_name,phone,property_type,city,province,property_description,id_type,id_front_path,selfie_path,status,created_at")
         .order("created_at", { ascending: false }).limit(100),
@@ -202,88 +194,13 @@ export default function Admin() {
       toast.error("Failed to load some admin data.");
     }
 
-    const fetchedTickets  = (ticketRes.data as SupportTicket[]) ?? [];
-    const fetchedBookings = (bookingRes.data as Booking[]) ?? [];
-    const fetchedProfiles = (profilesRes.data as ProfileRow[]) ?? [];
-
-    setTickets(fetchedTickets);
-    setBookings(fetchedBookings);
+    setTickets((ticketRes.data as SupportTicket[]) ?? []);
+    setBookings((bookingRes.data as Booking[]) ?? []);
     setUserRoles((rolesRes.data as UserRoleRow[]) ?? []);
-    setProfiles(fetchedProfiles);
+    setProfiles((profilesRes.data as ProfileRow[]) ?? []);
     setHostApps((appsRes.data as HostApp[]) ?? []);
     setAuditLog((auditRes.data as unknown as AuditRow[]) ?? []);
-    setTicketsHasMore(fetchedTickets.length === PAGE_SIZE);
-    setBookingsHasMore(fetchedBookings.length === PAGE_SIZE);
-    setProfilesHasMore(fetchedProfiles.length === PAGE_SIZE);
   }, []);
-
-  const loadMoreTickets = async () => {
-    setTicketsLoading(true);
-    try {
-      const from = tickets.length;
-      const { data, error } = await supabase
-        .from("support_tickets")
-        .select("id,ticket_num,subject,status,priority,category,escalated,created_at")
-        .order("created_at", { ascending: false })
-        .range(from, from + PAGE_SIZE - 1);
-      if (error) throw error;
-      const newTickets = (data as SupportTicket[]) ?? [];
-      setTickets((prev) => [...prev, ...newTickets]);
-      setTicketsHasMore(newTickets.length === PAGE_SIZE);
-    } catch {
-      toast.error("Could not load more tickets.");
-    } finally {
-      setTicketsLoading(false);
-    }
-  };
-
-  const loadMoreBookings = async () => {
-    setBookingsLoading(true);
-    try {
-      const from = bookings.length;
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("id,listing_id,guest_id,host_id,check_in,check_out,status,total_php,created_at")
-        .order("check_in", { ascending: false })
-        .range(from, from + PAGE_SIZE - 1);
-      if (error) throw error;
-      const newBookings = (data as Booking[]) ?? [];
-      setBookings((prev) => [...prev, ...newBookings]);
-      setBookingsHasMore(newBookings.length === PAGE_SIZE);
-    } catch {
-      toast.error("Could not load more bookings.");
-    } finally {
-      setBookingsLoading(false);
-    }
-  };
-
-  const loadMoreProfiles = async () => {
-    setProfilesLoading(true);
-    try {
-      const from = profiles.length;
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id,display_name")
-        .range(from, from + PAGE_SIZE - 1);
-      if (error) throw error;
-      const newProfiles = (data as ProfileRow[]) ?? [];
-      if (newProfiles.length > 0) {
-        const { data: newRolesData } = await supabase
-          .from("user_roles")
-          .select("id,user_id,role")
-          .in("user_id", newProfiles.map((p) => p.user_id));
-        if (newRolesData) {
-          setUserRoles((prev) => [...prev, ...(newRolesData as UserRoleRow[])]);
-        }
-      }
-      setProfiles((prev) => [...prev, ...newProfiles]);
-      setProfilesHasMore(newProfiles.length === PAGE_SIZE);
-    } catch {
-      toast.error("Could not load more profiles.");
-    } finally {
-      setProfilesLoading(false);
-    }
-  };
 
   useEffect(() => {
     if (!roles.includes("admin")) return;
@@ -393,32 +310,6 @@ export default function Admin() {
 
   const pendingApps  = hostApps.filter((a) => a.status === "pending" || a.status === "manual_review");
 
-  async function grantHostRole(targetUserId: string) {
-    setBusy(true);
-    try {
-      await submitDirectHostRoleChange({ targetUserId, operation: "grant", reasonCode: "admin-direct-grant" });
-      await fetchAll();
-      toast.success("Host role granted.");
-    } catch (err) {
-      toast.error(`Failed: ${(err as Error).message}`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function revokeHostRole(targetUserId: string) {
-    setBusy(true);
-    try {
-      await submitDirectHostRoleChange({ targetUserId, operation: "revoke", reasonCode: "admin-direct-revoke" });
-      await fetchAll();
-      toast.success("Host role revoked.");
-    } catch (err) {
-      toast.error(`Failed: ${(err as Error).message}`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   if (loading) return <div className="container py-20 text-sm text-muted-foreground">Loading…</div>;
   if (!roles.includes("admin")) return (
     <div className="container py-20 max-w-md text-center">
@@ -474,12 +365,6 @@ export default function Admin() {
           {/* ── BOOKINGS CALENDAR ── */}
           <TabsContent value="bookings" className="pt-4">
             <BookingCalendar bookings={bookings} />
-            {bookingsHasMore && (
-              <Button variant="outline" size="sm" onClick={loadMoreBookings} disabled={bookingsLoading} className="w-full mt-4">
-                {bookingsLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Load more
-              </Button>
-            )}
           </TabsContent>
 
           {/* ── USERS LIST ── */}
@@ -516,53 +401,28 @@ export default function Admin() {
                 ))}
               </div>
             )}
-            {profilesHasMore && (
-              <Button variant="outline" size="sm" onClick={loadMoreProfiles} disabled={profilesLoading} className="w-full mt-4">
-                {profilesLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Load more
-              </Button>
-            )}
           </TabsContent>
 
           {/* ── USERS & ROLES ── */}
           <TabsContent value="roles" className="pt-4 space-y-3">
-            {users.map((u) => {
-              const isHostAlready = u.roles.includes("host");
-              const isAdminUser   = u.roles.includes("admin");
-              return (
-                <Card key={u.userId} className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar><AvatarFallback>{u.initials}</AvatarFallback></Avatar>
-                    <div>
-                      <p className="font-medium text-sm">{u.displayName}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{u.userId.slice(0, 12)}…</p>
-                      <div className="flex gap-1 mt-1 flex-wrap">
-                        {u.roles.map((r) => <Badge key={r} variant={r === "admin" ? "default" : r === "host" ? "secondary" : "outline"} className="text-[10px] capitalize">{r}</Badge>)}
-                      </div>
+            <p className="text-sm text-muted-foreground">
+              Role changes are read-only here. Host status is granted only through pending host application approvals.
+            </p>
+            {users.map((u) => (
+              <Card key={u.userId} className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-3">
+                  <Avatar><AvatarFallback>{u.initials}</AvatarFallback></Avatar>
+                  <div>
+                    <p className="font-medium text-sm">{u.displayName}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{u.userId.slice(0, 12)}…</p>
+                    <div className="flex gap-1 mt-1 flex-wrap">
+                      {u.roles.map((r) => <Badge key={r} variant="secondary" className="text-[10px]">{r}</Badge>)}
                     </div>
                   </div>
-                  {!isAdminUser && (
-                    <div className="shrink-0">
-                      {isHostAlready ? (
-                        <Button size="sm" variant="outline" disabled={busy} onClick={() => revokeHostRole(u.userId)}>
-                          Revoke host
-                        </Button>
-                      ) : (
-                        <Button size="sm" disabled={busy} onClick={() => grantHostRole(u.userId)}>
-                          Grant host
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </Card>
-              );
-            })}
-            {profilesHasMore && (
-              <Button variant="outline" size="sm" onClick={loadMoreProfiles} disabled={profilesLoading} className="w-full mt-4">
-                {profilesLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Load more
-              </Button>
-            )}
+                </div>
+
+              </Card>
+            ))}
           </TabsContent>
 
           {/* ── SUPPORT TICKETS ── */}
@@ -668,12 +528,6 @@ export default function Admin() {
                   );
                 })}
               </div>
-            )}
-            {ticketsHasMore && (
-              <Button variant="outline" size="sm" onClick={loadMoreTickets} disabled={ticketsLoading} className="w-full mt-4">
-                {ticketsLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Load more
-              </Button>
             )}
           </TabsContent>
 

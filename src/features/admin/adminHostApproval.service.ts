@@ -8,23 +8,6 @@ export type HostApprovalInput = {
   reason?: string;
 };
 
-export type DirectHostRoleInput = {
-  targetUserId: string;
-  operation: "grant" | "revoke";
-  reasonCode: string;
-};
-
-export async function submitDirectHostRoleChange(input: DirectHostRoleInput) {
-  const { error } = await supabase.functions.invoke("grant-host-role", {
-    body: {
-      target_user_id: input.targetUserId,
-      operation: input.operation,
-      reason_code: input.reasonCode,
-    },
-  });
-  if (error) throw error;
-}
-
 export async function submitHostApplicationDecision(input: HostApprovalInput) {
   if (input.approve) {
     const { error } = await supabase.functions.invoke("approve-host-application", {

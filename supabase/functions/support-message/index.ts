@@ -6,6 +6,7 @@ import { rateLimit } from "../_shared/rate-limit.ts";
 import { AI_PROMPT_VERSION_REGISTRY, buildGuardrailSystemPrompt, detectGuardrailViolation, fallbackGuardrailResponse } from "../_shared/ai-governance.ts";
 import { logAiDecision } from "../_shared/ai-audit.ts";
 import { getUserFromRequest } from "../_shared/auth.ts";
+import { dispatchNotification } from "../_shared/notify.ts";
 
 const BodySchema = z.object({
   ticket_id: z.string().uuid(),
@@ -44,19 +45,17 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, ai_response: fallbackGuardrailResponse() }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // RLS will block if not owner; insert via user-scoped client
     const { error: insErr } = await supabase.from("support_messages").insert({
       ticket_id, sender: "user", author_user_id: user.id, content,
     });
     if (insErr) throw insErr;
 
-    // Decide whether AI should respond again (skip if escalated)
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
     const { data: ticket } = await admin.from("support_tickets")
-      .select("id, subject, escalated, status").eq("id", ticket_id).single();
+      .select("id, ticket_num, subject, escalated, status, user_id").eq("id", ticket_id).single();
 
     let ai_response: string | null = null;
     if (ticket && !ticket.escalated) {
@@ -78,6 +77,18 @@ Deno.serve(async (req) => {
       try {
         ai_response = await groqChat({ messages: msgs, temperature: 0.5 });
         await admin.from("support_messages").insert({ ticket_id, sender: "ai", content: ai_response });
+
+        // Notify the ticket owner that AI replied
+        if (ticket.user_id) {
+          await dispatchNotification(admin, {
+            userId: ticket.user_id,
+            type: "support_ticket_updated",
+            title: `Support reply — Ticket #${ticket.ticket_num}`,
+            body: "There is a new reply on your support ticket.",
+            data: { ticket_id, ticket_num: ticket.ticket_num },
+            url: "/support",
+          });
+        }
       } catch (_) {
         ai_response = null;
       }

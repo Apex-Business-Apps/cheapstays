@@ -83,6 +83,7 @@ export default function Membership() {
         window.location.href = data.checkout_url;
         return;
       }
+
       toast({
         title: "Membership payment unavailable",
         description: "Host support at cheapstays.me@gmail.com while we finish membership checkout setup.",
