@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,9 +12,44 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Seo } from "@/components/Seo";
+import { Loader2, SendHorizonal } from "lucide-react";
 
-type Ticket = { id: string; ticket_num: number; subject: string; status: string; priority: string; escalated: boolean; ai_response: string | null; created_at: string };
+type Ticket = {
+  id: string;
+  ticket_num: number;
+  subject: string;
+  status: string;
+  priority: string;
+  category: string;
+  escalated: boolean;
+  ai_response: string | null;
+  created_at: string;
+};
 type Message = { id: string; sender: string; content: string; created_at: string };
+
+const CATEGORY_LABELS: Record<string, string> = {
+  booking: "Booking",
+  payment_refund: "Payment / Refund",
+  host_verification: "Host Verification",
+  property_condition: "Property Condition",
+  incidentals_damage: "Incidentals / Damage",
+  safety_privacy_surveillance: "Safety / Privacy / Surveillance",
+  account_access: "Account / Access",
+  technical_bug: "Technical Bug",
+};
+
+function TypingIndicator() {
+  return (
+    <div className="rounded-md p-3 text-sm bg-muted/60 border-l-2 border-accent">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">AI Support</div>
+      <div className="flex gap-1 items-center">
+        <span className="inline-block h-2 w-2 rounded-full bg-accent/60 animate-bounce [animation-delay:0ms]" />
+        <span className="inline-block h-2 w-2 rounded-full bg-accent/60 animate-bounce [animation-delay:150ms]" />
+        <span className="inline-block h-2 w-2 rounded-full bg-accent/60 animate-bounce [animation-delay:300ms]" />
+      </div>
+    </div>
+  );
+}
 
 export default function Support() {
   const { user } = useAuth();
@@ -25,19 +60,66 @@ export default function Support() {
   const [message, setMessage] = useState("");
   const [category, setCategory] = useState<(typeof supportCategories)[number]>("booking");
   const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
+  const [aiTyping, setAiTyping] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  function scrollToBottom() {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
 
   async function loadTickets() {
-    const { data } = await supabase.from("support_tickets").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase
+      .from("support_tickets")
+      .select("id,ticket_num,subject,status,priority,category,escalated,ai_response,created_at")
+      .order("created_at", { ascending: false });
     setTickets((data as Ticket[]) ?? []);
   }
 
-  useEffect(() => { if (user) loadTickets(); }, [user]);
+  useEffect(() => { if (user) void loadTickets(); }, [user]);
 
+  // Load messages + subscribe to realtime when active ticket changes
   useEffect(() => {
     if (!active) return;
-    supabase.from("support_messages").select("*").eq("ticket_id", active.id).order("created_at", { ascending: true })
-      .then(({ data }) => setMessages((data as Message[]) ?? []));
-  }, [active]);
+
+    supabase
+      .from("support_messages")
+      .select("id,sender,content,created_at")
+      .eq("ticket_id", active.id)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        setMessages((data as Message[]) ?? []);
+        setTimeout(scrollToBottom, 50);
+      });
+
+    const channel = supabase
+      .channel(`support_messages:${active.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "support_messages",
+          filter: `ticket_id=eq.${active.id}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as Message;
+          setMessages((prev) => {
+            // Deduplicate by id in case optimistic message was already added
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+          if (newMsg.sender === "ai" || newMsg.sender === "admin") {
+            setAiTyping(false);
+          }
+          setTimeout(scrollToBottom, 50);
+        },
+      )
+      .subscribe();
+
+    return () => { void supabase.removeChannel(channel); };
+  }, [active?.id]);
 
   async function createTicket(e: React.FormEvent) {
     e.preventDefault();
@@ -46,28 +128,59 @@ export default function Support() {
       toast({ title: "Add a subject and message", variant: "destructive" });
       return;
     }
-    const { data, error } = await supabase.functions.invoke("support-ticket", { body: parsed.data });
-    if (error) {
-      toast({ title: "Failed", description: error.message, variant: "destructive" });
-      return;
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("support-ticket", { body: parsed.data });
+      if (error) throw error;
+      toast({
+        title: `Ticket #${data.ticket_num} created`,
+        description: data.escalated ? "Escalated to our team — we'll follow up soon." : "AI has responded to your ticket.",
+      });
+      setSubject(""); setMessage(""); setCategory("booking");
+      await loadTickets();
+    } catch (err) {
+      toast({ title: "Failed to create ticket", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setCreating(false);
     }
-    toast({ title: `Ticket #${data.ticket_num} created`, description: data.escalated ? "Escalated to a human." : "AI responded." });
-    setSubject(""); setMessage(""); setCategory("booking");
-    loadTickets();
   }
 
   async function sendReply() {
-    if (!active) return;
+    if (!active || !reply.trim()) return;
     const parsed = supportMessageSchema.safeParse({ ticket_id: active.id, content: reply });
     if (!parsed.success) return;
-    const { error } = await supabase.functions.invoke("support-message", { body: parsed.data });
-    if (error) {
-      toast({ title: "Failed", description: error.message, variant: "destructive" });
-      return;
-    }
+
+    const optimisticMsg: Message = {
+      id: `optimistic-${Date.now()}`,
+      sender: "user",
+      content: reply,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
     setReply("");
-    const { data } = await supabase.from("support_messages").select("*").eq("ticket_id", active.id).order("created_at", { ascending: true });
-    setMessages((data as Message[]) ?? []);
+    setAiTyping(true);
+    setTimeout(scrollToBottom, 50);
+
+    setSending(true);
+    try {
+      const { error } = await supabase.functions.invoke("support-message", { body: parsed.data });
+      if (error) throw error;
+      // Realtime subscription will add the AI response automatically
+    } catch (err) {
+      toast({ title: "Failed to send", description: (err as Error).message, variant: "destructive" });
+      // Remove optimistic message on failure
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
+      setAiTyping(false);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && !e.shiftKey && !sending) {
+      e.preventDefault();
+      void sendReply();
+    }
   }
 
   if (!user) {
@@ -87,81 +200,118 @@ export default function Support() {
     <div>
       <Seo title="CheapStays Support" description="Contact CheapStays support and concierge for bookings and account help." path="/support" />
       <div className="container py-12 grid gap-8 md:grid-cols-[360px_1fr]">
+
+        {/* ── Left panel: new ticket form + ticket list ── */}
         <div className="space-y-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Support</h1>
-        <Card className="p-4">
-          <form onSubmit={createTicket} className="space-y-3">
-            <div className="space-y-1">
-              <Label>Subject</Label>
-              <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label>Category</Label>
-              <Select value={category} onValueChange={(value) => setCategory(value as (typeof supportCategories)[number])}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="booking">Booking</SelectItem>
-                  <SelectItem value="payment_refund">Payment / Refund</SelectItem>
-                  <SelectItem value="host_verification">Host Verification</SelectItem>
-                  <SelectItem value="property_condition">Property Condition</SelectItem>
-                  <SelectItem value="incidentals_damage">Incidentals / Damage</SelectItem>
-                  <SelectItem value="safety_privacy_surveillance">Safety / Privacy / Surveillance</SelectItem>
-                  <SelectItem value="account_access">Account / Access</SelectItem>
-                  <SelectItem value="technical_bug">Technical Bug</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Message</Label>
-              <Textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} />
-            </div>
-            <Button type="submit" className="w-full">New ticket</Button>
-          </form>
-        </Card>
-        <div className="space-y-2">
-          {tickets.map((t) => (
-            <button key={t.id} onClick={() => setActive(t)}
-              className={`w-full text-left rounded-md border p-3 transition-colors ${
-                active?.id === t.id ? "border-accent bg-secondary/50" : "border-border hover:bg-muted/40"
-              }`}>
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">#{t.ticket_num}</span>
-                <Badge variant={t.escalated ? "destructive" : "secondary"}>{t.status}</Badge>
+          <h1 className="text-2xl font-semibold tracking-tight">Support</h1>
+          <Card className="p-4">
+            <form onSubmit={createTicket} className="space-y-3">
+              <div className="space-y-1">
+                <Label>Subject</Label>
+                <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Brief description of your issue" />
               </div>
-              <p className="text-sm font-medium mt-1 line-clamp-1">{t.subject}</p>
-            </button>
-          ))}
+              <div className="space-y-1">
+                <Label>Category</Label>
+                <Select value={category} onValueChange={(v) => setCategory(v as (typeof supportCategories)[number])}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {supportCategories.map((c) => (
+                      <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] ?? c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Message</Label>
+                <Textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Describe the issue in detail…" />
+              </div>
+              <Button type="submit" className="w-full" disabled={creating}>
+                {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "New ticket"}
+              </Button>
+            </form>
+          </Card>
+
+          <div className="space-y-2">
+            {tickets.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">No tickets yet.</p>
+            )}
+            {tickets.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setActive(t)}
+                className={`w-full text-left rounded-md border p-3 transition-colors ${
+                  active?.id === t.id ? "border-accent bg-secondary/50" : "border-border hover:bg-muted/40"
+                }`}
+              >
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">
+                    #{t.ticket_num} · {CATEGORY_LABELS[t.category] ?? t.category}
+                  </span>
+                  <Badge variant={t.escalated ? "destructive" : "secondary"} className="text-[10px]">
+                    {t.status}
+                  </Badge>
+                </div>
+                <p className="text-sm font-medium mt-1 line-clamp-1">{t.subject}</p>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+
+        {/* ── Right panel: message thread ── */}
         <div>
           {active ? (
-          <Card className="p-6">
-            <div className="flex justify-between items-start gap-4">
-              <div>
-                <h2 className="text-xl font-medium">{active.subject}</h2>
-                <p className="text-sm text-muted-foreground">Ticket #{active.ticket_num} · {active.status}</p>
-              </div>
-              {active.escalated && <Badge variant="destructive">Escalated</Badge>}
-            </div>
-            <div className="mt-6 space-y-3">
-              {messages.map((m) => (
-                <div key={m.id} className={`rounded-md p-3 text-sm ${
-                  m.sender === "user" ? "bg-secondary/60" : m.sender === "ai" ? "bg-muted/60 border-l-2 border-accent" : "bg-card border"
-                }`}>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{m.sender}</div>
-                  <div className="whitespace-pre-wrap">{m.content}</div>
+            <Card className="p-6 flex flex-col" style={{ minHeight: "520px" }}>
+              <div className="flex justify-between items-start gap-4 pb-4 border-b border-border/60">
+                <div>
+                  <h2 className="text-xl font-medium">{active.subject}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Ticket #{active.ticket_num} · {CATEGORY_LABELS[active.category] ?? active.category} · {active.status}
+                  </p>
                 </div>
-              ))}
-            </div>
-            <div className="mt-4 flex gap-2">
-              <Input value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Write a reply…" />
-              <Button onClick={sendReply}>Send</Button>
-            </div>
-          </Card>
-        ) : (
-          <Card className="p-10 text-center text-muted-foreground">Select a ticket or open a new one.</Card>
+                {active.escalated && <Badge variant="destructive">Escalated</Badge>}
+              </div>
+
+              <div className="flex-1 overflow-y-auto mt-4 space-y-3 pr-1" style={{ maxHeight: "380px" }}>
+                {messages.map((m) => (
+                  <div
+                    key={m.id}
+                    className={`rounded-md p-3 text-sm ${
+                      m.sender === "user"
+                        ? "bg-secondary/60"
+                        : m.sender === "ai"
+                        ? "bg-muted/60 border-l-2 border-accent"
+                        : "bg-card border"
+                    }`}
+                  >
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                      {m.sender === "ai" ? "AI Support" : m.sender === "admin" ? "Team" : "You"}
+                    </div>
+                    <div className="whitespace-pre-wrap">{m.content}</div>
+                  </div>
+                ))}
+                {aiTyping && <TypingIndicator />}
+                <div ref={messagesEndRef} />
+              </div>
+
+              <div className="mt-4 flex gap-2 pt-4 border-t border-border/60">
+                <Input
+                  value={reply}
+                  onChange={(e) => setReply(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Write a reply… (Enter to send)"
+                  disabled={sending}
+                />
+                <Button onClick={sendReply} disabled={sending || !reply.trim()} size="icon" aria-label="Send">
+                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <Card className="p-10 text-center text-muted-foreground">
+              Select a ticket or create a new one.
+            </Card>
           )}
         </div>
       </div>

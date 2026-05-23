@@ -50,8 +50,7 @@ export function useNotificationPreferences() {
   const load = useCallback(async () => {
     if (!userId) { setLoading(false); return; }
     setLoading(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("notification_preferences")
       .select("*")
       .eq("user_id", userId)
@@ -67,8 +66,7 @@ export function useNotificationPreferences() {
     setSaving(true);
     const merged = { ...prefs, ...patch };
     setPrefs(merged);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("notification_preferences")
       .upsert({ user_id: userId, ...merged, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
     if (error) {
