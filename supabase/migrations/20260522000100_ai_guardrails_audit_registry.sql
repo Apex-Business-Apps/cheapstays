@@ -20,13 +20,15 @@ create table if not exists public.github_command_registry (
 alter table public.ai_audit_logs enable row level security;
 alter table public.github_command_registry enable row level security;
 
-create policy if not exists "Service role manages ai audit logs"
+drop policy if exists "Service role manages ai audit logs" on public.ai_audit_logs;
+create policy "Service role manages ai audit logs"
 on public.ai_audit_logs
 for all
 using (auth.role() = 'service_role')
 with check (auth.role() = 'service_role');
 
-create policy if not exists "Service role manages command registry"
+drop policy if exists "Service role manages command registry" on public.github_command_registry;
+create policy "Service role manages command registry"
 on public.github_command_registry
 for all
 using (auth.role() = 'service_role')
