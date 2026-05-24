@@ -30,6 +30,9 @@ type Listing = {
   video_url: string | null;
   is_owner_direct: boolean;
   instant_book: boolean;
+  short_term_enabled?: boolean;
+  long_term_enabled?: boolean;
+  max_nights?: number | null;
   status: string;
   avg_rating: number | null;
   review_count: number;
@@ -248,7 +251,9 @@ export default function ListingDetail() {
                 nightly_php: listing.nightly_php,
                 min_nights: listing.min_nights,
                 max_guests: listing.max_guests,
-                instant_book: listing.instant_book,
+                max_nights: listing.max_nights ?? null,
+                short_term_enabled: listing.short_term_enabled ?? true,
+                long_term_enabled: listing.long_term_enabled ?? false,
               }}
             />
           </div>

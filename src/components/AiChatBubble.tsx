@@ -130,7 +130,7 @@ export function AiChatBubble() {
       action: () => navigate("/host"),       response: () => t("pip.voice.rateGuest") },
     { pattern: /\b(filter (listings?|results?|search)|sort (by|listings?|results?)|cheapest (listings?|places?|stays?)|highest rated|best rated|search filters?)\b/i,
       action: () => navigate("/search"),     response: () => t("pip.voice.filters") },
-    { pattern: /\b(instant book|owner.?direct|book instantly)\b/i,
+    { pattern: /\b(instant book|book instantly)\b/i,
       action: () => navigate("/search"),     response: () => t("pip.voice.instantBook") },
     { pattern: /\b(check (my |the )?(ratings?|reviews?|stars?)|how.*(rated|rating|stars?))\b/i,
       action: () => navigate("/search"),     response: () => t("pip.voice.ratings") },
@@ -374,7 +374,8 @@ export function AiChatBubble() {
       });
 
       const data = await res.json() as {
-        booking_id?: string; nights?: number; total_php?: number; status?: string; error?: string;
+        booking_id?: string; nights?: number; total_php?: number; status?: string;
+        booking_flow?: string; flow_state?: string; error?: string;
       };
 
       if (!res.ok || !data.booking_id) {
@@ -387,7 +388,9 @@ export function AiChatBubble() {
         return;
       }
 
-      const confirmedStatus = data.status === "confirmed" ? "confirmed" : "pending";
+      // Route by booking_flow: instant_book → payment; request_booking → done.
+      const isInstantBook = data.booking_flow === "instant_book";
+      const confirmedStatus = isInstantBook ? "confirmed" : "pending";
       setMessages((prev) => [
         ...prev,
         {
@@ -402,9 +405,13 @@ export function AiChatBubble() {
         },
       ]);
 
-      const successMsg = confirmedStatus === "confirmed" ? t("pip.bookingCreated") : t("pip.bookingPending");
+      const successMsg = isInstantBook ? t("pip.bookingCreated") : t("pip.bookingPending");
       speak(successMsg);
-      setFlow({ step: "paying", booking_id: data.booking_id!, total_php: data.total_php ?? 0, listing_title: listing.title });
+      if (isInstantBook) {
+        setFlow({ step: "paying", booking_id: data.booking_id!, total_php: data.total_php ?? 0, listing_title: listing.title });
+      } else {
+        setFlow({ step: "idle" });
+      }
     } catch {
       setMessages((prev) => [...prev, { kind: "text", role: "assistant", content: t("pip.error") }]);
       setFlow({ step: "idle" });

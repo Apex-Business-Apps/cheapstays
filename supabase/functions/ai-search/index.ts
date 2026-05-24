@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
 
     let dbQuery = supabase
       .from("listings")
-      .select("id,title,slug,city,province,type,bedrooms,bathrooms,max_guests,nightly_php,min_nights,amenities,images,description,is_owner_direct,instant_book,avg_rating,review_count")
+      .select("id,title,slug,city,province,type,bedrooms,bathrooms,max_guests,nightly_php,min_nights,max_nights,amenities,images,description,short_term_enabled,long_term_enabled,avg_rating,review_count")
       .eq("status", "active");
 
     if (filters?.maxNightly) {
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
         `[${i}] "${l.title}" | ${l.city}, ${l.province} | ₱${l.nightly_php}/night | ` +
         `${l.bedrooms}BR ${l.bathrooms}BA | max ${l.max_guests} guests | min ${l.min_nights} nights | ` +
         `type:${l.type} | amenities:${(l.amenities ?? []).join(",")} | ` +
-        `owner_direct:${l.is_owner_direct} | instant_book:${l.instant_book} | ` +
+        `short_term:${l.short_term_enabled ?? true} | long_term:${l.long_term_enabled ?? false} | ` +
         `desc:${l.description ? l.description.slice(0, 120) : "none"}`
       )
       .join("\n");
@@ -164,8 +164,9 @@ Match listings to the user query using FUZZY, SEMANTIC matching:
           min_nights: l.min_nights,
           amenities: l.amenities ?? [],
           images: l.images ?? [],
-          is_owner_direct: l.is_owner_direct,
-          instant_book: l.instant_book,
+          short_term_enabled: l.short_term_enabled ?? true,
+          long_term_enabled: l.long_term_enabled ?? false,
+          max_nights: l.max_nights ?? null,
           avg_rating: l.avg_rating,
           review_count: l.review_count,
           why_its_a_deal: r.why_its_a_deal,

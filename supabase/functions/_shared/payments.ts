@@ -58,6 +58,72 @@ export function buildRefundWindow(checkInISO: string): RefundWindow {
   };
 }
 
+// ── Tier-aware refund calculator ──────────────────────────────────────────────
+//
+// Tiers (measured in hours from now to check-in midnight UTC):
+//   "full"        ≥ 168 h (7 days)  — full accommodation refund, no penalty
+//   "partial_10"  ≥  48 h < 168 h   — 10% accommodation penalty
+//   "partial_30"  <  48 h            — 30% accommodation penalty
+//   "zero"        check_out passed   — no refund (billing artefact only)
+//
+// Platform always retains the 5% service fee regardless of tier.
+// Host payout of retained penalty: 70% host / 30% platform.
+
+export type RefundTier = "full" | "partial_10" | "partial_30" | "zero";
+
+export interface RefundBreakdown {
+  tier: RefundTier;
+  accommodation_php: number;
+  service_fee_php: number;
+  penalty_php: number;
+  refunded_php: number;
+  host_share_php: number;
+  platform_share_php: number;
+}
+
+const SERVICE_FEE_RATE = 0.05;
+const HOST_PENALTY_SHARE = 0.70;
+const PLATFORM_PENALTY_SHARE = 0.30;
+
+export function calculateRefundTier(checkInISO: string, now: Date = new Date()): RefundTier {
+  const checkIn = new Date(checkInISO + "T00:00:00Z");
+  const hoursUntilCheckIn = (checkIn.getTime() - now.getTime()) / 3_600_000;
+  if (hoursUntilCheckIn < 0) return "zero";
+  if (hoursUntilCheckIn < 48) return "partial_30";
+  if (hoursUntilCheckIn < 168) return "partial_10";
+  return "full";
+}
+
+export function calculateRefundAmounts(
+  checkInISO: string,
+  totalPhp: number,
+  tierOverride?: RefundTier,
+  now: Date = new Date(),
+): RefundBreakdown {
+  const tier = tierOverride ?? calculateRefundTier(checkInISO, now);
+  const service_fee_php = Math.round(totalPhp * SERVICE_FEE_RATE / (1 + SERVICE_FEE_RATE));
+  const accommodation_php = totalPhp - service_fee_php;
+
+  let penalty_php = 0;
+  if (tier === "partial_10") penalty_php = Math.round(accommodation_php * 0.10);
+  else if (tier === "partial_30") penalty_php = Math.round(accommodation_php * 0.30);
+  else if (tier === "zero") penalty_php = accommodation_php;
+
+  const refunded_php = totalPhp - service_fee_php - penalty_php;
+  const host_share_php = Math.round(penalty_php * HOST_PENALTY_SHARE);
+  const platform_share_php = penalty_php - host_share_php;
+
+  return {
+    tier,
+    accommodation_php,
+    service_fee_php,
+    penalty_php,
+    refunded_php: Math.max(0, refunded_php),
+    host_share_php,
+    platform_share_php,
+  };
+}
+
 export interface PaymentProviderAdapter {
   createIntent(input: Record<string, unknown>): Promise<Record<string, unknown>>;
   authorize(input: Record<string, unknown>): Promise<Record<string, unknown>>;

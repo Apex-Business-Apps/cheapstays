@@ -157,24 +157,31 @@ test.describe("Pip agentic — search results", () => {
     await expect(bookBtn).toBeVisible({ timeout: 5000 });
   });
 
-  test("Instant Book badge renders on eligible listing", async ({ page }) => {
+  test("listing card renders without deprecated booking badges", async ({ page }) => {
     await openPip(page);
     const dialog = page.locator("[role='dialog']");
     const chip   = dialog.locator("button").filter({ hasText: /palawan/i }).first();
     await chip.click();
     await expect(dialog.locator("text=Beachfront Villa El Nido")).toBeVisible({ timeout: 12000 });
-    // t("pip.instantBookBadge") = "Instant Book" in English
-    await expect(dialog.locator("text=Instant Book")).toBeVisible({ timeout: 5000 });
+    // Price per night must render
+    await expect(dialog.locator("text=/₱2[,.]?500/")).toBeVisible({ timeout: 5000 });
+    // Instant Book is no longer a per-listing badge — must not appear inside the card/dialog
+    await expect(dialog.locator("text=Instant Book")).not.toBeVisible();
+    // Owner Direct is platform-level brand only — must not appear as a listing-level badge
+    await expect(dialog.locator("text=Owner Direct")).not.toBeVisible();
   });
 
-  test("Owner Direct badge renders on eligible listing", async ({ page }) => {
+  test("Pip search results do not show deprecated per-listing flow labels", async ({ page }) => {
     await openPip(page);
     const dialog = page.locator("[role='dialog']");
-    const chip   = dialog.locator("button").filter({ hasText: /palawan/i }).first();
-    await chip.click();
+    const input  = dialog.locator("input[placeholder]");
+    await input.fill("villa Palawan cheap");
+    await input.press("Enter");
     await expect(dialog.locator("text=Beachfront Villa El Nido")).toBeVisible({ timeout: 12000 });
-    // t("pip.ownerDirectBadge") = "Owner Direct" in English
-    await expect(dialog.locator("text=Owner Direct")).toBeVisible({ timeout: 5000 });
+    // No listing card may present Owner Direct as a listing-specific booking mode
+    await expect(dialog.locator("text=Owner Direct")).not.toBeVisible();
+    // No listing card may present Instant Book as a member-only or per-listing feature
+    await expect(dialog.locator("text=Instant Book")).not.toBeVisible();
   });
 
   test("listing card shows price per night", async ({ page }) => {

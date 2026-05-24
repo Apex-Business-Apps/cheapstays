@@ -19,6 +19,11 @@ import { ImageUploader } from "@/components/ImageUploader";
 import { VideoUploader } from "@/components/VideoUploader";
 import { HostBookings } from "@/components/HostBookings";
 import { HostDashboard } from "@/components/HostDashboard";
+import { ListingPublishGate } from "@/components/ListingPublishGate";
+import { HostCalendar } from "@/components/HostCalendar";
+import { BlackoutDateEditor } from "@/components/BlackoutDateEditor";
+import { LongTermRequestsInbox } from "@/components/LongTermRequestsInbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const LISTING_TYPES = [
   { value: "entire_place", label: "Entire place" },
@@ -400,8 +405,6 @@ export default function Host() {
     max_guests: 2,
     nightly_php: 1500,
     min_nights: 1,
-    is_owner_direct: true,
-    instant_book: false,
     description: "",
   });
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
@@ -409,6 +412,8 @@ export default function Host() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [publishGateOpen, setPublishGateOpen] = useState(false);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
 
   async function generateDescription() {
     const parsed = aiDescribeSchema.safeParse({
@@ -455,6 +460,12 @@ export default function Host() {
     try {
       const slug = slugify(title, listingId);
 
+      // Always create the listing as draft first. Publishing requires the
+      // ListingPublishGate (3-month availability, blackouts, house rules,
+      // stay instructions, min/max nights, stay-length enablement) to pass.
+      // The DB-level publish-gate trigger backstops any client bypass.
+      // is_owner_direct and instant_book are legacy/marketing fields and are
+      // no longer written from the listing setup flow.
       const { error } = await supabase.from("listings").insert({
         id: listingId,
         slug,
@@ -473,26 +484,45 @@ export default function Host() {
         amenities: selectedAmenities,
         images,
         video_url: videoUrl,
-        is_owner_direct: form.is_owner_direct,
-        instant_book: form.instant_book,
-        status: isDraft ? "draft" : "active",
+        status: "draft",
       });
 
       if (error) throw error;
 
-      toast({
-        title: isDraft ? "Saved as draft" : "Listing published!",
-        description: isDraft
-          ? "You can publish it anytime from your listings tab."
-          : "Your listing is now live and searchable.",
-      });
-
-      if (!isDraft) navigate(`/listing/${listingId}`);
+      if (isDraft) {
+        toast({
+          title: "Saved as draft",
+          description: "You can publish it anytime from your listings tab.",
+        });
+      } else {
+        // Open the publish gate so the host can finish setup and flip status.
+        setPublishingId(listingId);
+        setPublishGateOpen(true);
+      }
     } catch (err) {
       toast({ title: "Failed to save listing", description: (err as Error).message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function finalizePublish() {
+    if (!publishingId) return;
+    const { error } = await supabase
+      .from("listings")
+      .update({ status: "active" })
+      .eq("id", publishingId);
+    if (error) {
+      toast({
+        title: "Cannot publish",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({ title: "Listing published!", description: "Your listing is now live." });
+    setPublishGateOpen(false);
+    navigate(`/listing/${publishingId}`);
   }
 
   if (authLoading) {
@@ -532,6 +562,11 @@ export default function Host() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-8 flex-wrap h-auto">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="calendar" className="gap-2">
+              <CalendarDays className="h-4 w-4" /> Calendar
+            </TabsTrigger>
+            <TabsTrigger value="requests">Long-term requests</TabsTrigger>
+            <TabsTrigger value="blackouts">Blackouts</TabsTrigger>
             <TabsTrigger value="new" className="gap-2">
               <PlusCircle className="h-4 w-4" /> New listing
             </TabsTrigger>
@@ -543,6 +578,18 @@ export default function Host() {
 
           <TabsContent value="dashboard">
             <HostDashboard hostId={user.id} onTabChange={setActiveTab} />
+          </TabsContent>
+
+          <TabsContent value="calendar">
+            <HostCalendar hostId={user.id} />
+          </TabsContent>
+
+          <TabsContent value="requests">
+            <LongTermRequestsInbox hostId={user.id} />
+          </TabsContent>
+
+          <TabsContent value="blackouts">
+            <BlackoutDateEditor hostId={user.id} />
           </TabsContent>
 
           {/* ── New listing tab ── */}
@@ -721,31 +768,10 @@ export default function Host() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <Label>Booking options</Label>
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, is_owner_direct: !f.is_owner_direct }))}
-                    className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg border transition-colors ${
-                      form.is_owner_direct ? "border-primary/60 bg-primary/5" : "border-border/50 text-muted-foreground"
-                    }`}
-                  >
-                    {form.is_owner_direct ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4" />}
-                    Owner direct
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, instant_book: !f.instant_book }))}
-                    className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg border transition-colors ${
-                      form.instant_book ? "border-primary/60 bg-primary/5" : "border-border/50 text-muted-foreground"
-                    }`}
-                  >
-                    {form.instant_book ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4" />}
-                    Instant book
-                  </button>
-                </div>
-              </div>
+              {/* Booking options are derived: short-term stays (≤30 nights)
+                  are always Instant Book; long-term stays (31+ nights) are
+                  always Request Booking. Enable one or both in the publish
+                  gate after saving as draft. */}
 
               {/* Photos */}
               <div className="space-y-3 pt-2 border-t border-border/60">
@@ -799,6 +825,25 @@ export default function Host() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {publishingId && (
+        <Dialog open={publishGateOpen} onOpenChange={setPublishGateOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Finish setup before publishing</DialogTitle>
+              <DialogDescription>
+                Your listing was saved as a draft. Complete every requirement below to
+                publish it. Blackout dates can be edited later from the host calendar.
+              </DialogDescription>
+            </DialogHeader>
+            <ListingPublishGate
+              listingId={publishingId}
+              userId={user.id}
+              onAllPassed={finalizePublish}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

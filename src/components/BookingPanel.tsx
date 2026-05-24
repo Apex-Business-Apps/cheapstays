@@ -9,19 +9,33 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+
+// listing_house_rules is not yet in auto-generated types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sb = supabase as any;
+
+type HouseRulesRow = {
+  current_version: string;
+  current_hash: string;
+  rules_json: { text: string };
+};
 import { toast } from "@/hooks/use-toast";
 import { CalendarDays, ChevronDown, CreditCard, Loader2, Smartphone, Users, Wallet, Zap, CheckCircle2 } from "lucide-react";
 import { LegalScrollGate } from "@/components/LegalScrollGate";
 import { CardHoldForm } from "@/components/CardHoldForm";
 import { legalDocs } from "@/pages/legal/content";
-import { isMember } from "@/lib/rbac";
+
+// Canonical stay-length boundary — must match book-listing edge function.
+const SHORT_TERM_MAX_NIGHTS = 30;
 
 type Listing = {
   id: string;
   nightly_php: number;
   min_nights: number;
   max_guests: number;
-  instant_book: boolean;
+  max_nights?: number | null;
+  short_term_enabled?: boolean;
+  long_term_enabled?: boolean;
 };
 
 type BookedInterval = { start: Date; end: Date };
@@ -51,9 +65,8 @@ const PAYMENT_METHODS: { id: PayMethod; label: string; Icon: React.ElementType; 
 ];
 
 export function BookingPanel({ listing }: Props) {
-  const { user, roles } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const effectiveInstantBook = listing.instant_book && isMember(roles);
 
   const [range, setRange] = useState<DateRange | undefined>();
   const [guests, setGuests] = useState(1);
@@ -66,6 +79,8 @@ export function BookingPanel({ listing }: Props) {
   const [paying, setPaying] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
   const [showLegalGate, setShowLegalGate] = useState(false);
+  const [showHouseRulesGate, setShowHouseRulesGate] = useState(false);
+  const [houseRules, setHouseRules] = useState<HouseRulesRow | null>(null);
 
   useEffect(() => {
     supabase
@@ -81,6 +96,16 @@ export function BookingPanel({ listing }: Props) {
             end: parseISO(b.check_out),
           }))
         );
+      });
+  }, [listing.id]);
+
+  useEffect(() => {
+    sb.from("listing_house_rules")
+      .select("current_version,current_hash,rules_json")
+      .eq("listing_id", listing.id)
+      .maybeSingle()
+      .then(({ data }: { data: HouseRulesRow | null }) => {
+        setHouseRules(data ?? null);
       });
   }, [listing.id]);
 
@@ -106,11 +131,28 @@ export function BookingPanel({ listing }: Props) {
   const rangeInvalid =
     range?.from && range?.to && hasBookedDayInRange(range.from, range.to);
   const tooShort = nights > 0 && nights < listing.min_nights;
+  const tooLong =
+    nights > 0 &&
+    listing.max_nights != null &&
+    nights > listing.max_nights;
+
+  // Stay length is the canonical routing authority.
+  const isShortTermStay = nights > 0 && nights <= SHORT_TERM_MAX_NIGHTS;
+  const isLongTermStay = nights > SHORT_TERM_MAX_NIGHTS;
+
+  const shortTermBlocked =
+    isShortTermStay && listing.short_term_enabled === false;
+  const longTermBlocked =
+    isLongTermStay && listing.long_term_enabled !== true;
+  const stayLengthBlocked = shortTermBlocked || longTermBlocked;
+
   const canBook =
     range?.from &&
     range?.to &&
     nights >= listing.min_nights &&
     !rangeInvalid &&
+    !tooLong &&
+    !stayLengthBlocked &&
     guests >= 1 &&
     guests <= listing.max_guests;
 
@@ -131,7 +173,9 @@ export function BookingPanel({ listing }: Props) {
       });
       if (error) throw error;
       setBookingId(data.booking_id);
-      if (data.status === "confirmed") {
+      // Short-term (booking_flow=instant_book) → proceed to payment.
+      // Long-term (booking_flow=request_booking) → wait for host approval.
+      if (data.booking_flow === "instant_book") {
         setStep("pay");
       } else {
         setStep("done");
@@ -232,12 +276,12 @@ export function BookingPanel({ listing }: Props) {
       <div className="rounded-2xl border border-border/60 bg-card p-6 text-center space-y-4">
         <CheckCircle2 className="h-10 w-10 text-primary mx-auto" />
         <p className="font-semibold text-lg">
-          {effectiveInstantBook ? "Booking confirmed!" : "Request sent!"}
+          {isShortTermStay ? "Booking confirmed!" : "Long-term request sent"}
         </p>
         <p className="text-sm text-muted-foreground">
-          {effectiveInstantBook
+          {isShortTermStay
             ? "You're booked. Check your email for details."
-            : "The host will confirm within 24 hours."}
+            : "The host has 24 hours to respond. You'll be notified as soon as they decide."}
         </p>
         <div className="flex flex-col gap-2 pt-2">
           <Button asChild>
@@ -259,10 +303,9 @@ export function BookingPanel({ listing }: Props) {
             <span className="text-2xl font-bold">₱{listing.nightly_php.toLocaleString()}</span>
             <span className="text-sm text-muted-foreground"> / night</span>
           </div>
-          {listing.instant_book && (
+          {isShortTermStay && (
             <span className="flex items-center gap-1 text-xs text-primary font-medium">
               <Zap className="h-3.5 w-3.5" /> Instant book
-              {!effectiveInstantBook && user && <span className="text-muted-foreground">(Members only)</span>}
             </span>
           )}
         </div>
@@ -343,6 +386,26 @@ export function BookingPanel({ listing }: Props) {
             Those dates include nights that are already booked. Please choose different dates.
           </p>
         )}
+        {tooLong && listing.max_nights != null && (
+          <p className="text-xs text-destructive">
+            Maximum stay is {listing.max_nights} nights — please shorten your dates.
+          </p>
+        )}
+        {shortTermBlocked && (
+          <p className="text-xs text-destructive">
+            This listing does not accept short-term stays (≤30 nights).
+          </p>
+        )}
+        {longTermBlocked && (
+          <p className="text-xs text-destructive">
+            This listing does not accept long-term stays (31+ nights).
+          </p>
+        )}
+        {isLongTermStay && !longTermBlocked && (
+          <p className="text-xs text-muted-foreground">
+            31+ nights = long-term request. The host has 24 hours to respond.
+          </p>
+        )}
 
         {/* Price breakdown */}
         {nights >= listing.min_nights && !rangeInvalid && (
@@ -375,28 +438,24 @@ export function BookingPanel({ listing }: Props) {
           className="w-full"
           disabled={!canBook || submitting}
           onClick={user ? () => setShowLegalGate(true) : () => navigate("/auth")}
-          aria-label={effectiveInstantBook ? "Book now" : "Request to book"}
+          aria-label={isShortTermStay ? "Book now" : "Request to book"}
         >
           {submitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : !user ? (
             "Sign in to book"
-          ) : effectiveInstantBook ? (
-            "Book now"
-          ) : (
+          ) : isLongTermStay ? (
             "Request to book"
+          ) : (
+            "Book now"
           )}
         </Button>
 
         {canBook && (
           <p className="text-xs text-center text-muted-foreground">
-            {effectiveInstantBook ? "You won't be charged yet." : "No charge until the host confirms."}
-          </p>
-        )}
-        {listing.instant_book && !effectiveInstantBook && user && (
-          <p className="text-xs text-center text-muted-foreground">
-            <Link to="/membership" className="underline underline-offset-2 hover:text-foreground">Upgrade to Member</Link>
-            {" "}to unlock instant booking on this listing.
+            {isShortTermStay
+              ? "You won't be charged yet."
+              : "No charge until the host approves your request."}
           </p>
         )}
       </div>
@@ -425,6 +484,41 @@ export function BookingPanel({ listing }: Props) {
               }
               onAccepted={async () => {
                 setShowLegalGate(false);
+                if (houseRules) {
+                  setShowHouseRulesGate(true);
+                } else {
+                  await book();
+                }
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {user && houseRules && (
+        <Dialog open={showHouseRulesGate} onOpenChange={setShowHouseRulesGate}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>House Rules</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground -mt-2 mb-1">
+              Read and accept the host's house rules before booking.
+            </p>
+            <LegalScrollGate
+              userId={user.id}
+              role="guest"
+              contextId={listing.id}
+              documentId="house-rules"
+              documentVersion={houseRules.current_version}
+              documentHash={houseRules.current_hash}
+              checkboxLabel="I have read and agree to the host's house rules."
+              legalContent={
+                <p className="text-sm whitespace-pre-wrap leading-relaxed font-sans">
+                  {houseRules.rules_json.text}
+                </p>
+              }
+              onAccepted={async () => {
+                setShowHouseRulesGate(false);
                 await book();
               }}
             />
