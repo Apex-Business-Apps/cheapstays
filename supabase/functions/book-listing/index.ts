@@ -3,6 +3,11 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 
+// Canonical stay-length boundary. Short-term = 1..SHORT_TERM_MAX_NIGHTS;
+// long-term = SHORT_TERM_MAX_NIGHTS+1 onwards. Single source of truth — every
+// other surface must derive routing from this constant via this edge function.
+const SHORT_TERM_MAX_NIGHTS = 30;
+
 const BodySchema = z.object({
   listing_id: z.string().uuid(),
   check_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD"),
@@ -17,27 +22,23 @@ function dateDiffDays(from: string, to: string): number {
   );
 }
 
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const ip = req.headers.get("x-forwarded-for") ?? "anon";
     const rl = await rateLimit(`book-listing:${ip}`, 10, 60_000);
-    if (!rl.ok) {
-      return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!rl.ok) return json({ error: "Rate limit exceeded" }, 429);
 
-    // --- Auth: verify caller via their JWT ---
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader) return json({ error: "Unauthorized" }, 401);
 
     const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -46,117 +47,122 @@ Deno.serve(async (req) => {
     );
 
     const { data: { user } } = await supabaseUser.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!user) return json({ error: "Unauthorized" }, 401);
 
-    // --- Validate request body ---
     const parsed = BodySchema.safeParse(await req.json());
-    if (!parsed.success) {
-      return new Response(JSON.stringify({ error: parsed.error.flatten() }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!parsed.success) return json({ error: parsed.error.flatten() }, 400);
 
     const { listing_id, check_in, check_out, guests, guest_message } = parsed.data;
 
-    // --- Basic date validation ---
     if (check_out <= check_in) {
-      return new Response(
-        JSON.stringify({ error: "check_out must be after check_in" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return json({ error: "check_out must be after check_in" }, 400);
     }
 
     const nights = dateDiffDays(check_in, check_out);
+    if (nights < 1) return json({ error: "Stay must be at least 1 night" }, 400);
 
-    // Use service role for all DB reads (needs to see all listings + bookings, not just user's)
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // --- Fetch listing ---
     const { data: listing, error: listingError } = await adminClient
       .from("listings")
-      .select("id, title, host_id, nightly_php, max_guests, min_nights, instant_book, status")
+      .select(
+        "id, title, host_id, nightly_php, max_guests, min_nights, max_nights, " +
+        "short_term_enabled, long_term_enabled, status",
+      )
       .eq("id", listing_id)
       .single();
 
-    if (listingError || !listing) {
-      return new Response(JSON.stringify({ error: "Listing not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (listingError || !listing) return json({ error: "Listing not found" }, 404);
 
     if (listing.status !== "active") {
-      return new Response(JSON.stringify({ error: "Listing is not available for booking" }), {
-        status: 409,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "Listing is not available for booking" }, 409);
     }
 
     if (listing.host_id === user.id) {
-      return new Response(JSON.stringify({ error: "You cannot book your own listing" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      return json({ error: "You cannot book your own listing" }, 403);
     }
 
-    // --- Business rule validation ---
     if (guests > listing.max_guests) {
-      return new Response(
-        JSON.stringify({
-          error: `Too many guests. Maximum allowed: ${listing.max_guests}`,
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      return json(
+        { error: `Too many guests. Maximum allowed: ${listing.max_guests}` },
+        400,
       );
     }
 
     if (nights < listing.min_nights) {
-      return new Response(
-        JSON.stringify({
-          error: `Minimum stay is ${listing.min_nights} night(s). Requested: ${nights}`,
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      return json(
+        { error: `Minimum stay is ${listing.min_nights} night(s). Requested: ${nights}` },
+        400,
       );
     }
 
-    // --- Check for conflicting bookings ---
-    // Overlap condition: NOT (check_out <= existing_check_in OR check_in >= existing_check_out)
+    // max_nights is a property cap (NULL = uncapped).
+    if (listing.max_nights != null && nights > listing.max_nights) {
+      return json(
+        { error: `Maximum stay is ${listing.max_nights} night(s). Requested: ${nights}` },
+        400,
+      );
+    }
+
+    // ── Canonical routing: stay length is the SOLE authority. ────────────────
+    // listing.instant_book and listing.is_owner_direct are intentionally not
+    // read here — they are legacy/marketing fields per the locked decisions.
+    const isShortTerm = nights <= SHORT_TERM_MAX_NIGHTS;
+    const stay_type   = isShortTerm ? "short_term" : "long_term";
+    const booking_flow = isShortTerm ? "instant_book" : "request_booking";
+
+    if (isShortTerm && !listing.short_term_enabled) {
+      return json(
+        { error: "This listing does not accept short-term (≤30 night) stays" },
+        400,
+      );
+    }
+    if (!isShortTerm && !listing.long_term_enabled) {
+      return json(
+        { error: "This listing does not accept long-term (31+ night) stays" },
+        400,
+      );
+    }
+
+    // Availability check — overlap with any non-cancelled/no-show booking.
     const { data: conflicts, error: conflictError } = await adminClient
       .from("bookings")
       .select("id")
       .eq("listing_id", listing_id)
       .not("status", "in", '("cancelled","no_show")')
-      .lt("check_in", check_out)   // existing starts before our checkout
-      .gt("check_out", check_in);  // existing ends after our checkin
+      .lt("check_in", check_out)
+      .gt("check_out", check_in);
 
     if (conflictError) {
-      return new Response(
-        JSON.stringify({ error: "Failed to check availability", detail: conflictError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      return json(
+        { error: "Failed to check availability", detail: conflictError.message },
+        500,
       );
     }
-
     if (conflicts && conflicts.length > 0) {
-      return new Response(
-        JSON.stringify({ error: "Selected dates are not available" }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return json({ error: "Selected dates are not available" }, 409);
     }
 
-    // --- Calculate totals (5% service fee matches BookingPanel.tsx display) ---
+    // 5% service fee matches BookingPanel display.
     const SERVICE_FEE_RATE = 0.05;
-    const total_php = Math.round(nights * Number(listing.nightly_php) * (1 + SERVICE_FEE_RATE));
-    const status = listing.instant_book ? "confirmed" : "pending";
+    const total_php = Math.round(
+      nights * Number(listing.nightly_php) * (1 + SERVICE_FEE_RATE),
+    );
 
-    // --- Insert booking (use service role so we can write on behalf of the user) ---
+    // Stay-length determines flow_state + coarse legacy status. Short-term
+    // = instant book (active/confirmed). Long-term = request booking
+    // (requested/pending) with a 24-hour approval deadline.
+    const now = new Date();
+    const flow_state = isShortTerm ? "active" : "requested";
+    const legacy_status = isShortTerm ? "confirmed" : "pending";
+    const approval_deadline_at = isShortTerm
+      ? null
+      : new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+    const confirmed_at = isShortTerm ? now.toISOString() : null;
+
     const { data: booking, error: insertError } = await adminClient
       .from("bookings")
       .insert({
@@ -168,39 +174,67 @@ Deno.serve(async (req) => {
         nights,
         guests,
         total_php,
-        status,
+        status: legacy_status,
         payment_status: "unpaid",
+        stay_type,
+        booking_flow,
+        flow_state,
+        approval_deadline_at,
+        confirmed_at,
         guest_message: guest_message ?? null,
       })
       .select("id")
       .single();
 
     if (insertError || !booking) {
-      return new Response(
-        JSON.stringify({ error: "Failed to create booking", detail: insertError?.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      return json(
+        { error: "Failed to create booking", detail: insertError?.message },
+        500,
       );
     }
 
-    return new Response(
-      JSON.stringify({
+    // Record the initial transition. Best-effort: if this fails the booking
+    // still stands, but we surface a non-blocking warning in the payload.
+    const { error: transitionError } = await adminClient
+      .from("booking_transitions")
+      .insert({
+        booking_id: booking.id,
+        from_state: null,
+        to_state: flow_state,
+        actor_user_id: user.id,
+        actor_role: "guest",
+        reason: isShortTerm ? "guest_instant_booked" : "guest_requested_long_term",
+        metadata: {
+          stay_type,
+          booking_flow,
+          nights,
+          total_php,
+        },
+      });
+
+    return json(
+      {
         booking_id: booking.id,
         listing_title: listing.title,
         check_in,
         check_out,
         nights,
         total_php,
-        status,
-        message: listing.instant_book
-          ? "Your booking is confirmed! Proceed to payment to secure your stay."
-          : "Booking request submitted. The host will confirm within 24 hours.",
-      }),
-      { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        // Surface both fields so callers can drive UI without legacy guesses.
+        stay_type,
+        booking_flow,
+        flow_state,
+        // Coarse status preserved for any consumer still reading it.
+        status: legacy_status,
+        approval_deadline_at,
+        message: isShortTerm
+          ? "Your stay is confirmed. Complete payment to secure your reservation."
+          : "Long-term request submitted. The host has 24 hours to respond.",
+        transition_warning: transitionError ? transitionError.message : null,
+      },
+      201,
     );
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: (err as Error).message }, 500);
   }
 });

@@ -88,20 +88,36 @@ export function HostBookings({ hostId }: { hostId: string }) {
     load();
   }, [hostId]);
 
+  // Host actions go through backend edge functions — direct UPDATEs to
+  // bookings.status are blocked by the bookings_guard_critical_columns trigger.
   async function updateStatus(bookingId: string, newStatus: "confirmed" | "cancelled") {
     setUpdating(bookingId);
-    const { error } = await supabase
-      .from("bookings")
-      .update({ status: newStatus, ...(newStatus === "confirmed" ? { confirmed_at: new Date().toISOString() } : { cancelled_at: new Date().toISOString() }) })
-      .eq("id", bookingId);
-    setUpdating(null);
-    if (error) {
-      toast({ title: "Update failed", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: newStatus === "confirmed" ? "Booking confirmed" : "Booking declined" });
+    try {
+      if (newStatus === "confirmed") {
+        const { error } = await supabase.functions.invoke("approve-long-term-request", {
+          body: { booking_id: bookingId },
+        });
+        if (error) throw error;
+        toast({ title: "Booking confirmed" });
+      } else {
+        const { error } = await supabase.functions.invoke("cancel-booking-host", {
+          body: { booking_id: bookingId, reason: "Host declined this booking" },
+        });
+        if (error) throw error;
+        toast({ title: "Booking declined" });
+      }
       setBookings((prev) =>
         prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b))
       );
+    } catch (err) {
+      let msg = (err as Error).message;
+      try {
+        const body = await (err as { context?: Response }).context?.json();
+        if (body?.error) msg = body.error;
+      } catch { /* ignore */ }
+      toast({ title: "Update failed", description: msg, variant: "destructive" });
+    } finally {
+      setUpdating(null);
     }
   }
 

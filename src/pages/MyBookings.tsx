@@ -184,20 +184,28 @@ export default function MyBookings() {
     }
   }
 
+  // Guest cancellation routes through the backend — direct UPDATEs to
+  // bookings.status are rejected by the bookings_guard_critical_columns trigger.
   async function cancel(bookingId: string) {
     setCancelling(bookingId);
-    const { error } = await supabase
-      .from("bookings")
-      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
-      .eq("id", bookingId)
-      .eq("guest_id", user!.id)
-      .eq("status", "pending");
-    setCancelling(null);
-    if (error) {
-      toast({ title: "Could not cancel", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      const { error } = await supabase.functions.invoke("cancel-booking-guest", {
+        body: { booking_id: bookingId, reason: "Guest cancelled from My Bookings" },
+      });
+      if (error) throw error;
       toast({ title: "Booking cancelled" });
-      setBookings((prev) => prev.map((b) => b.id === bookingId ? { ...b, status: "cancelled" } : b));
+      setBookings((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, status: "cancelled" } : b))
+      );
+    } catch (err) {
+      let msg = (err as Error).message;
+      try {
+        const body = await (err as { context?: Response }).context?.json();
+        if (body?.error) msg = body.error;
+      } catch { /* ignore */ }
+      toast({ title: "Could not cancel", description: msg, variant: "destructive" });
+    } finally {
+      setCancelling(null);
     }
   }
 
