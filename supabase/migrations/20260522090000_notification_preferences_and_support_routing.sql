@@ -72,11 +72,13 @@ USING (true);
 DROP POLICY IF EXISTS "Service role manages templates" ON notification_templates;
 CREATE POLICY "Service role manages templates"
 ON notification_templates FOR ALL
+TO service_role
 USING (auth.role() = 'service_role')
 WITH CHECK (auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Service role manages preferences" ON notification_preferences;
 CREATE POLICY "Service role manages preferences"
 ON notification_preferences FOR ALL
+TO service_role
 USING (auth.role() = 'service_role')
 WITH CHECK (auth.role() = 'service_role');
