@@ -34,6 +34,8 @@ type BookingRow = {
 function isTransitionAllowed(eventType: string, booking: BookingRow): boolean {
   const { payment_status, status } = booking;
   switch (eventType) {
+    case "payment.awaiting_capture":
+      return payment_status !== "paid" && payment_status !== "refunded" && status !== "cancelled";
     case "payment.paid":
       return payment_status !== "paid" && status !== "cancelled";
     case "payment.failed":
@@ -144,6 +146,7 @@ Deno.serve(async (req) => {
 
     // ── Build update payload ─────────────────────────────────────────────────
     const updates: Record<string, unknown> = {};
+    if (eventType === "payment.awaiting_capture") Object.assign(updates, { payment_status: "pending", payment_state: "authorized", status: "confirmed" });
     if (eventType === "payment.paid")     Object.assign(updates, { payment_status: "paid", payment_state: "captured", status: "confirmed" });
     if (eventType === "payment.failed")   Object.assign(updates, { payment_status: "failed", payment_state: "failed" });
     if (eventType === "refund.succeeded") Object.assign(updates, { payment_status: "refunded", payment_state: "refunded" });
@@ -188,6 +191,22 @@ Deno.serve(async (req) => {
       .update(updates)
       .eq("id", booking.id);
     if (updateErr) throw updateErr;
+
+    // ── Card hold record — created when PayMongo places the manual-capture hold ──
+    if (eventType === "payment.awaiting_capture" && paymentIntentId) {
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 6); // 6-day safety buffer (PayMongo holds ~7 days)
+      await adminClient.from("card_holds").upsert(
+        {
+          booking_id: booking.id,
+          payment_intent_id: paymentIntentId,
+          provider: "paymongo",
+          authorized_at: new Date().toISOString(),
+          expires_at: expiresAt.toISOString(),
+        },
+        { onConflict: "booking_id" },
+      );
+    }
 
     // ── Record as processed ──────────────────────────────────────────────────
     await adminClient.from("webhook_events").insert({

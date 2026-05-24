@@ -10,6 +10,7 @@ const BodySchema = z.object({
   provider: z.string().default("paymongo"),
   payment_method: z.string(),
   requires_incidental_hold: z.boolean().default(true),
+  hold: z.boolean().default(false),
 });
 
 const PAYMONGO_BASE = "https://api.paymongo.com/v1";
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten() }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { booking_id, provider, payment_method, requires_incidental_hold } = parsed.data;
+    const { booking_id, provider, payment_method, requires_incidental_hold, hold } = parsed.data;
     if (!isProviderAllowed(provider)) return new Response(JSON.stringify({ error: "Provider blocked pending legal approval" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const methodCheck = validatePaymentMethod(payment_method, requires_incidental_hold);
@@ -90,7 +91,10 @@ Deno.serve(async (req) => {
     const paymongoKey = Deno.env.get("PAYMONGO_SECRET_KEY");
     if (!paymongoKey) return new Response(JSON.stringify({ error: "PayMongo not configured" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const intentPayload = { data: { attributes: { amount: Math.round(Number(booking.total_php) * 100), payment_method_allowed: ["card", "gcash", "paymaya"], payment_method_options: { card: { request_three_d_secure: "any" } }, currency: "PHP", capture_type: "automatic", description: `CheapStays booking: ${listing?.title ?? "property"} (${booking.check_in} to ${booking.check_out})`, metadata: { booking_id } } } };
+    // Card hold: manual capture, card-only. GCash/Maya don't support pre-auth.
+    const captureType = hold && payment_method === "card" ? "manual" : "automatic";
+    const allowedMethods = captureType === "manual" ? ["card"] : ["card", "gcash", "paymaya"];
+    const intentPayload = { data: { attributes: { amount: Math.round(Number(booking.total_php) * 100), payment_method_allowed: allowedMethods, payment_method_options: { card: { request_three_d_secure: "any" } }, currency: "PHP", capture_type: captureType, description: `CheapStays booking: ${listing?.title ?? "property"} (${booking.check_in} to ${booking.check_out})`, metadata: { booking_id } } } };
     const intentRes = await paymongoPost("/payment_intents", intentPayload, paymongoKey);
     if (!intentRes.ok) return new Response(JSON.stringify({ error: "Failed to create payment intent", detail: intentRes.data }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
