@@ -93,9 +93,6 @@ export function Navbar() {
             </div>
           ) : isHost(roles) ? (
             <>
-              <Button size="sm" variant="outline" asChild className="hidden sm:flex">
-                <Link to="/host">Host tools</Link>
-              </Button>
               <Button size="sm" variant="ghost" onClick={signOut} className="hidden sm:flex">
                 {t("nav.signOut")}
               </Button>
@@ -173,9 +170,6 @@ export function Navbar() {
                 </>
               ) : isHost(roles) ? (
                 <>
-                  <Button size="sm" variant="outline" asChild className="min-h-[44px]">
-                    <Link to="/host" onClick={() => setMobileOpen(false)}>Host tools</Link>
-                  </Button>
                   <Button size="sm" variant="ghost" onClick={() => { signOut(); setMobileOpen(false); }} className="min-h-[44px]">
                     {t("nav.signOut")}
                   </Button>

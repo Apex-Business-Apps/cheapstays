@@ -1,7 +1,7 @@
 # CLAUDE.md — CheapStays Agent Baseline
 
-**Canonical baseline as of:** 2026-05-23  
-**Branch:** main @ `a393243`  
+**Canonical baseline as of:** 2026-05-24  
+**Branch:** main @ `a393243` + hotfixes (PR post-#43)  
 **Project:** CheapStays — Philippine short-term rental marketplace  
 **Org:** APEX Business Systems Ltd.
 
@@ -547,4 +547,26 @@ Never push directly to `main`. CI must pass before merge.
 
 ---
 
-*Last updated by: Claude Code — freeze baseline after PRs #41–43 (production bug fixes)*
+---
+
+## 17. Additional Regression Trip-Wires (post-PR #43)
+
+### ❌ Navbar — redundant "Host tools" button alongside "Host" nav link
+The center nav already includes a "Host" link to `/host` for all users. A separate "Host tools" button on the right-side actions area was redundant and has been removed. The Sign Out button is retained. Do not re-add a "Host tools" / "Go to host" CTA button to the right-side actions.
+
+### ❌ Notifications page crash — `<Tabs>` without `<TabsContent>` children
+`Notifications.tsx` used `<Tabs>` as a pure UI value selector (no `<TabsContent>` children), rendering content manually via external state. Radix UI `@radix-ui/react-tabs` v1.1.x requires `<TabsContent>` children to match each `<TabsTrigger>` in controlled mode — omitting them causes a synchronous rendering error caught by the `ErrorBoundary` ("Something went wrong"). Mobile users were redirected away before seeing it; desktop users stayed on the error page.
+
+**Fix:** Wrap each tab's content in a proper `<TabsContent value="...">` block. The Notifications page now uses `TabsContent` for all three tabs (`all`, `unread`, `settings`).
+
+### ❌ `host_profiles.verification_status` not updated on host approval
+Both `approve-host-application` and `approve-host-via-ticket` granted the host role via `user_roles` and updated `host_applications.status` to `"approved"`, but **never updated `host_profiles.verification_status` to `"verified"`**. The `HostDashboard` reads `verification_status` from `host_profiles` to display the "Identity verification" card. Without this update the card always showed "Pending review" even after approval.
+
+**Fix:** Both edge functions now upsert `{ verification_status: "verified", verified_at: <ISO> }` into `host_profiles` (on conflict: `user_id`) immediately after the role grant is confirmed and before writing the audit record.
+
+### ❌ No delete listing UI or backend path for hosts
+`MyListings` component had no way to delete a listing. Hosts with incorrect or test listings had no self-service removal option.
+
+**Fix:** Added a two-step "Delete listing" → "Confirm delete" flow in `MyListings`. The delete calls `supabase.from("listings").delete().eq("id", id).eq("host_id", userId)` — the double filter (`id` + `host_id`) ensures the RLS policy and an explicit ownership check both pass. Cancelled bookings referencing the deleted listing retain their row; the listing's `host_id` FK is set to cascade or set-null per the schema.
+
+*Last updated by: Claude Code — post-PR #43 hotfixes (2026-05-24)*

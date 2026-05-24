@@ -22,12 +22,11 @@ import {
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -260,8 +259,6 @@ export default function Notifications() {
     );
   }
 
-  const displayed = tab === "unread" ? items.filter((n) => !n.read) : items;
-
   return (
     <div className="container py-10 max-w-2xl space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -295,54 +292,58 @@ export default function Notifications() {
             Preferences
           </TabsTrigger>
         </TabsList>
-      </Tabs>
 
-      {tab === "settings" ? (
-        <div className="space-y-4">
-          <PushSection />
-          <PreferencesSection />
-        </div>
-      ) : (
-        <Card className="overflow-hidden">
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-            </div>
-          ) : displayed.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-16 text-center">
-              <Bell className="h-10 w-10 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">
-                {tab === "unread" ? "No unread notifications." : "No notifications yet."}
-              </p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-border/40">
-              {displayed.map((n) => (
-                <li
-                  key={n.id}
-                  className={`px-5 py-4 flex items-start gap-4 transition-colors hover:bg-secondary/20 cursor-pointer ${!n.read ? "bg-secondary/10" : ""}`}
-                  onClick={() => { if (!n.read) void markAsRead(n.id); }}
-                >
-                  <div className="mt-0.5">{typeIcon(n.type)}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className={`text-sm truncate ${!n.read ? "font-semibold" : "font-medium"}`}>{n.title}</p>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-muted-foreground">{timeAgo(n.created_at)}</span>
-                        {!n.read && <span className="h-2 w-2 rounded-full bg-primary" />}
+        {(["all", "unread"] as const).map((tabValue) => (
+          <TabsContent key={tabValue} value={tabValue}>
+            <Card className="overflow-hidden">
+              {loading ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                </div>
+              ) : (tabValue === "unread" ? items.filter((n) => !n.read) : items).length === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-16 text-center">
+                  <Bell className="h-10 w-10 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">
+                    {tabValue === "unread" ? "No unread notifications." : "No notifications yet."}
+                  </p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border/40">
+                  {(tabValue === "unread" ? items.filter((n) => !n.read) : items).map((n) => (
+                    <li
+                      key={n.id}
+                      className={`px-5 py-4 flex items-start gap-4 transition-colors hover:bg-secondary/20 cursor-pointer ${!n.read ? "bg-secondary/10" : ""}`}
+                      onClick={() => { if (!n.read) void markAsRead(n.id); }}
+                    >
+                      <div className="mt-0.5">{typeIcon(n.type)}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className={`text-sm truncate ${!n.read ? "font-semibold" : "font-medium"}`}>{n.title}</p>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-xs text-muted-foreground">{timeAgo(n.created_at)}</span>
+                            {!n.read && <span className="h-2 w-2 rounded-full bg-primary" />}
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1">
+                          {new Date(n.created_at).toLocaleString()}
+                        </p>
                       </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">
-                      {new Date(n.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </TabsContent>
+        ))}
+
+        <TabsContent value="settings">
+          <div className="space-y-4">
+            <PushSection />
+            <PreferencesSection />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

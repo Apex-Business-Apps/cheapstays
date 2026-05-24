@@ -99,6 +99,13 @@ Deno.serve(async (req) => {
     const { data: confirmed } = await adminClient.rpc("has_role", { _user_id: target_user_id, _role: "host" });
     if (!confirmed) throw new Error("Host role grant did not persist — state mismatch after write");
 
+    // Mark host_profiles as verified so the dashboard shows the correct status.
+    const { error: profileErr } = await adminClient.from("host_profiles").upsert(
+      { user_id: target_user_id, verification_status: "verified", verified_at: new Date().toISOString() },
+      { onConflict: "user_id" },
+    );
+    if (profileErr) throw profileErr;
+
     // Immutable audit record.
     const commandId = `approve-host-via-ticket:${ticket_id}:${Date.now()}`;
     const { error: auditErr } = await adminClient.from("role_mutation_audit").insert({

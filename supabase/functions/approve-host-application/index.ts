@@ -78,13 +78,20 @@ Deno.serve(async (req) => {
       throw roleErr;
     }
 
-    const { error: updateErr } = await adminClient.from("host_applications").update({
-      status: "approved",
-      reviewed_by: user.id,
-      reviewed_at: new Date().toISOString(),
-      rejection_reason: null,
-    }).eq("id", application_id);
-    if (updateErr) throw updateErr;
+    const [updateRes, profileRes] = await Promise.all([
+      adminClient.from("host_applications").update({
+        status: "approved",
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString(),
+        rejection_reason: null,
+      }).eq("id", application_id),
+      adminClient.from("host_profiles").upsert(
+        { user_id: target_user_id, verification_status: "verified", verified_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      ),
+    ]);
+    if (updateRes.error) throw updateRes.error;
+    if (profileRes.error) throw profileRes.error;
 
     const { data: hostConfirmed } = await adminClient.rpc("has_role", { _user_id: target_user_id, _role: "host" });
     if (!hostConfirmed) {
