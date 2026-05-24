@@ -60,14 +60,18 @@ Deno.serve(async (req) => {
   try {
     const rawBody = await req.text();
     const webhookSecret = Deno.env.get("PAYMONGO_WEBHOOK_SECRET");
-    if (webhookSecret) {
-      const sigHeader = req.headers.get(PAYMONGO_WEBHOOK_SECRET_HEADER) ?? "";
-      if (!(await verifySignature(rawBody, sigHeader, webhookSecret))) {
-        return new Response(JSON.stringify({ error: "Invalid signature" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    if (!webhookSecret) {
+      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const sigHeader = req.headers.get(PAYMONGO_WEBHOOK_SECRET_HEADER) ?? "";
+    if (!(await verifySignature(rawBody, sigHeader, webhookSecret))) {
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const event = JSON.parse(rawBody);

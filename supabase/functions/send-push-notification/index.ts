@@ -14,19 +14,30 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 import { corsHeaders } from "../_shared/cors.ts";
 
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-);
-
-webpush.setVapidDetails(
-  Deno.env.get("VAPID_EMAIL") ?? "mailto:admin@cheapstays.me",
-  Deno.env.get("VAPID_PUBLIC_KEY")!,
-  Deno.env.get("VAPID_PRIVATE_KEY")!,
-);
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Internal-only: require service-role key in Authorization header.
+  // Callers must use SUPABASE_SERVICE_ROLE_KEY; user JWTs are rejected.
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!serviceKey || authHeader !== `Bearer ${serviceKey}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    serviceKey,
+  );
+
+  webpush.setVapidDetails(
+    Deno.env.get("VAPID_EMAIL") ?? "mailto:admin@cheapstays.me",
+    Deno.env.get("VAPID_PUBLIC_KEY")!,
+    Deno.env.get("VAPID_PRIVATE_KEY")!,
+  );
 
   const { user_id, title, body, url } = await req.json() as {
     user_id: string;
