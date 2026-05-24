@@ -7,6 +7,7 @@ type AuthCtx = {
   user: User | null;
   session: Session | null;
   roles: AppRole[];
+  rolesError: string | null;
   loading: boolean;
   signOut: () => Promise<void>;
 };
@@ -15,6 +16,7 @@ const Ctx = createContext<AuthCtx>({
   user: null,
   session: null,
   roles: [],
+  rolesError: null,
   loading: true,
   signOut: async () => {},
 });
@@ -23,7 +25,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [rolesError, setRolesError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const loadRoles = async (userId: string | undefined) => {
+    const result = await fetchRoles(userId);
+    setRoles(result.roles);
+    setRolesError(result.error?.message ?? null);
+  };
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
@@ -31,17 +40,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(s?.user ?? null);
       if (s?.user) {
         setTimeout(() => {
-          fetchRoles(s.user.id).then(setRoles);
+          void loadRoles(s.user.id);
         }, 0);
       } else {
         setRoles([]);
+        setRolesError(null);
       }
     });
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
-      if (data.session?.user) fetchRoles(data.session.user.id).then(setRoles);
+      await loadRoles(data.session?.user?.id);
       setLoading(false);
     });
 
@@ -54,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         session,
         roles,
+        rolesError,
         loading,
         signOut: async () => {
           await supabase.auth.signOut();
