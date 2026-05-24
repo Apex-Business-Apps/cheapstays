@@ -44,4 +44,9 @@ export function setLang(code: string) {
   localStorage.setItem(STORAGE_KEY, code);
 }
 
+// Expose for E2E test introspection only — harmless in production
+if (typeof window !== "undefined") {
+  (window as unknown as Record<string, unknown>).__cheapstays_i18n__ = i18n;
+}
+
 export default i18n;

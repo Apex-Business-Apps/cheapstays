@@ -6,8 +6,24 @@ import { rateLimit } from "../_shared/rate-limit.ts";
 import { AI_PROMPT_VERSION_REGISTRY, buildGuardrailSystemPrompt, detectGuardrailViolation, fallbackGuardrailResponse } from "../_shared/ai-governance.ts";
 import { logAiDecision } from "../_shared/ai-audit.ts";
 
+const SUPPORTED_LANGS = ["en", "fil", "zh", "ms", "id", "ko", "vi", "ja", "th"] as const;
+type SupportedLang = typeof SUPPORTED_LANGS[number];
+
+const LANG_NAMES: Record<SupportedLang, string> = {
+  en:  "English",
+  fil: "Filipino (Tagalog)",
+  zh:  "Chinese (Simplified)",
+  ms:  "Malay",
+  id:  "Indonesian",
+  ko:  "Korean",
+  vi:  "Vietnamese",
+  ja:  "Japanese",
+  th:  "Thai",
+};
+
 const BodySchema = z.object({
   query: z.string().min(2).max(500),
+  lang: z.enum(SUPPORTED_LANGS).optional().default("en"),
   filters: z
     .object({
       maxNightly: z.number().positive().optional(),
@@ -38,7 +54,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { query, filters } = parsed.data;
+    const { query, filters, lang } = parsed.data;
     const violations = detectGuardrailViolation(query);
     if (violations.length) {
       await logAiDecision({
@@ -94,7 +110,11 @@ Deno.serve(async (req) => {
       )
       .join("\n");
 
-    const system = `${buildGuardrailSystemPrompt("search")}\n\nYou are the cheapstays.me deal-hunting AI. You have real listings from the database below.
+    const langInstruction = lang !== "en"
+      ? `\nLANGUAGE: Write your "summary" and "why_its_a_deal" fields in ${LANG_NAMES[lang]}. Keep property names, city names, and prices (₱) in their original form.`
+      : "";
+
+    const system = `${buildGuardrailSystemPrompt("search")}${langInstruction}\n\nYou are the cheapstays.me deal-hunting AI. You have real listings from the database below.
 Match listings to the user query using FUZZY, SEMANTIC matching:
 - Be flexible with city names, spelling, abbreviations (e.g. "QC" = "Quezon City", "BGC" = Bonifacio Global City, "NCR" = Metro Manila)
 - Match province/region names too ("Metro Manila" matches "NCR", "Palawan" matches "El Nido" or "Coron")

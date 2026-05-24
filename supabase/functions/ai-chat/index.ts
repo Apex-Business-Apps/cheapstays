@@ -6,12 +6,28 @@ import { AI_PROMPT_VERSION_REGISTRY, buildGuardrailSystemPrompt, detectGuardrail
 import { logAiDecision } from "../_shared/ai-audit.ts";
 import { isApprovedRegistryCommand } from "../_shared/command-authority.ts";
 
+const SUPPORTED_LANGS = ["en", "fil", "zh", "ms", "id", "ko", "vi", "ja", "th"] as const;
+type SupportedLang = typeof SUPPORTED_LANGS[number];
+
+const LANG_NAMES: Record<SupportedLang, string> = {
+  en:  "English",
+  fil: "Filipino (Tagalog)",
+  zh:  "Chinese (Simplified)",
+  ms:  "Malay",
+  id:  "Indonesian",
+  ko:  "Korean",
+  vi:  "Vietnamese",
+  ja:  "Japanese",
+  th:  "Thai",
+};
+
 const MsgSchema = z.object({
   role: z.enum(["system", "user", "assistant"]),
   content: z.string().min(1).max(4000),
 });
 const BodySchema = z.object({
   messages: z.array(MsgSchema).min(1).max(40),
+  lang: z.enum(SUPPORTED_LANGS).optional().default("en"),
   command_id: z.string().min(3).max(120).optional(),
   top_level_command: z.boolean().optional(),
 });
@@ -108,11 +124,21 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("GROQ_API_KEY");
     if (!apiKey) throw new Error("GROQ_API_KEY missing");
 
+    const lang = parsed.data.lang;
     const allText = parsed.data.messages.map((m) => m.content).join(" ");
     const needsListings = LISTING_KEYWORDS.test(allText) || RATING_KEYWORDS.test(allText) ||
       BOOKING_KEYWORDS.test(allText) || FILTER_KEYWORDS.test(allText);
     const listingsContext = needsListings ? await fetchListingsContext() : "";
-    const systemContent = `${buildGuardrailSystemPrompt("summary")}\n\n${BASE_SYSTEM}${listingsContext}`;
+
+    // Inject language instruction so Groq responds in the user's UI language.
+    // Placed after BASE_SYSTEM so it takes precedence over the English-language examples.
+    const langInstruction = lang !== "en"
+      ? `\n\nLANGUAGE INSTRUCTION: The user's interface is set to ${LANG_NAMES[lang]}. ` +
+        `You MUST respond in ${LANG_NAMES[lang]} unless the user explicitly writes to you in a different language. ` +
+        `Keep all property names, prices (₱), and place names in their original form.`
+      : "";
+
+    const systemContent = `${buildGuardrailSystemPrompt("summary")}\n\n${BASE_SYSTEM}${langInstruction}${listingsContext}`;
 
     const upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
