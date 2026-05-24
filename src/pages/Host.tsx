@@ -116,14 +116,38 @@ function MyListings({ userId }: { userId: string }) {
   async function deleteListing(id: string) {
     setDeleting(id);
     const { error } = await supabase.from("listings").delete().eq("id", id).eq("host_id", userId);
+    if (error?.code === "23503") {
+      // FK violation means bookings reference this listing; safely deactivate instead of hard-delete.
+      const { error: deactivateError } = await supabase
+        .from("listings")
+        .update({ status: "inactive" })
+        .eq("id", id)
+        .eq("host_id", userId);
+
+      setDeleting(null);
+      setConfirmDelete(null);
+      if (deactivateError) {
+        toast({ title: "Delete failed", description: deactivateError.message, variant: "destructive" });
+        return;
+      }
+
+      toast({
+        title: "Listing deactivated",
+        description: "This listing has booking history, so it was deactivated instead of deleted.",
+      });
+      setListings((prev) => prev.map((l) => (l.id === id ? { ...l, status: "inactive" } : l)));
+      return;
+    }
+
     setDeleting(null);
     setConfirmDelete(null);
     if (error) {
       toast({ title: "Delete failed", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Listing deleted" });
-      setListings((prev) => prev.filter((l) => l.id !== id));
+      return;
     }
+
+    toast({ title: "Listing deleted" });
+    setListings((prev) => prev.filter((l) => l.id !== id));
   }
 
   if (loading) {
