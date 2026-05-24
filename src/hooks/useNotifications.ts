@@ -62,7 +62,7 @@ export function useNotifications() {
       return;
     }
     setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }, []);
+  }, [userId]);
 
   useEffect(() => { void loadData(); }, [loadData]);
 
