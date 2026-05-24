@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SearchListing } from "@/types/pip";
 
+// Must match book-listing edge function.
+const SHORT_TERM_MAX_NIGHTS = 30;
+
 type Props = {
   listing: SearchListing;
   /** Called when user taps back arrow */
@@ -54,9 +57,21 @@ export function PipBookingPanel({ listing, onCancel, onConfirm, loading }: Props
   const serviceFee = Math.round(subtotal * 0.05);
   const total = subtotal + serviceFee;
 
+  const isShortTermStay = nights > 0 && nights <= SHORT_TERM_MAX_NIGHTS;
+  const isLongTermStay = nights > SHORT_TERM_MAX_NIGHTS;
+  const shortTermBlocked = isShortTermStay && listing.short_term_enabled === false;
+  const longTermBlocked = isLongTermStay && listing.long_term_enabled !== true;
+
   const isValid = useMemo(
-    () => checkIn >= minCheckIn && checkOut > checkIn && nights >= listing.min_nights && guests >= 1 && guests <= listing.max_guests,
-    [checkIn, checkOut, nights, listing.min_nights, listing.max_guests, guests, minCheckIn],
+    () =>
+      checkIn >= minCheckIn &&
+      checkOut > checkIn &&
+      nights >= listing.min_nights &&
+      guests >= 1 &&
+      guests <= listing.max_guests &&
+      !shortTermBlocked &&
+      !longTermBlocked,
+    [checkIn, checkOut, nights, listing.min_nights, listing.max_guests, guests, minCheckIn, shortTermBlocked, longTermBlocked],
   );
 
   function adjustGuests(delta: number) {
@@ -180,9 +195,24 @@ export function PipBookingPanel({ listing, onCancel, onConfirm, loading }: Props
                 <span className="text-primary">₱{total.toLocaleString()}</span>
               </div>
             </div>
-            {listing.instant_book && (
+            {isShortTermStay && !shortTermBlocked && (
               <p className="text-[10px] text-primary font-medium">
                 ⚡ {t("pip.instantBookBadge")} — confirmed immediately
+              </p>
+            )}
+            {isLongTermStay && !longTermBlocked && (
+              <p className="text-[10px] text-muted-foreground">
+                Long-term request — host has 24h to respond
+              </p>
+            )}
+            {shortTermBlocked && (
+              <p className="text-[10px] text-destructive">
+                This listing does not accept short-term stays (≤30 nights).
+              </p>
+            )}
+            {longTermBlocked && (
+              <p className="text-[10px] text-destructive">
+                This listing does not accept long-term stays (31+ nights).
               </p>
             )}
           </div>

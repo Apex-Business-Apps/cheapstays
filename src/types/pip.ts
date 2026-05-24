@@ -11,10 +11,15 @@ export type SearchListing = {
   max_guests: number;
   nightly_php: number;
   min_nights: number;
+  max_nights?: number | null;
   amenities: string[];
   images: string[];
-  is_owner_direct: boolean;
-  instant_book: boolean;
+  short_term_enabled?: boolean | null;
+  long_term_enabled?: boolean | null;
+  /** @deprecated legacy flag — routing is by nights, not this column */
+  is_owner_direct?: boolean;
+  /** @deprecated legacy flag — routing is by nights, not this column */
+  instant_book?: boolean;
   avg_rating: number | null;
   review_count: number | null;
   why_its_a_deal: string;

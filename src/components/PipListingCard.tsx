@@ -1,4 +1,4 @@
-import { Star, Zap, User, MapPin } from "lucide-react";
+import { Star, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -38,24 +38,6 @@ export function PipListingCard({ listing, onBook }: Props) {
       <div className="p-2.5 space-y-1.5">
         {/* Badges row */}
         <div className="flex items-center gap-1 flex-wrap">
-          {listing.instant_book && (
-            <span className={cn(
-              "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5",
-              "text-[10px] font-medium bg-primary/10 text-primary border border-primary/20",
-            )}>
-              <Zap className="h-2.5 w-2.5" />
-              {t("pip.instantBookBadge")}
-            </span>
-          )}
-          {listing.is_owner_direct && (
-            <span className={cn(
-              "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5",
-              "text-[10px] font-medium bg-secondary text-secondary-foreground border border-border/60",
-            )}>
-              <User className="h-2.5 w-2.5" />
-              {t("pip.ownerDirectBadge")}
-            </span>
-          )}
           {listing.avg_rating != null && listing.avg_rating > 0 && (
             <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-500 font-medium">
               <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />

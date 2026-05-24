@@ -12,9 +12,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+// short_term_enabled / long_term_enabled are not yet in auto-generated types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sb = supabase as any;
 import { aiSearchSchema } from "@/lib/schemas";
 import { toast } from "@/hooks/use-toast";
-import { ExternalLink, Loader2, Sparkles, Zap, Users, BedDouble, Star, SlidersHorizontal, X, Lock } from "lucide-react";
+import { ExternalLink, Loader2, Sparkles, Users, BedDouble, Star, SlidersHorizontal, X, Lock } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,7 +39,8 @@ type Listing = {
   amenities: string[];
   images: string[];
   is_owner_direct: boolean;
-  instant_book: boolean;
+  short_term_enabled: boolean;
+  long_term_enabled: boolean;
   avg_rating: number | null;
   review_count: number;
   why_its_a_deal: string;
@@ -65,8 +69,6 @@ type Filters = {
   minGuests: number;
   types: string[];
   amenities: string[];
-  instantBook: boolean;
-  ownerDirect: boolean;
 };
 
 const DEFAULT_FILTERS: Filters = {
@@ -75,8 +77,6 @@ const DEFAULT_FILTERS: Filters = {
   minGuests: 1,
   types: [],
   amenities: [],
-  instantBook: false,
-  ownerDirect: false,
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -122,9 +122,7 @@ function activeFilterCount(f: Filters): number {
     (f.minBedrooms > 0 ? 1 : 0) +
     (f.minGuests > 1 ? 1 : 0) +
     f.types.length +
-    f.amenities.length +
-    (f.instantBook ? 1 : 0) +
-    (f.ownerDirect ? 1 : 0)
+    f.amenities.length
   );
 }
 
@@ -146,11 +144,6 @@ function ListingCard({ listing, guestRating }: { listing: Listing; guestRating?:
           <span className="text-4xl opacity-20 select-none">
             {listing.type === "villa" ? "🏡" : listing.type === "glamping" ? "⛺" : "🏠"}
           </span>
-        )}
-        {listing.instant_book && (
-          <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground text-[10px] gap-1">
-            <Zap className="h-3 w-3" /> Instant book
-          </Badge>
         )}
         {listing.is_owner_direct && (
           <Badge variant="secondary" className="absolute top-3 right-3 text-[10px]">Owner direct</Badge>
@@ -306,14 +299,14 @@ export default function Search() {
     setBrowseLoading(true);
     (async () => {
       try {
-        const { data } = await supabase
+        const { data } = await sb
           .from("listings")
-          .select("id, slug, host_id, title, city, province, type, bedrooms, bathrooms, max_guests, nightly_php, min_nights, amenities, images, is_owner_direct, instant_book, avg_rating, review_count")
+          .select("id, slug, host_id, title, city, province, type, bedrooms, bathrooms, max_guests, nightly_php, min_nights, amenities, images, is_owner_direct, short_term_enabled, long_term_enabled, avg_rating, review_count")
           .eq("status", "active")
           .order("created_at", { ascending: false })
           .limit(12);
         if (!cancelled) {
-          const listings = (data ?? []).map((l) => ({ ...l, why_its_a_deal: "", score: 0 })) as Listing[];
+          const listings = ((data ?? []) as Record<string, unknown>[]).map((l) => ({ ...l, why_its_a_deal: "", score: 0 })) as Listing[];
           setBrowseListings(listings);
           fetchHostRatings(listings);
         }
@@ -383,8 +376,6 @@ export default function Search() {
       if (r.max_guests < filters.minGuests) return false;
       if (filters.types.length && !filters.types.includes(r.type)) return false;
       if (filters.amenities.length && !filters.amenities.every((a) => r.amenities?.includes(a))) return false;
-      if (filters.instantBook && !r.instant_book) return false;
-      if (filters.ownerDirect && !r.is_owner_direct) return false;
       return true;
     });
 
@@ -452,14 +443,6 @@ export default function Search() {
                 <SelectItem value="rating">Highest rated</SelectItem>
               </SelectContent>
             </Select>
-
-            {/* Quick filter chips */}
-            <FilterChip active={filters.instantBook} onClick={() => setFilters((f) => ({ ...f, instantBook: !f.instantBook }))}>
-              <Zap className="h-3 w-3 inline mr-1" />Instant book
-            </FilterChip>
-            <FilterChip active={filters.ownerDirect} onClick={() => setFilters((f) => ({ ...f, ownerDirect: !f.ownerDirect }))}>
-              Owner direct
-            </FilterChip>
 
             {/* Full filter panel */}
             <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
@@ -536,19 +519,6 @@ export default function Search() {
                           {AMENITY_LABELS[a]}
                         </FilterChip>
                       ))}
-                    </div>
-                  </div>
-
-                  {/* Booking options */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Booking</p>
-                    <div className="flex gap-2 flex-wrap">
-                      <FilterChip active={filters.instantBook} onClick={() => setFilters((f) => ({ ...f, instantBook: !f.instantBook }))}>
-                        Instant book
-                      </FilterChip>
-                      <FilterChip active={filters.ownerDirect} onClick={() => setFilters((f) => ({ ...f, ownerDirect: !f.ownerDirect }))}>
-                        Owner direct
-                      </FilterChip>
                     </div>
                   </div>
 

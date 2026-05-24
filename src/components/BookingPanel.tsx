@@ -9,6 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+
+// listing_house_rules is not yet in auto-generated types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sb = supabase as any;
+
+type HouseRulesRow = {
+  current_version: string;
+  current_hash: string;
+  rules_json: { text: string };
+};
 import { toast } from "@/hooks/use-toast";
 import { CalendarDays, ChevronDown, CreditCard, Loader2, Smartphone, Users, Wallet, Zap, CheckCircle2 } from "lucide-react";
 import { LegalScrollGate } from "@/components/LegalScrollGate";
@@ -69,6 +79,8 @@ export function BookingPanel({ listing }: Props) {
   const [paying, setPaying] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
   const [showLegalGate, setShowLegalGate] = useState(false);
+  const [showHouseRulesGate, setShowHouseRulesGate] = useState(false);
+  const [houseRules, setHouseRules] = useState<HouseRulesRow | null>(null);
 
   useEffect(() => {
     supabase
@@ -84,6 +96,16 @@ export function BookingPanel({ listing }: Props) {
             end: parseISO(b.check_out),
           }))
         );
+      });
+  }, [listing.id]);
+
+  useEffect(() => {
+    sb.from("listing_house_rules")
+      .select("current_version,current_hash,rules_json")
+      .eq("listing_id", listing.id)
+      .maybeSingle()
+      .then(({ data }: { data: HouseRulesRow | null }) => {
+        setHouseRules(data ?? null);
       });
   }, [listing.id]);
 
@@ -462,6 +484,41 @@ export function BookingPanel({ listing }: Props) {
               }
               onAccepted={async () => {
                 setShowLegalGate(false);
+                if (houseRules) {
+                  setShowHouseRulesGate(true);
+                } else {
+                  await book();
+                }
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {user && houseRules && (
+        <Dialog open={showHouseRulesGate} onOpenChange={setShowHouseRulesGate}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>House Rules</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground -mt-2 mb-1">
+              Read and accept the host's house rules before booking.
+            </p>
+            <LegalScrollGate
+              userId={user.id}
+              role="guest"
+              contextId={listing.id}
+              documentId="house-rules"
+              documentVersion={houseRules.current_version}
+              documentHash={houseRules.current_hash}
+              checkboxLabel="I have read and agree to the host's house rules."
+              legalContent={
+                <p className="text-sm whitespace-pre-wrap leading-relaxed font-sans">
+                  {houseRules.rules_json.text}
+                </p>
+              }
+              onAccepted={async () => {
+                setShowHouseRulesGate(false);
                 await book();
               }}
             />
