@@ -17,6 +17,17 @@ const FROM = "CheapStays <cheapstays.me@gmail.com>";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Internal-only: require service-role key in Authorization header.
+  // Callers must use SUPABASE_SERVICE_ROLE_KEY; user JWTs are rejected.
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!serviceKey || authHeader !== `Bearer ${serviceKey}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const resendKey = Deno.env.get("RESEND_API_KEY");
   if (!resendKey) {
     return new Response(JSON.stringify({ sent: false, reason: "no_key" }), {
