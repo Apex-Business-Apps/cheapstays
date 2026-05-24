@@ -8,20 +8,24 @@ import {
   recordTransition,
   type FlowState,
 } from "../_shared/booking-transitions.ts";
+import { calculateRefundAmounts, type RefundTier } from "../_shared/payments.ts";
 
 // process-refund finalizes a refund after a cancel/replacement-decline has
-// already moved the booking to cancel_requested. It does NOT call PayMongo
-// directly — refund initiation lives in the existing payment-intent /
-// payment-webhook surfaces. This function records the final state transition
-// and notifies the guest. Tier-aware penalty math (Phase 8) is the only
-// thing that decides how much was refunded; the amount is passed in.
+// already moved the booking to cancel_requested.
+//
+// The server auto-calculates tier-aware amounts from check_in + total_php:
+//   ≥7 days  → full refund (no penalty)
+//   48h–7d   → 10% accommodation penalty
+//   <48h     → 30% accommodation penalty
+//   post-CO  → zero refund
+//
+// Admins may supply refund_tier to override the auto-computed tier for
+// exceptional cases. All amounts are computed server-side — never trusted
+// from the caller.
 
 const BodySchema = z.object({
   booking_id: z.string().uuid(),
-  refunded_amount_php: z.number().nonnegative(),
-  service_fee_retained_php: z.number().nonnegative(),
-  accommodation_penalty_php: z.number().nonnegative(),
-  refund_tier: z.enum(["full", "partial_10", "partial_30", "zero"]),
+  refund_tier: z.enum(["full", "partial_10", "partial_30", "zero"]).optional(),
   provider_refund_ref: z.string().max(200).optional(),
 });
 
@@ -51,8 +55,6 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabaseUser.auth.getUser();
     if (!user) return json({ error: "Unauthorized" }, 401);
 
-    // Only admins (or service-role webhooks via direct invocation) may
-    // finalize a refund. Hosts and guests cannot self-serve refund amounts.
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -67,7 +69,7 @@ Deno.serve(async (req) => {
 
     const { data: booking, error: bookingError } = await adminClient
       .from("bookings")
-      .select("id, guest_id, host_id, flow_state, payment_state")
+      .select("id, guest_id, host_id, flow_state, payment_state, check_in, total_php")
       .eq("id", parsed.data.booking_id)
       .single();
     if (bookingError || !booking) return json({ error: "Booking not found" }, 404);
@@ -77,14 +79,21 @@ Deno.serve(async (req) => {
       return json({ error: `Refund can only be finalized from 'cancel_requested', got '${fromState}'` }, 409);
     }
 
+    // Server-authoritative tier calculation — admin override accepted for
+    // exceptional cases only. Both branches use the same calculation path.
+    const breakdown = calculateRefundAmounts(
+      booking.check_in,
+      booking.total_php,
+      parsed.data.refund_tier as RefundTier | undefined,
+    );
+
     const toState: FlowState = "refunded";
     const { error: updateError } = await adminClient
       .from("bookings")
       .update({
         flow_state: toState,
         status: flowToCoarseStatus(toState),
-        payment_state: parsed.data.refunded_amount_php > 0 ? "refunded" : booking.payment_state,
-        payment_status: parsed.data.refunded_amount_php > 0 ? "refunded" : undefined,
+        payment_state: breakdown.refunded_php > 0 ? "refunded" : booking.payment_state,
       })
       .eq("id", booking.id);
 
@@ -98,11 +107,14 @@ Deno.serve(async (req) => {
       actorRole: "admin",
       reason: "admin_finalized_refund",
       metadata: {
-        refund_tier: parsed.data.refund_tier,
-        refunded_amount_php: parsed.data.refunded_amount_php,
-        service_fee_retained_php: parsed.data.service_fee_retained_php,
-        accommodation_penalty_php: parsed.data.accommodation_penalty_php,
+        refund_tier: breakdown.tier,
+        refunded_amount_php: breakdown.refunded_php,
+        service_fee_retained_php: breakdown.service_fee_php,
+        accommodation_penalty_php: breakdown.penalty_php,
+        host_share_php: breakdown.host_share_php,
+        platform_share_php: breakdown.platform_share_php,
         provider_refund_ref: parsed.data.provider_refund_ref ?? null,
+        tier_override: parsed.data.refund_tier ?? null,
         legal_compliance_tag: "ph_consumer_protection",
       },
     });
@@ -111,8 +123,10 @@ Deno.serve(async (req) => {
       userId: booking.guest_id,
       type: "refund_processed",
       title: "Refund processed",
-      body: `₱${parsed.data.refunded_amount_php.toLocaleString()} has been refunded to your original payment method.`,
-      data: { booking_id: booking.id, refund_tier: parsed.data.refund_tier },
+      body: breakdown.refunded_php > 0
+        ? `₱${breakdown.refunded_php.toLocaleString()} has been refunded to your original payment method.`
+        : "Your cancellation request was processed. No refund applies for this cancellation tier.",
+      data: { booking_id: booking.id, refund_tier: breakdown.tier },
       url: "/my-bookings",
     });
 
@@ -120,7 +134,7 @@ Deno.serve(async (req) => {
       success: true,
       booking_id: booking.id,
       flow_state: toState,
-      refunded_amount_php: parsed.data.refunded_amount_php,
+      ...breakdown,
     });
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
