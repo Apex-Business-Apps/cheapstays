@@ -234,15 +234,6 @@ function HostApplicationForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  if (rolesError) {
-    return (
-      <div className="container py-24 max-w-xl text-center">
-        <h1 className="text-2xl font-semibold">Unable to verify host access</h1>
-        <p className="text-muted-foreground mt-2">{rolesError}</p>
-      </div>
-    );
-  }
-
   if (!user) {
     return (
       <div className="container py-24 max-w-xl text-center">
