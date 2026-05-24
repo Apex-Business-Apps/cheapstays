@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Seo } from "@/components/Seo";
-import { Loader2, CalendarDays, ArrowRight } from "lucide-react";
+import { Loader2, CalendarDays, ArrowRight, CreditCard } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -44,10 +44,14 @@ function BookingCard({
   booking: b,
   onCancel,
   cancelling,
+  onPay,
+  paying,
 }: {
   booking: Booking;
   onCancel: (id: string) => void;
   cancelling: string | null;
+  onPay: (id: string) => void;
+  paying: string | null;
 }) {
   const listingHref = b.listings?.slug
     ? `/listing/slug/${b.listings.slug}`
@@ -94,10 +98,23 @@ function BookingCard({
               <p className="font-semibold text-sm">₱{b.total_php.toLocaleString()}</p>
               <p className="text-[10px] text-muted-foreground">{PAYMENT_LABELS[b.payment_status] ?? b.payment_status}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button size="sm" variant="outline" asChild>
                 <Link to={listingHref}>View listing</Link>
               </Button>
+              {["pending", "confirmed"].includes(b.status) && b.payment_status === "unpaid" && (
+                <Button
+                  size="sm"
+                  disabled={paying === b.id}
+                  onClick={() => onPay(b.id)}
+                  className="gap-1.5"
+                >
+                  {paying === b.id
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <CreditCard className="h-3.5 w-3.5" />}
+                  Pay now
+                </Button>
+              )}
               {b.status === "pending" && (
                 <Button
                   size="sm"
@@ -123,6 +140,7 @@ export default function MyBookings() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [paying, setPaying] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -146,6 +164,25 @@ export default function MyBookings() {
         setLoading(false);
       });
   }, [user]);
+
+  async function pay(bookingId: string) {
+    setPaying(bookingId);
+    try {
+      const { data, error } = await supabase.functions.invoke("booking-checkout", {
+        body: { booking_id: bookingId, payment_method: "gcash" },
+      });
+      if (error) throw error;
+      if (data?.checkout_url) {
+        window.location.href = data.checkout_url as string;
+        return;
+      }
+      toast({ title: "Online payment unavailable", description: "Your booking is confirmed. You can pay at check-in." });
+    } catch (err) {
+      toast({ title: "Payment error", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setPaying(null);
+    }
+  }
 
   async function cancel(bookingId: string) {
     setCancelling(bookingId);
@@ -218,7 +255,7 @@ export default function MyBookings() {
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Upcoming</h2>
                 <div className="space-y-4">
                   {upcoming.map((b) => (
-                    <BookingCard key={b.id} booking={b} onCancel={cancel} cancelling={cancelling} />
+                    <BookingCard key={b.id} booking={b} onCancel={cancel} cancelling={cancelling} onPay={pay} paying={paying} />
                   ))}
                 </div>
               </section>
@@ -228,7 +265,7 @@ export default function MyBookings() {
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Past & cancelled</h2>
                 <div className="space-y-4">
                   {past.map((b) => (
-                    <BookingCard key={b.id} booking={b} onCancel={cancel} cancelling={cancelling} />
+                    <BookingCard key={b.id} booking={b} onCancel={cancel} cancelling={cancelling} onPay={pay} paying={paying} />
                   ))}
                 </div>
               </section>
