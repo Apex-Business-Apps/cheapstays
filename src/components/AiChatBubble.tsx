@@ -47,7 +47,7 @@ function bumpSearchCount() {
   try {
     const parsed = JSON.parse(localStorage.getItem(SEARCH_LIMIT_KEY) ?? "{}") as { date?: string; count?: number };
     if (parsed.date === today) count = parsed.count ?? 0;
-  } catch {}
+  } catch { /* ignore malformed localStorage */ }
   localStorage.setItem(SEARCH_LIMIT_KEY, JSON.stringify({ date: today, count: count + 1 }));
 }
 
