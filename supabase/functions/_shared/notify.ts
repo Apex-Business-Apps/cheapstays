@@ -60,7 +60,16 @@ export async function dispatchNotification(
   // ── In-app ───────────────────────────────────────────────────────────────
   const inAppEnabled: boolean = prefs?.in_app_enabled ?? true;
   if (inAppEnabled) {
-    await adminClient.from("notifications").insert({ user_id: userId, type, title, body, data });
+    const { error: inAppInsertError } = await adminClient.from("notifications").insert({ user_id: userId, type, title, body, data });
+    if (inAppInsertError) {
+      console.error("[notify.dispatch.in_app_insert_failed]", {
+        userId,
+        type,
+        code: inAppInsertError.code,
+        message: inAppInsertError.message,
+      });
+      throw new Error(`In-app notification insert failed: ${inAppInsertError.message}`);
+    }
   }
 
   // ── Push (high-value only) ────────────────────────────────────────────────
@@ -93,7 +102,10 @@ export async function dispatchNotification(
               const status = (err as { statusCode?: number }).statusCode;
               if (status === 404 || status === 410) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                await (adminClient as any).from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+                const { error: cleanupError } = await (adminClient as any).from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+                if (cleanupError) {
+                  console.error("[notify.dispatch.push_cleanup_failed]", { endpoint: sub.endpoint, message: cleanupError.message });
+                }
               }
             }
           }),

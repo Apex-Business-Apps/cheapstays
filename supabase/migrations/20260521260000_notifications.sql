@@ -19,6 +19,7 @@ CREATE POLICY "Users see own notifications"
 
 CREATE POLICY "Service role manages notifications"
   ON notifications FOR ALL
+  TO service_role
   USING (true)
   WITH CHECK (true);
 

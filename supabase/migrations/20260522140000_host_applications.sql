@@ -89,6 +89,7 @@ CREATE POLICY "Admins read all applications"
 
 CREATE POLICY "Service role manages applications"
   ON public.host_applications FOR ALL
+  TO service_role
   USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
 

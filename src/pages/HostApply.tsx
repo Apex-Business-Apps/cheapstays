@@ -59,7 +59,7 @@ function FileDropzone({
 }
 
 export default function HostApply() {
-  const { user, roles, loading: authLoading } = useAuth();
+  const { user, roles, rolesError, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -162,6 +162,13 @@ export default function HostApply() {
       <h1 className="text-2xl font-semibold">Create an account first</h1>
       <p className="text-muted-foreground">You need a CheapStays account before applying to host.</p>
       <Button asChild><Link to="/auth?mode=signup&next=/host/apply">Sign up — it's free</Link></Button>
+    </div>
+  );
+
+  if (rolesError) return (
+    <div className="container py-24 max-w-md text-center space-y-4">
+      <h1 className="text-2xl font-semibold">Unable to verify host access</h1>
+      <p className="text-muted-foreground">{rolesError}</p>
     </div>
   );
 

@@ -24,6 +24,7 @@ drop policy if exists "Service role manages ai audit logs" on public.ai_audit_lo
 create policy "Service role manages ai audit logs"
 on public.ai_audit_logs
 for all
+to service_role
 using (auth.role() = 'service_role')
 with check (auth.role() = 'service_role');
 
@@ -31,5 +32,6 @@ drop policy if exists "Service role manages command registry" on public.github_c
 create policy "Service role manages command registry"
 on public.github_command_registry
 for all
+to service_role
 using (auth.role() = 'service_role')
 with check (auth.role() = 'service_role');

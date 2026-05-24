@@ -92,6 +92,7 @@ ALTER TABLE public.user_suspensions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Service role manages suspensions"
   ON public.user_suspensions FOR ALL
+  TO service_role
   USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
 

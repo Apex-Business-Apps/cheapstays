@@ -46,7 +46,7 @@ export function useNotifications() {
     if (!userId) return;
     const ids = items.filter((n) => !n.read).map((n) => n.id);
     if (!ids.length) return;
-    const { error } = await supabase.from("notifications").update({ read: true }).in("id", ids);
+    const { error } = await supabase.from("notifications").update({ read: true }).eq("user_id", userId).in("id", ids);
     if (error) {
       toast({ title: "Failed to update", description: error.message, variant: "destructive" });
       return;
@@ -55,9 +55,14 @@ export function useNotifications() {
   }, [userId, items]);
 
   const markAsRead = useCallback(async (id: string) => {
-    const { error } = await supabase.from("notifications").update({ read: true }).eq("id", id);
-    if (!error) setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }, []);
+    if (!userId) return;
+    const { error } = await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("id", id);
+    if (error) {
+      toast({ title: "Failed to update", description: error.message, variant: "destructive" });
+      return;
+    }
+    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  }, [userId]);
 
   useEffect(() => { void loadData(); }, [loadData]);
 

@@ -382,7 +382,7 @@ function HostApplicationForm() {
 }
 
 export default function Host() {
-  const { user, roles, loading: authLoading } = useAuth();
+  const { user, roles, rolesError, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   // Pre-generate listing ID so ImageUploader can use it before submit
@@ -529,6 +529,15 @@ export default function Host() {
     return (
       <div className="container py-24 flex justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (rolesError) {
+    return (
+      <div className="container py-24 max-w-xl text-center">
+        <h1 className="text-2xl font-semibold">Unable to verify host access</h1>
+        <p className="text-muted-foreground mt-2">{rolesError}</p>
       </div>
     );
   }

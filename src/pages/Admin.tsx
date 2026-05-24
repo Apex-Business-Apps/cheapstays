@@ -157,7 +157,7 @@ function BookingCalendar({ bookings }: { bookings: Booking[] }) {
 // ─── Main Admin Page ──────────────────────────────────────────────────────────
 
 export default function Admin() {
-  const { user, roles, loading } = useAuth();
+  const { user, roles, rolesError, loading } = useAuth();
   const [busy, setBusy]                   = useState(false);
   const [grantingHost, setGrantingHost]   = useState<string | null>(null);
   const [tickets, setTickets]             = useState<SupportTicket[]>([]);
@@ -341,6 +341,13 @@ export default function Admin() {
   const totalPendingApprovals = pendingApps.length + pendingVerificationTickets.length;
 
   if (loading) return <div className="container py-20 text-sm text-muted-foreground">Loading…</div>;
+  if (rolesError) return (
+    <div className="container py-20 max-w-md text-center">
+      <h1 className="text-2xl font-semibold">Unable to verify admin access</h1>
+      <p className="text-muted-foreground mt-2">{rolesError}</p>
+    </div>
+  );
+
   if (!roles.includes("admin")) return (
     <div className="container py-20 max-w-md text-center">
       <h1 className="text-2xl font-semibold">Admin only</h1>

@@ -33,6 +33,12 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Guardrails
+        run: npm run guardrails
+
+      - name: Incident verification
+        run: npm run verify:incident
+
       - name: Test
         run: npm run test
 

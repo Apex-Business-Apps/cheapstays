@@ -20,5 +20,6 @@ CREATE POLICY "Users manage own push subscriptions"
 
 CREATE POLICY "Service role manages all push subscriptions"
   ON push_subscriptions FOR ALL
+  TO service_role
   USING ((SELECT current_setting('role')) = 'service_role')
   WITH CHECK ((SELECT current_setting('role')) = 'service_role');
