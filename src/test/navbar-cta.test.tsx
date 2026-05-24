@@ -39,4 +39,14 @@ describe("Navbar CTAs", () => {
     expect(screen.queryByText("Apply as Host")).not.toBeInTheDocument();
     expect(screen.queryByText("Host tools")).not.toBeInTheDocument();
   });
+
+
+  it("renders exactly one Host nav link in header when menu is closed", () => {
+    mockAuth.user = { id: "u2", email: "member@test.com" };
+    mockAuth.roles = ["user"];
+    render(<MemoryRouter><Navbar /></MemoryRouter>);
+    const hostLinks = screen.getAllByRole("link", { name: "nav.host" });
+    expect(hostLinks).toHaveLength(1);
+    expect(hostLinks[0]).toHaveAttribute("href", "/host");
+  });
 });

@@ -2,13 +2,37 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type AppRole = "admin" | "host" | "member" | "user";
 
-export async function fetchRoles(userId: string): Promise<AppRole[]> {
+export type FetchRolesResult = {
+  roles: AppRole[];
+  error: null | {
+    code?: string;
+    message: string;
+  };
+};
+
+export async function fetchRoles(userId: string | null | undefined): Promise<FetchRolesResult> {
+  if (!userId) {
+    // Signed-out users have no roles by design; this is not an error condition.
+    return { roles: [], error: null };
+  }
+
   const { data, error } = await supabase
     .from("user_roles")
     .select("role")
     .eq("user_id", userId);
-  if (error) return [];
-  return (data ?? []).map((r) => r.role as AppRole);
+
+  if (error) {
+    const structuredError = { code: error.code, message: error.message };
+    if (import.meta.env.DEV) {
+      console.error("[rbac.fetchRoles.failed]", { userId, ...structuredError });
+    }
+    return { roles: [], error: structuredError };
+  }
+
+  return {
+    roles: (data ?? []).map((r) => r.role as AppRole),
+    error: null,
+  };
 }
 
 export function hasRole(roles: AppRole[], role: AppRole): boolean {

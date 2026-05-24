@@ -1,3 +1,4 @@
+-- external/live-only: legacy object names may exist only in long-lived environments
 -- Notifications cleanup: drop legacy notify_booking_status trigger if present.
 --
 -- The new flow_state machine dispatches notifications from edge functions
