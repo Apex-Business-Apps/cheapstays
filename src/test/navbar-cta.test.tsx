@@ -30,13 +30,13 @@ describe("Navbar CTAs", () => {
     expect(screen.getByText("Apply as Host")).toBeInTheDocument();
   });
 
-  it("logged-in host: shows Host tools and Sign Out, no Apply as Host", () => {
+  it("logged-in host: shows Sign Out only, no Host tools button or Apply as Host", () => {
     mockAuth.user = { id: "u1", email: "host@test.com" };
     mockAuth.roles = ["host"];
     render(<MemoryRouter><Navbar /></MemoryRouter>);
     expect(screen.queryByText("Log in")).not.toBeInTheDocument();
     expect(screen.queryByText("Sign up")).not.toBeInTheDocument();
     expect(screen.queryByText("Apply as Host")).not.toBeInTheDocument();
-    expect(screen.getByText("Host tools")).toBeInTheDocument();
+    expect(screen.queryByText("Host tools")).not.toBeInTheDocument();
   });
 });

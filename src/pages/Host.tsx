@@ -76,6 +76,8 @@ function MyListings({ userId }: { userId: string }) {
   const [listings, setListings] = useState<ExistingListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -103,6 +105,19 @@ function MyListings({ userId }: { userId: string }) {
     } else {
       toast({ title: "Media saved" });
       setListings((prev) => prev.map((l) => (l.id === id ? { ...l, images, video_url } : l)));
+    }
+  }
+
+  async function deleteListing(id: string) {
+    setDeleting(id);
+    const { error } = await supabase.from("listings").delete().eq("id", id).eq("host_id", userId);
+    setDeleting(null);
+    setConfirmDelete(null);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Listing deleted" });
+      setListings((prev) => prev.filter((l) => l.id !== id));
     }
   }
 
@@ -163,14 +178,41 @@ function MyListings({ userId }: { userId: string }) {
             />
           </div>
 
-          <Button
-            size="sm"
-            disabled={saving === listing.id}
-            onClick={() => saveMedia(listing.id, listing.images ?? [], listing.video_url ?? null)}
-          >
-            {saving === listing.id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : null}
-            Save media
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              size="sm"
+              disabled={saving === listing.id}
+              onClick={() => saveMedia(listing.id, listing.images ?? [], listing.video_url ?? null)}
+            >
+              {saving === listing.id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : null}
+              Save media
+            </Button>
+            {confirmDelete === listing.id ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled={deleting === listing.id}
+                  onClick={() => deleteListing(listing.id)}
+                >
+                  {deleting === listing.id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : null}
+                  Confirm delete
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(null)}>
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setConfirmDelete(listing.id)}
+              >
+                Delete listing
+              </Button>
+            )}
+          </div>
         </Card>
       ))}
     </div>
