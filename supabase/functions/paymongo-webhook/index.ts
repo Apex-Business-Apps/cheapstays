@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
   let eventId = "";
   let eventType = "";
-  let payload: unknown;
+  let payload: import("../_shared/paymongo-webhook.ts").PaymongoEventEnvelope;
   try {
     const parsed = parsePaymongoEvent(rawBody);
     eventId = parsed.eventId;
@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const bookingId = extractBookingId(payload as any);
+  const bookingId = extractBookingId(payload);
 
   const recordEvent = async (status: "processed" | "ignored" | "error", error: string | null = null) => {
     await adminClient.from("webhook_events").insert({
@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
     payment_state: "captured",
   };
 
-  const paymentIntentId = (payload as any)?.data?.attributes?.data?.attributes?.payment_intent_id;
+  const paymentIntentId = payload?.data?.attributes?.data?.attributes?.payment_intent_id;
   if (typeof paymentIntentId === "string" && paymentIntentId.length > 0) {
     updatePayload.paymongo_payment_intent_id = paymentIntentId;
   }
