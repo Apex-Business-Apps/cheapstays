@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Layout } from "@/components/Layout";
+import { ConsentGate } from "@/components/ConsentGate";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LegalDocumentPage } from "@/pages/legal/LegalDocumentPage";
 
@@ -37,7 +38,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Layout>
-            <RouteAwareErrorBoundary>
+            <ConsentGate>
+              <RouteAwareErrorBoundary>
               <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
                 <Routes>
                   <Route path="/" element={<Index />} />
@@ -64,7 +66,8 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
-            </RouteAwareErrorBoundary>
+              </RouteAwareErrorBoundary>
+            </ConsentGate>
           </Layout>
         </BrowserRouter>
       </TooltipProvider>
