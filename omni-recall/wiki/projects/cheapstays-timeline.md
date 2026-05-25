@@ -67,3 +67,15 @@ Heavy vertical expansion:
   - CI workflow updated to run runtime RLS verification using repository secrets,
   - production workflow updated for Wrangler/Node 22 compatibility and Cloudflare agent token wiring.
 - Follow-up fix on `main` adjusted runtime RLS guardrail expectation to treat Supabase’s admin-deny variants as valid secure outcomes (HTTP 401 or HTTP 403 `not_admin`/`User not allowed`), preventing false CI regression signals while keeping denial strict.
+
+## Phase 5 — Legal Consent Dead-End Fix (2026-05-25)
+
+- **PR #65** (`fix/legal-consent-gate-acceptance-flow`) — open, surgical fix for infinite UX loop:
+  - Root cause: `ConsentGate` CTA hardcoded to `/auth?mode=signup`, which `Auth.tsx` redirected authenticated users away from immediately; no in-place acceptance flow existed; OAuth users had no signup-context consent rows.
+  - New `src/pages/LegalAcceptance.tsx` — in-place acceptance flow using existing `LegalScrollGate`.
+  - `ConsentGate` EXEMPT set extended to include `/legal/accept`; CTA rewired.
+  - `Auth.tsx` post-login redirect now waits for `consentReady` and routes to `/legal/accept` when consent missing.
+  - `useAuth` gains `refreshConsent()` public method for post-write gate re-evaluation.
+  - `App.tsx` registers `/legal/accept` as a lazy route.
+  - 3 new regression unit tests + 1 e2e DOM contract case.
+  - Blast radius: 4 files edited, 2 created, 0 backend/SQL changes.
