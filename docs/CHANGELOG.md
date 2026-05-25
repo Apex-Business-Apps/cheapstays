@@ -2,12 +2,26 @@
 
 **Organization:** APEX Business Systems Ltd.  
 **Location:** Edmonton, AB  
-**Document Version:** 1.1.0  
-**Last Updated:** 2026-05-21
+**Document Version:** 1.2.1  
+**Last Updated:** 2026-05-25
 
 All notable changes to this project are documented in this file.
 
 Format guidance follows Keep a Changelog principles and semantic release headings.
+
+## [1.2.1] - 2026-05-25
+
+### Added
+
+- `supabase/functions/paymongo-webhook/index.ts` — isolated PayMongo webhook receiver for `checkout_session.payment.paid`.
+- `supabase/functions/_shared/paymongo-webhook.ts` — reusable parser/signature helpers for PayMongo webhook handling.
+- `src/test/paymongo-webhook-helpers.test.ts` — focused unit tests for parsing, metadata extraction, and signature verification.
+- `docs/PAYMONGO_WEBHOOK_SETUP.md` — deployment and operations guide for webhook setup.
+
+### Changed
+
+- `docs/API.md`, `docs/ARCHITECTURE.md`, and `docs/STATUS.md` updated to reflect webhook lifecycle, required secrets, and operational risks.
+
 
 ## [1.1.0] - 2026-05-21
 

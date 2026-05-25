@@ -2,8 +2,8 @@
 
 **Organization:** APEX Business Systems Ltd.
 **Location:** Edmonton, AB
-**Document Version:** 1.2.0
-**Last Updated:** 2026-05-21
+**Document Version:** 1.2.1
+**Last Updated:** 2026-05-25
 
 ---
 
@@ -45,7 +45,9 @@ The architecture separates concerns across three tiers:
          │  │  Edge Functions (Deno)           ││
          │  │  ai-chat · ai-search · ai-describe ││
          │  │  book-listing · payment-intent   ││
+         │  │  paymongo-webhook                ││
          │  │  support-ticket · support-message ││
+         │  │  omnihub-role-authority           ││
          │  └─────────────┬────────────────────┘│
          └────────────────│────────────────────┘
                           │
@@ -84,7 +86,7 @@ The architecture separates concerns across three tiers:
    - Creates and attaches a `payment_method` of the requested type
    - Returns `checkout_url` for 3DS or e-wallet redirect
    - Updates `bookings.paymongo_payment_intent_id` and `payment_status = 'pending'`
-4. On payment completion: PayMongo webhook updates `payment_status` to `'paid'` (or polling via client)
+4. On payment completion: PayMongo calls `paymongo-webhook`, signature is verified against `paymongo-signature`, event idempotency is enforced through `webhook_events`, and booking is updated to `payment_status = 'paid'` + `payment_state = 'captured'` for `checkout_session.payment.paid`.
 
 ---
 
@@ -149,5 +151,14 @@ The architecture separates concerns across three tiers:
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase secrets vault | Secret — server only | Admin DB access in edge functions |
 | `GROQ_API_KEY` | Supabase secrets vault | Secret — server only | LLM inference via Groq |
 | `PAYMONGO_SECRET_KEY` | Supabase secrets vault | Secret — server only | PayMongo payment processing |
+| `PAYMONGO_WEBHOOK_SECRET` | Supabase secrets vault | Secret — server only | Verify PayMongo webhook signatures |
 
 All secrets are injected into the Deno runtime at invocation time via `Deno.env.get()` and are never accessible to the client or written to logs.
+
+
+## 10. Omniport / Audit Event Emission
+
+- Role and authority workflows emit audit events through `supabase/functions/_shared/omniport.ts`.
+- Current emitters: `admin-role-mutation` and `omnihub-role-authority`.
+- Required secrets for emission: `OMNIPORT_BASE_URL` and `OMNIPORT_TOKEN`; emit is skipped safely when absent.
+- **Repo-state clarification:** Omniport audit forwarding is implemented in edge functions, while governance/operating guidance is maintained under the repository `omni-recall/` tree on `main`.
