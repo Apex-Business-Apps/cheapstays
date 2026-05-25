@@ -127,6 +127,57 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Declared availability enforcement — booking path is backend-authoritative.
+    const { data: availabilityWindow, error: availabilityError } = await adminClient
+      .from("listing_availability_windows")
+      .select("declared_through")
+      .eq("listing_id", listing_id)
+      .order("declared_through", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (availabilityError) {
+      return json(
+        { error: "Failed to validate declared availability", detail: availabilityError.message },
+        500,
+      );
+    }
+
+    const checkoutMinusOne = new Date(new Date(check_out).getTime() - 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+    if (!availabilityWindow || availabilityWindow.declared_through < checkoutMinusOne) {
+      return json(
+        {
+          error: "declared_availability_exceeded",
+          message: "Requested stay exceeds host-declared availability window",
+        },
+        409,
+      );
+    }
+
+    // Blackout enforcement — reject if any blackout overlaps the requested stay.
+    const { data: blackoutConflicts, error: blackoutError } = await adminClient
+      .from("listing_blackout_dates")
+      .select("id")
+      .eq("listing_id", listing_id)
+      .lte("start_date", checkoutMinusOne)
+      .gte("end_date", check_in)
+      .limit(1);
+
+    if (blackoutError) {
+      return json(
+        { error: "Failed to validate blackout dates", detail: blackoutError.message },
+        500,
+      );
+    }
+    if (blackoutConflicts && blackoutConflicts.length > 0) {
+      return json(
+        { error: "blackout_conflict", message: "Requested stay overlaps blackout dates" },
+        409,
+      );
+    }
+
     // Availability check — overlap with any non-cancelled/no-show booking.
     const { data: conflicts, error: conflictError } = await adminClient
       .from("bookings")
@@ -143,7 +194,7 @@ Deno.serve(async (req) => {
       );
     }
     if (conflicts && conflicts.length > 0) {
-      return json({ error: "Selected dates are not available" }, 409);
+      return json({ error: "booking_overlap", message: "Selected dates are already booked" }, 409);
     }
 
     const { data: blackouts, error: blackoutError } = await adminClient

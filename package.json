@@ -18,7 +18,8 @@
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "generate:sitemap": "deno run --allow-net --allow-env --allow-write supabase/scripts/generate-sitemap.ts",
-    "guardrails": "node scripts/guardrails/check-rls-policies.mjs && node scripts/guardrails/check-silent-supabase-errors.mjs && node scripts/guardrails/check-rbac-errors.mjs && node scripts/guardrails/check-booking-direct-mutations.mjs && node scripts/guardrails/check-migration-drop-names.mjs",
+    "guardrails": "node scripts/guardrails/check-rls-policies.mjs && node scripts/guardrails/check-silent-supabase-errors.mjs && node scripts/guardrails/check-rbac-errors.mjs && node scripts/guardrails/check-booking-direct-mutations.mjs && node scripts/guardrails/check-migration-drop-names.mjs && node scripts/guardrails/check-privileged-path-drift.mjs && node scripts/guardrails/check-release-evidence-provenance.mjs",
+    "guardrails:rls-runtime": "node scripts/guardrails/check-rls-runtime.mjs",
     "verify:incident": "npm run guardrails && npm run typecheck && npm run test"
   },
   "dependencies": {
