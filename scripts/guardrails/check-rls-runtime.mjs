@@ -41,7 +41,14 @@ const failures = [];
 for (const probe of probes) {
   try {
     const result = await request(probe.path, probe.key);
-    if (result.status !== probe.expectStatus) {
+    const isAnonAdminDenied = probe.name === 'anon may not read auth.users'
+      && (
+        result.status === 401
+        // Supabase may return 403 with explicit admin-only denial for anon tokens.
+        || (result.status === 403 && (result.text.includes('not_admin') || result.text.includes('User not allowed')))
+      );
+
+    if (!isAnonAdminDenied && result.status !== probe.expectStatus) {
       failures.push(`${probe.name}: expected ${probe.expectStatus}, got ${result.status} (${result.text.slice(0, 160)})`);
     }
   } catch (error) {
