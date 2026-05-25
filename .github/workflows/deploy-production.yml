@@ -1,0 +1,146 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  # ──────────────────────────────────────────────
+  # 1. Build & deploy frontend to Cloudflare Pages
+  # ──────────────────────────────────────────────
+  deploy-frontend:
+    name: Frontend → Cloudflare Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Deploy to Cloudflare Pages (production)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_AGENT_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name cheapstays --branch main
+
+  # ──────────────────────────────────────────────
+  # 2. Deploy changed Supabase edge functions
+  # ──────────────────────────────────────────────
+  deploy-functions:
+    name: Edge Functions → Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # need parent commit to diff
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci   # ensures wrangler / supabase CLI available via npx
+
+      - name: Detect changed functions
+        id: changed
+        run: |
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD -- 'supabase/functions/')
+          SHARED_CHANGED=$(echo "$CHANGED_FILES" | grep '^supabase/functions/_shared/' || true)
+          if [ -n "$SHARED_CHANGED" ]; then
+            # _shared changed: redeploy all functions
+            CHANGED=$(ls supabase/functions/ | grep -v '^_shared$' | tr '\n' ' ')
+            echo "Shared code changed — redeploying all: ${CHANGED}"
+          else
+            CHANGED=$(echo "$CHANGED_FILES" \
+              | grep -v '^supabase/functions/_shared/' \
+              | sed 's|supabase/functions/||' \
+              | cut -d'/' -f1 \
+              | sort -u \
+              | tr '\n' ' ')
+            echo "Changed functions: ${CHANGED}"
+          fi
+          echo "functions=${CHANGED}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy changed functions
+        if: steps.changed.outputs.functions != ''
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_TOKEN }}
+        run: |
+          for fn in ${{ steps.changed.outputs.functions }}; do
+            echo "Deploying: $fn"
+            npx supabase functions deploy "$fn" \
+              --project-ref ${{ vars.SUPABASE_PROJECT_REF || 'muqdmvkapsxrsgdkfoxn' }}
+          done
+
+  # ──────────────────────────────────────────────
+  # 3. Apply new Supabase migrations
+  # ──────────────────────────────────────────────
+  apply-migrations:
+    name: Migrations → Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect new migration files
+        id: migrations
+        run: |
+          NEW=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- 'supabase/migrations/*.sql' \
+            | sort)
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$NEW" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "New migrations: $NEW"
+
+      - name: Apply migrations
+        if: steps.migrations.outputs.files != ''
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF || 'muqdmvkapsxrsgdkfoxn' }}
+        run: |
+          python3 -c "
+          import json, http.client, ssl, os, sys
+
+          token = os.environ['SUPABASE_ACCESS_TOKEN']
+          ref   = os.environ['SUPABASE_PROJECT_REF']
+          files = '''${{ steps.migrations.outputs.files }}'''.strip().splitlines()
+
+          for f in files:
+              f = f.strip()
+              if not f:
+                  continue
+              print(f'Applying: {f}')
+              with open(f) as fh:
+                  sql = fh.read()
+              body = json.dumps({'query': sql}).encode()
+              ctx  = ssl.create_default_context()
+              conn = http.client.HTTPSConnection('api.supabase.com', context=ctx)
+              conn.request('POST', f'/v1/projects/{ref}/database/query', body, {
+                  'Authorization': f'Bearer {token}',
+                  'Content-Type':  'application/json',
+                  'User-Agent':    'cheapstays-deploy/1.0',
+              })
+              resp = conn.getresponse()
+              raw  = resp.read().decode()
+              if resp.status in (200, 201):
+                  print(f'  OK: {f}')
+              else:
+                  print(f'  ERROR {resp.status}: {raw[:500]}', file=sys.stderr)
+                  sys.exit(1)
+          "

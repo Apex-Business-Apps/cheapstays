@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* cheapstays.me — light tan canvas, forest accents */
+    --background: 34 38% 90%;
+    --foreground: 150 25% 10%;
+
+    --card: 36 45% 96%;
+    --card-foreground: 150 25% 10%;
+
+    --popover: 36 45% 96%;
+    --popover-foreground: 150 25% 10%;
+
+    --primary: 152 45% 22%;
+    --primary-foreground: 36 40% 97%;
+
+    --secondary: 34 42% 82%;
+    --secondary-foreground: 152 45% 18%;
+
+    --muted: 34 30% 86%;
+    --muted-foreground: 150 12% 32%;
+
+    --accent: 28 80% 60%;
+    --accent-foreground: 150 30% 10%;
+
+    --success: 152 55% 35%;
+    --success-foreground: 36 40% 97%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 150 25% 10%;
+
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 36 40% 97%;
+
+    --border: 34 25% 78%;
+    --input: 34 25% 78%;
+    --ring: 152 45% 22%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 150 20% 7%;
+    --foreground: 36 30% 95%;
+
+    --card: 150 22% 10%;
+    --card-foreground: 36 30% 95%;
+
+    --popover: 150 22% 10%;
+    --popover-foreground: 36 30% 95%;
+
+    --primary: 152 50% 60%;
+    --primary-foreground: 150 30% 8%;
+
+    --secondary: 150 15% 16%;
+    --secondary-foreground: 36 30% 95%;
+
+    --muted: 150 12% 14%;
+    --muted-foreground: 36 12% 65%;
+
+    --accent: 28 80% 60%;
+    --accent-foreground: 150 30% 8%;
+
+    --success: 152 55% 50%;
+    --success-foreground: 150 30% 8%;
+
+    --warning: 38 92% 60%;
+    --warning-foreground: 150 30% 8%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 36 30% 95%;
+
+    --border: 150 12% 18%;
+    --input: 150 12% 18%;
+    --ring: 152 50% 60%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
