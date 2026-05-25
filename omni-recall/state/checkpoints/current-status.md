@@ -1,9 +1,10 @@
 # Current Status
 
-- date: 2026-05-23
+- date: 2026-05-25
 - omni_recall_status: active — Phase E (ambient)
 - runtime: Claude Code (git-backed, repo omni-recall/)
-- branch: claude/intelligent-dijkstra-Gemqc
+- branch: work
+- verification_provenance_recorded: true (`final_report.txt` includes branch + UTC timestamp)
 
 ## Backfill
 
@@ -23,7 +24,7 @@
 
 ## Health
 
-- last_health_check: 2026-05-23 (Phase D)
+- last_health_check: 2026-05-25 (docs sync + provenance checkpoint)
 - contradictions: 0
 - orphaned_decisions: 0
 - unresolved_open_loops: 0

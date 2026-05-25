@@ -54,6 +54,7 @@
 
 ## Recent Change Log
 
+- **2026-05-25:** Added verification provenance to `final_report.txt` (`verified on branch`, `verified at (UTC)`) to make release-readiness evidence auditable.
 - **2026-05-25:** Added `paymongo-webhook` edge function, helper module, tests, and deployment/setup documentation.
 - **2026-05-25:** Verified Omniport audit emitters are present in role mutation flows (`admin-role-mutation`, `omnihub-role-authority`) and synchronized this branch documentation with `main/omni-recall` governance assets (path: `/omni-recall`).
 - **2026-05-21:** Released v1.2.0 with listings, bookings, payments, host onboarding, and i18n.
