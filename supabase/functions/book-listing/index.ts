@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       .from("listings")
       .select(
         "id, title, host_id, nightly_php, max_guests, min_nights, max_nights, " +
-        "short_term_enabled, long_term_enabled, status",
+        "short_term_enabled, long_term_enabled, status, visibility",
       )
       .eq("id", listing_id)
       .single();
@@ -146,6 +146,30 @@ Deno.serve(async (req) => {
       return json({ error: "Selected dates are not available" }, 409);
     }
 
+    const { data: blackouts, error: blackoutError } = await adminClient
+      .from("listing_blackout_dates")
+      .select("date")
+      .eq("listing_id", listing_id)
+      .gte("date", check_in)
+      .lt("date", check_out)
+      .limit(1);
+    if (blackoutError) return json({ error: "Failed to check blackout dates", detail: blackoutError.message }, 500);
+    if ((blackouts?.length ?? 0) > 0) return json({ error: "Selected dates overlap listing blackout dates" }, 409);
+
+    if (listing.status === "active" || listing.visibility === "publishable") {
+      const { data: window, error: windowError } = await adminClient
+        .from("listing_availability_windows")
+        .select("declared_through")
+        .eq("listing_id", listing_id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (windowError) return json({ error: "Failed to check declared availability", detail: windowError.message }, 500);
+      if (window?.declared_through && check_out > window.declared_through) {
+        return json({ error: "Requested stay exceeds declared availability window" }, 409);
+      }
+    }
+
     // 5% service fee matches BookingPanel display.
     const SERVICE_FEE_RATE = 0.05;
     const total_php = Math.round(
@@ -156,12 +180,12 @@ Deno.serve(async (req) => {
     // = instant book (active/confirmed). Long-term = request booking
     // (requested/pending) with a 24-hour approval deadline.
     const now = new Date();
-    const flow_state = isShortTerm ? "active" : "requested";
-    const legacy_status = isShortTerm ? "confirmed" : "pending";
+    const flow_state = isShortTerm ? "payment_pending" : "requested";
+    const legacy_status = "pending";
     const approval_deadline_at = isShortTerm
       ? null
       : new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
-    const confirmed_at = isShortTerm ? now.toISOString() : null;
+    const confirmed_at = null;
 
     const { data: booking, error: insertError } = await adminClient
       .from("bookings")
@@ -203,7 +227,7 @@ Deno.serve(async (req) => {
         to_state: flow_state,
         actor_user_id: user.id,
         actor_role: "guest",
-        reason: isShortTerm ? "guest_instant_booked" : "guest_requested_long_term",
+        reason: isShortTerm ? "guest_short_term_hold_created" : "guest_requested_long_term",
         metadata: {
           stay_type,
           booking_flow,
@@ -228,7 +252,7 @@ Deno.serve(async (req) => {
         status: legacy_status,
         approval_deadline_at,
         message: isShortTerm
-          ? "Your stay is confirmed. Complete payment to secure your reservation."
+          ? "Provisional hold created. Complete payment to confirm your reservation."
           : "Long-term request submitted. The host has 24 hours to respond.",
         transition_warning: transitionError ? transitionError.message : null,
       },

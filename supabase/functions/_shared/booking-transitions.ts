@@ -6,6 +6,7 @@
 import { SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 export type FlowState =
+  | "payment_pending"
   | "requested"
   | "approved"
   | "auto_approved"
@@ -29,6 +30,8 @@ export type ActorRole = "guest" | "host" | "admin" | "system" | "scheduler";
 /** Locked-decision mapping from flow_state to coarse legacy booking.status. */
 export function flowToCoarseStatus(flow: FlowState): CoarseStatus {
   switch (flow) {
+    case "payment_pending":
+      return "pending";
     case "requested":
     case "approved":
     case "auto_approved":
@@ -78,6 +81,7 @@ export async function recordTransition(
 
 /** Set of legal forward transitions, enforced in edge functions. */
 const ALLOWED_TRANSITIONS: Record<FlowState, FlowState[]> = {
+  payment_pending:        ["active", "expired", "cancel_requested"],
   requested:              ["approved", "auto_approved", "expired", "cancel_requested"],
   approved:               ["active", "cancel_requested"],
   auto_approved:          ["active", "cancel_requested"],
