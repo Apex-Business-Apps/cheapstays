@@ -216,7 +216,7 @@ export default function Index() {
                   loading="lazy"
                   width={1024}
                   height={1280}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.06]"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform [transition-duration:1200ms] ease-out group-hover:scale-[1.06]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/10 to-transparent" />
                 <img
@@ -281,7 +281,7 @@ export default function Index() {
                         loading="lazy"
                         width={1280}
                         height={1024}
-                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-[1.08]"
+                        className="absolute inset-0 h-full w-full object-cover transition-transform [transition-duration:1400ms] ease-out group-hover:scale-[1.08]"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-transparent to-transparent" />
                       <img
