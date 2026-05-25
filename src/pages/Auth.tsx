@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Seo } from "@/components/Seo";
+import { createLegalAcceptanceAudit } from "@/lib/legal-consent";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -18,6 +19,8 @@ export default function Auth() {
   );
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -30,11 +33,17 @@ export default function Auth() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        if (!acceptTerms || !acceptPrivacy) throw new Error("You must accept Terms and Privacy to continue.");
+        const { data, error } = await supabase.auth.signUp({
           email, password,
           options: { emailRedirectTo: `${window.location.origin}/` },
         });
         if (error) throw error;
+        if (data.user?.id) {
+          const now = new Date().toISOString();
+          await createLegalAcceptanceAudit({ userId: data.user.id, role: "guest", contextId: "signup", documentId: "terms", documentVersion: "2026-05-24", documentHash: "terms-v2026-05-24", checkboxLabel: "I agree to Terms", scrolledToBottom: true, gateOpenedAt: now, scrollCompletedAt: now });
+          await createLegalAcceptanceAudit({ userId: data.user.id, role: "guest", contextId: "signup", documentId: "privacy", documentVersion: "2026-05-24", documentHash: "privacy-v2026-05-24", checkboxLabel: "I agree to Privacy", scrolledToBottom: true, gateOpenedAt: now, scrollCompletedAt: now });
+        }
         toast({ title: "Check your inbox", description: "Confirm your email to finish signing up." });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -77,6 +86,19 @@ export default function Auth() {
             <Label htmlFor="password">Password</Label>
             <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
           </div>
+
+          {mode === "signup" && (
+            <div className="space-y-2 text-sm">
+              <label className="flex items-start gap-2">
+                <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} />
+                <span>I agree to the Terms of Service.</span>
+              </label>
+              <label className="flex items-start gap-2">
+                <input type="checkbox" checked={acceptPrivacy} onChange={(e) => setAcceptPrivacy(e.target.checked)} />
+                <span>I agree to the Privacy Policy.</span>
+              </label>
+            </div>
+          )}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "…" : mode === "signin" ? "Log in" : "Sign up"}
           </Button>
