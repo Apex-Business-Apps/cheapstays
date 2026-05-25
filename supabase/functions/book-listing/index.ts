@@ -197,30 +197,6 @@ Deno.serve(async (req) => {
       return json({ error: "booking_overlap", message: "Selected dates are already booked" }, 409);
     }
 
-    const { data: blackouts, error: blackoutError } = await adminClient
-      .from("listing_blackout_dates")
-      .select("date")
-      .eq("listing_id", listing_id)
-      .gte("date", check_in)
-      .lt("date", check_out)
-      .limit(1);
-    if (blackoutError) return json({ error: "Failed to check blackout dates", detail: blackoutError.message }, 500);
-    if ((blackouts?.length ?? 0) > 0) return json({ error: "Selected dates overlap listing blackout dates" }, 409);
-
-    if (listing.status === "active" || listing.visibility === "publishable") {
-      const { data: window, error: windowError } = await adminClient
-        .from("listing_availability_windows")
-        .select("declared_through")
-        .eq("listing_id", listing_id)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (windowError) return json({ error: "Failed to check declared availability", detail: windowError.message }, 500);
-      if (window?.declared_through && check_out > window.declared_through) {
-        return json({ error: "Requested stay exceeds declared availability window" }, 409);
-      }
-    }
-
     // 5% service fee matches BookingPanel display.
     const SERVICE_FEE_RATE = 0.05;
     const total_php = Math.round(

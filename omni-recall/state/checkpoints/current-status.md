@@ -4,7 +4,7 @@
 - omni_recall_status: active — Phase E (ambient)
 - runtime: Claude Code (git-backed, repo omni-recall/)
 - branch: work
-- verification_provenance_recorded: true (`final_report.txt` includes branch + UTC timestamp)
+- verification_provenance_recorded: true (`final_report.txt` includes branch + UTC timestamp + evidence source)
 
 ## Backfill
 
@@ -24,9 +24,15 @@
 
 ## Health
 
-- last_health_check: 2026-05-25 (docs sync + provenance checkpoint)
+- last_health_check: 2026-05-25 (post-merge reality sync for PR #63 + CI/runtime guardrail behavior)
 - contradictions: 0
 - orphaned_decisions: 0
 - unresolved_open_loops: 0
 - corrections_promoted_to_directives: 3/3
 - installation_complete: true
+
+## Current Reality Snapshot (2026-05-25)
+
+- merged_change_anchor: PR #63 (`main` contains booking availability/blackout enforcement + payment_pending flow + new guardrails/workflow edits).
+- ci_guardrail_note: runtime RLS guardrail originally overfit anon admin denial to HTTP 401; Supabase can return HTTP 403 `not_admin` / `User not allowed` for the same secure deny condition.
+- deployment_note: production deploy workflow now expects Node 22 and `CLOUDFLARE_AGENT_TOKEN` mapped into Wrangler-compatible env.

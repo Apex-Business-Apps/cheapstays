@@ -41,15 +41,32 @@ const failures = [];
 for (const probe of probes) {
   try {
     const result = await request(probe.path, probe.key);
-    const isAnonAdminDenied = probe.name === 'anon may not read auth.users'
-      && (
-        result.status === 401
-        // Supabase may return 403 with explicit admin-only denial for anon tokens.
-        || (result.status === 403 && (result.text.includes('not_admin') || result.text.includes('User not allowed')))
+    // Security invariant: anon MUST NOT read auth.users.
+    // Non-invariant: the exact denial status code.
+    // Supabase may return 401 OR 403 with an explicit admin-only denial shape.
+    let body = null;
+    try { body = JSON.parse(result.text); } catch { /* non-JSON response — fall through to raw text checks */ }
+    const isAnonAccessDenied =
+      probe.name === 'anon may not read auth.users' &&
+      (
+        result.status === 401 ||
+        (
+          result.status === 403 &&
+          (
+            body?.error_code === 'not_admin' ||
+            body?.msg === 'User not allowed' ||
+            /not_admin/i.test(result.text) ||
+            /user not allowed/i.test(result.text)
+          )
+        )
       );
 
-    if (!isAnonAdminDenied && result.status !== probe.expectStatus) {
-      failures.push(`${probe.name}: expected ${probe.expectStatus}, got ${result.status} (${result.text.slice(0, 160)})`);
+    if (!isAnonAccessDenied && result.status !== probe.expectStatus) {
+      const expectedDesc =
+        probe.name === 'anon may not read auth.users'
+          ? 'denied access (401 or admin-only 403)'
+          : String(probe.expectStatus);
+      failures.push(`${probe.name}: expected ${expectedDesc}, got ${result.status} (${result.text.slice(0, 160)})`);
     }
   } catch (error) {
     failures.push(`${probe.name}: request failed (${error instanceof Error ? error.message : String(error)})`);

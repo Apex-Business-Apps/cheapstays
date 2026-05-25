@@ -1,7 +1,7 @@
 # CheapStays — Project Timeline
 
 - source: git log, mined 2026-05-23
-- coverage: 2026-05-21 to 2026-05-23 (full visible history)
+- coverage: 2026-05-21 to 2026-05-25 (extended with post-baseline CI/guardrail/payment-flow hardening merges)
 
 ## Phase 1 — Foundation (2026-05-21)
 
@@ -57,3 +57,13 @@ Heavy vertical expansion:
 - What is "Pip"? Referenced in PR #12 and #15 as an AI concierge context feature. Not documented in CLAUDE.md.
 - What triggered the admin account breakage (d41d570)? Likely a user list reset or migration.
 - What was in the early "Changes" batch commits on 2026-05-23 before BYOK Stripe?
+
+## Phase 4 — Booking/Guardrail Hardening + Release Automation Updates (2026-05-25)
+
+- PR #63 merged into `main` (branch: `codex/implement-booking-enforcement-and-consent-checks`):
+  - backend booking-path enforcement expanded for declared availability windows + blackout conflicts with distinct conflict branches,
+  - provisional short-term `payment_pending` flow introduced with DB + transition updates,
+  - new guardrail scripts added (runtime RLS, privileged-path drift, release-evidence provenance),
+  - CI workflow updated to run runtime RLS verification using repository secrets,
+  - production workflow updated for Wrangler/Node 22 compatibility and Cloudflare agent token wiring.
+- Follow-up fix on `main` adjusted runtime RLS guardrail expectation to treat Supabase’s admin-deny variants as valid secure outcomes (HTTP 401 or HTTP 403 `not_admin`/`User not allowed`), preventing false CI regression signals while keeping denial strict.
