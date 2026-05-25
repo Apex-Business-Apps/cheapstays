@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { isHost } from "@/lib/rbac";
@@ -14,6 +14,15 @@ export function Navbar() {
   const { t } = useTranslation();
   const [brandAsset, setBrandAsset] = useState<"wordmark" | "icon" | "text">("wordmark");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isCompactViewport, setIsCompactViewport] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 1023px)");
+    const onChange = () => setIsCompactViewport(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
 
   // /notifications is desktop-only; mobile/tablet use the NotificationsModal bell icon
   const mobileLinks = [
@@ -74,7 +83,7 @@ export function Navbar() {
         {/* Right-side actions */}
         <div className="flex items-center gap-1 shrink-0">
           {/* Bell icon for mobile/tablet – opens NotificationsModal */}
-          <NotificationsModal />
+          {isCompactViewport && <NotificationsModal />}
           {/* LanguageSwitcher hidden on mobile — available in the hamburger drawer */}
           <span className="hidden sm:flex"><LanguageSwitcher /></span>
           <ThemeToggle />
