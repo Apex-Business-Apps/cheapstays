@@ -13,6 +13,7 @@ type AuthCtx = {
   consentReady: boolean;
   consentRequired: boolean;
   signOut: () => Promise<void>;
+  refreshConsent: () => Promise<void>;
 };
 
 const Ctx = createContext<AuthCtx>({
@@ -24,6 +25,7 @@ const Ctx = createContext<AuthCtx>({
   consentReady: false,
   consentRequired: false,
   signOut: async () => {},
+  refreshConsent: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -83,6 +85,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  const refreshConsent = async () => {
+    if (!user?.id) {
+      setConsentRequired(false);
+      setConsentReady(true);
+      return;
+    }
+    try {
+      const ok = await hasRequiredSignupConsent(user.id);
+      setConsentRequired(!ok);
+    } catch {
+      setConsentRequired(true);
+    } finally {
+      setConsentReady(true);
+    }
+  };
+
   return (
     <Ctx.Provider
       value={{
@@ -96,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut: async () => {
           await supabase.auth.signOut();
         },
+        refreshConsent,
       }}
     >
       {children}

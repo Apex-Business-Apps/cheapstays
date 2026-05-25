@@ -34,5 +34,7 @@
 ## Current Reality Snapshot (2026-05-25)
 
 - merged_change_anchor: PR #63 (`main` contains booking availability/blackout enforcement + payment_pending flow + new guardrails/workflow edits).
+- in_flight: PR #65 (`fix/legal-consent-gate-acceptance-flow`) — legal consent dead-end fix, open, awaiting merge.
 - ci_guardrail_note: runtime RLS guardrail originally overfit anon admin denial to HTTP 401; Supabase can return HTTP 403 `not_admin` / `User not allowed` for the same secure deny condition.
 - deployment_note: production deploy workflow now expects Node 22 and `CLOUDFLARE_AGENT_TOKEN` mapped into Wrangler-compatible env.
+- node_modules_state: `date-fns` locale lib has a corrupt install (`buildFormatLongFn.mjs` missing); 3 test suites fail at baseline — pre-existing, unrelated to consent fix. `npm ci` also fails due to `lodash/fp` ENOTEMPTY — use `npm install` as workaround until clean environment.

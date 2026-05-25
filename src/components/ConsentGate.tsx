@@ -3,7 +3,15 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 
-const EXEMPT = new Set(["/auth", "/terms", "/privacy", "/legal"]);
+// /legal/accept MUST be exempt — it is the remediation route. Blocking it causes
+// an infinite loop where the gate prevents its own resolution.
+const EXEMPT = new Set([
+  "/auth",
+  "/terms",
+  "/privacy",
+  "/legal",
+  "/legal/accept",
+]);
 
 export function ConsentGate({ children }: { children: ReactNode }) {
   const { user, consentReady, consentRequired } = useAuth();
@@ -19,7 +27,9 @@ export function ConsentGate({ children }: { children: ReactNode }) {
       <p className="text-muted-foreground">
         You must accept Terms and Privacy before using authenticated features.
       </p>
-      <Button asChild><Link to="/auth?mode=signup">Review and accept now</Link></Button>
+      <Button asChild>
+        <Link to="/legal/accept">Review and accept now</Link>
+      </Button>
     </div>
   );
 }

@@ -22,6 +22,7 @@ const Notifications = lazy(() => import("./pages/Notifications"));
 const Admin = lazy(() => import("./pages/Admin"));
 const ListingDetail = lazy(() => import("./pages/ListingDetail"));
 const MyBookings = lazy(() => import("./pages/MyBookings"));
+const LegalAcceptance = lazy(() => import("./pages/LegalAcceptance"));
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
                   <Route path="/safety" element={<LegalDocumentPage docKey="safety" />} />
                   <Route path="/account-deletion" element={<LegalDocumentPage docKey="account-deletion" />} />
                   <Route path="/legal" element={<LegalDocumentPage docKey="legal" />} />
+                  <Route path="/legal/accept" element={<LegalAcceptance />} />
                   <Route path="/support-policy" element={<LegalDocumentPage docKey="support" />} />
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/admin" element={<Admin />} />

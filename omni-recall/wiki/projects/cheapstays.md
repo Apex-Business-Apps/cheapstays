@@ -40,10 +40,18 @@
 9. Production deploy workflow requires Node 22+ for Wrangler and uses `CLOUDFLARE_AGENT_TOKEN` wiring.
 10. Release evidence provenance records must include explicit evidence-source metadata in `final_report.txt`.
 
+## Additional Constraints (PR #65 — 2026-05-25)
+
+11. `ConsentGate` EXEMPT set must always include the gate's own remediation route (`/legal/accept`). A gate CTA that points at a non-exempt route owned by a different auth-state branch causes an infinite redirect loop.
+12. `useAuth` exposes `refreshConsent()` — call it after writing `legal_consent_acceptances` rows so the gate re-evaluates without a full page reload.
+13. Post-login redirect in `Auth.tsx` must wait for `consentReady` before routing; routing before consent state settles sends users to `/` where the gate re-fires.
+14. `hasRequiredSignupConsent(userId)` is exported from `src/lib/legal-consent.ts` — checks for both `terms` and `privacy` rows with `context_id="signup"`.
+
 ## Open Loops
 
 - Historical backfill of prior Claude/ChatGPT session exports: pending (user to provide)
 - [[pip-ai-concierge]] — closed: Pip is the brand name for `AiChatBubble` → `ai-chat` edge function
+- PR #65 (`fix/legal-consent-gate-acceptance-flow`) — open, consent dead-end fix, awaiting merge
 
 ## Related Pages
 
