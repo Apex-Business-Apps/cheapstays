@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Seo } from "@/components/Seo";
 import { Loader2, CalendarDays, ArrowRight, CreditCard } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +50,7 @@ function BookingCard({
   paying,
 }: {
   booking: Booking;
-  onCancel: (id: string) => void;
+  onCancel: (booking: Booking) => void;
   cancelling: string | null;
   onPay: (id: string) => void;
   paying: string | null;
@@ -115,13 +117,13 @@ function BookingCard({
                   Pay now
                 </Button>
               )}
-              {b.status === "pending" && (
+              {(["pending","confirmed"].includes(b.status) && !isPast(parseISO(b.check_in))) && (
                 <Button
                   size="sm"
                   variant="ghost"
                   className="text-destructive hover:text-destructive"
                   disabled={cancelling === b.id}
-                  onClick={() => onCancel(b.id)}
+                  onClick={() => onCancel(b)}
                 >
                   {cancelling === b.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Cancel"}
                 </Button>
@@ -141,6 +143,9 @@ export default function MyBookings() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [paying, setPaying] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelAck, setCancelAck] = useState(false);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -176,7 +181,8 @@ export default function MyBookings() {
         window.location.href = data.checkout_url as string;
         return;
       }
-      toast({ title: "Online payment unavailable", description: "Your booking is confirmed. You can pay at check-in." });
+      if (data?.error) throw new Error(data.error);
+      throw new Error("Payment provider unavailable");
     } catch (err) {
       toast({ title: "Payment error", description: (err as Error).message, variant: "destructive" });
     } finally {
@@ -187,13 +193,20 @@ export default function MyBookings() {
   // Guest cancellation routes through the backend — direct UPDATEs to
   // bookings.status are rejected by the bookings_guard_critical_columns trigger.
   async function cancel(bookingId: string) {
+    if (!cancelReason.trim() || !cancelAck) {
+      toast({ title: "Cancellation policy acknowledgement required", variant: "destructive" });
+      return;
+    }
     setCancelling(bookingId);
     try {
       const { error } = await supabase.functions.invoke("cancel-booking-guest", {
-        body: { booking_id: bookingId, reason: "Guest cancelled from My Bookings" },
+        body: { booking_id: bookingId, reason: cancelReason.trim() },
       });
       if (error) throw error;
       toast({ title: "Booking cancelled" });
+      setCancelTarget(null);
+      setCancelReason("");
+      setCancelAck(false);
       setBookings((prev) =>
         prev.map((b) => (b.id === bookingId ? { ...b, status: "cancelled" } : b))
       );
@@ -228,7 +241,7 @@ export default function MyBookings() {
     );
   }
 
-  const upcoming = bookings.filter((b) => !isPast(parseISO(b.check_out)) && b.status !== "cancelled");
+  const upcoming = bookings.filter((b) => !isPast(parseISO(b.check_out)) && !["cancelled","completed","refunded","expired"].includes(b.status));
   const past = bookings.filter((b) => isPast(parseISO(b.check_out)) || b.status === "cancelled");
 
   return (
@@ -258,12 +271,31 @@ export default function MyBookings() {
           </div>
         ) : (
           <div className="space-y-10">
+
+              <Dialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Cancel booking</DialogTitle>
+                    <DialogDescription>Reason and cancellation-policy acknowledgment are required.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3">
+                    <Textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder="Reason for cancellation" />
+                    <label className="flex items-start gap-2 text-sm">
+                      <input type="checkbox" checked={cancelAck} onChange={(e) => setCancelAck(e.target.checked)} />
+                      I acknowledge the cancellation policy and possible penalties/refunds.
+                    </label>
+                    <Button onClick={() => cancelTarget && cancel(cancelTarget.id)} disabled={cancelling === cancelTarget?.id}>
+                      {cancelling === cancelTarget?.id ? "Cancelling…" : "Submit cancellation"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             {upcoming.length > 0 && (
               <section>
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Upcoming</h2>
                 <div className="space-y-4">
                   {upcoming.map((b) => (
-                    <BookingCard key={b.id} booking={b} onCancel={cancel} cancelling={cancelling} onPay={pay} paying={paying} />
+                    <BookingCard key={b.id} booking={b} onCancel={(bk) => setCancelTarget(bk)} cancelling={cancelling} onPay={pay} paying={paying} />
                   ))}
                 </div>
               </section>
@@ -273,7 +305,7 @@ export default function MyBookings() {
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Past & cancelled</h2>
                 <div className="space-y-4">
                   {past.map((b) => (
-                    <BookingCard key={b.id} booking={b} onCancel={cancel} cancelling={cancelling} onPay={pay} paying={paying} />
+                    <BookingCard key={b.id} booking={b} onCancel={(bk) => setCancelTarget(bk)} cancelling={cancelling} onPay={pay} paying={paying} />
                   ))}
                 </div>
               </section>
