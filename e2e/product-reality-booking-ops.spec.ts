@@ -32,6 +32,17 @@ async function bootstrapDeterministicSeed(page: Page, mode: BookingSeedMode) {
 
   await page.route(SUPABASE_REST, async (route) => {
     const url = route.request().url();
+    if (url.includes('/legal_consent_acceptances?')) {
+      // ConsentGate requires persisted signup Terms+Privacy acceptance records.
+      // Seed deterministic positive consent for e2e auth personas so booking/host
+      // flows remain reachable in this suite.
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([{ document_id: 'terms' }, { document_id: 'privacy' }]),
+      });
+      return;
+    }
     if (url.includes('/user_roles?') && mode === 'host') {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ role: 'host' }]) });
       return;

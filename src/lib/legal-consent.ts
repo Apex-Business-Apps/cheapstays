@@ -74,3 +74,15 @@ export async function createLegalAcceptanceAudit(params: {
 
   if (error) throw error;
 }
+
+export async function hasRequiredSignupConsent(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("legal_consent_acceptances")
+    .select("document_id")
+    .eq("user_id", userId)
+    .eq("context_id", "signup")
+    .in("document_id", ["terms", "privacy"]);
+  if (error) throw error;
+  const docs = new Set((data ?? []).map((row) => row.document_id));
+  return docs.has("terms") && docs.has("privacy");
+}
