@@ -4,7 +4,22 @@ import { MemoryRouter } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 
 const mockAuth = { user: null as object | null, roles: [] as string[], signOut: vi.fn() };
+const setViewportMatch = (matches: boolean) => {
+  vi.spyOn(window, "matchMedia").mockImplementation((query: string) => ({
+    matches,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+};
 vi.mock("@/hooks/useAuth", () => ({ useAuth: () => mockAuth }));
+vi.mock("@/components/NotificationsModal", () => ({
+  NotificationsModal: () => <div data-testid="notifications-modal">Notifications Modal</div>,
+}));
 vi.mock("react-i18next", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-i18next")>();
   return { ...actual, useTranslation: () => ({ t: (v: string) => v, i18n: { language: "en", changeLanguage: vi.fn() } }) };
@@ -48,5 +63,17 @@ describe("Navbar CTAs", () => {
     const hostLinks = screen.getAllByRole("link", { name: "nav.host" });
     expect(hostLinks).toHaveLength(1);
     expect(hostLinks[0]).toHaveAttribute("href", "/host");
+  });
+
+  it("does not mount NotificationsModal on desktop", () => {
+    setViewportMatch(false);
+    render(<MemoryRouter><Navbar /></MemoryRouter>);
+    expect(screen.queryByTestId("notifications-modal")).not.toBeInTheDocument();
+  });
+
+  it("mounts NotificationsModal on mobile", () => {
+    setViewportMatch(true);
+    render(<MemoryRouter><Navbar /></MemoryRouter>);
+    expect(screen.getByTestId("notifications-modal")).toBeInTheDocument();
   });
 });

@@ -2,9 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Notifications from "@/pages/Notifications";
+import { Navbar } from "@/components/Navbar";
 
 vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({ user: null, roles: [], signOut: vi.fn() }) }));
 vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => false }));
+vi.mock("react-i18next", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-i18next")>();
+  return { ...actual, useTranslation: () => ({ t: (v: string) => v, i18n: { language: "en", changeLanguage: vi.fn() } }) };
+});
 vi.mock("@/hooks/useNotifications", () => ({
   useNotifications: () => ({ items: [], loading: false, unreadCount: 0, markAllRead: vi.fn(), markAsRead: vi.fn() }),
 }));
@@ -32,5 +37,15 @@ describe("Notifications page", () => {
     expect(screen.getByRole("heading", { level: 1, name: /Notifications/i })).toBeInTheDocument();
     expect(screen.getByText(/Sign in to view your notification center/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Sign in/i })).toHaveAttribute("href", "/auth");
+  });
+
+  it("renders /notifications with navbar on desktop without crashing", () => {
+    render(
+      <MemoryRouter>
+        <Navbar />
+        <Notifications />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("heading", { level: 1, name: /Notifications/i })).toBeInTheDocument();
   });
 });
