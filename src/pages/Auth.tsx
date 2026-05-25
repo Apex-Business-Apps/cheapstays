@@ -22,11 +22,19 @@ export default function Auth() {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, consentReady, consentRequired } = useAuth();
 
   useEffect(() => {
-    if (user) navigate("/", { replace: true });
-  }, [user, navigate]);
+    if (!user) return;
+    // Wait for consent state to settle before redirecting, otherwise we may
+    // send a user to "/" only to bounce them through the gate one render later.
+    if (!consentReady) return;
+    if (consentRequired) {
+      navigate("/legal/accept", { replace: true });
+    } else {
+      navigate("/", { replace: true });
+    }
+  }, [user, consentReady, consentRequired, navigate]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
