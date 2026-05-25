@@ -1,8 +1,8 @@
 # Edge Function API Reference
 
 **Organization:** APEX Business Systems Ltd.
-**Document Version:** 1.2.0
-**Last Updated:** 2026-05-21
+**Document Version:** 1.2.1
+**Last Updated:** 2026-05-25
 **Base URL:** `https://muqdmvkapsxrsgdkfoxn.supabase.co/functions/v1`
 
 ---
@@ -395,7 +395,43 @@ Returned when `PAYMONGO_SECRET_KEY` is not configured.
 
 ---
 
-## 6. POST /support-ticket
+
+## 6. POST /functions/v1/paymongo-webhook
+
+**Description:** Receive PayMongo webhook events for booking payment reconciliation.
+
+**Authentication:** None (`--no-verify-jwt` deploy mode; trust established via signature verification).
+
+### Request Headers
+
+```
+paymongo-signature: t=<unix_ts>,li=<hmac_hex>
+Content-Type: application/json
+```
+
+### Supported events
+
+- `checkout_session.payment.paid` — implemented; marks booking paid/captured when `metadata.booking_id` is present.
+- `payment.failed`, `payment.refunded`, `payment.refund.updated` — accepted and safely ignored with `200` (no booking mutation).
+- All unrelated events — safely ignored with `200`.
+
+### Responses
+
+| Status | Condition |
+|---|---|
+| `200` | Event processed, duplicate, or intentionally ignored |
+| `400` | Malformed JSON payload or missing required event envelope fields |
+| `401` | Invalid/missing `paymongo-signature` |
+| `405` | Method not allowed (non-POST/non-OPTIONS) |
+| `500` | Missing server-side configuration or database write failure |
+
+### Required server secrets
+
+- `PAYMONGO_WEBHOOK_SECRET`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+## 7. POST /support-ticket
 
 **Description:** Create a new support ticket. The function auto-detects escalation keywords and generates an AI first-response for non-escalated tickets.
 
@@ -574,3 +610,14 @@ Connection: keep-alive
 - Unsupported methods blocked when holds are required: prepaid, gift, anonymous reloadable, Interac-only debit, non-hold methods; wallets can pay but cannot secure incidentals if hold is required.
 - Refund window and payout release dates are returned at checkout and persisted on booking (`refundable_until`, `payout_release_on`).
 - Incidental charging requires `incidental_reviews` evidence path, guest response support, and manual gate for subjective cases before approval.
+
+
+## 8. POST /omnihub-role-authority
+
+**Description:** Centralized role authority mutation endpoint with audit emission through Omniport.
+
+**Authentication:** JWT Bearer required (admin role checks enforced server-side).
+
+**Notes:**
+- Emits audit payloads via `_shared/omniport.ts` when `OMNIPORT_BASE_URL` and `OMNIPORT_TOKEN` are configured.
+- `omni-recall/` is a governance/playbook tree (not an edge-function endpoint surface). API exposure remains through edge functions such as `omnihub-role-authority`.
