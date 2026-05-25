@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +17,13 @@ export function useNotifications() {
   const userId = user?.id;
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Stable per-instance ID so concurrent hook consumers never share a channel name.
+  // Supabase's RealtimeClient caches channels by name — two .on() calls on the same
+  // already-subscribed channel throw "cannot add postgres_changes callbacks after subscribe()".
+  const instanceId = useRef<string>(
+    Math.random().toString(36).slice(2, 9)
+  ).current;
 
   const unreadCount = useMemo(() => items.filter((n) => !n.read).length, [items]);
 
@@ -67,10 +74,14 @@ export function useNotifications() {
   useEffect(() => { void loadData(); }, [loadData]);
 
   // Realtime: insert + update
+  // Channel name is scoped to both userId AND this hook instance (instanceId) so that
+  // NotificationsModal (always mounted in Layout) and Notifications.tsx (the /notifications
+  // route) can safely coexist without colliding on Supabase's internal channel registry.
   useEffect(() => {
     if (!userId) return;
+    const channelName = `notifications:${userId}:${instanceId}`;
     const channel = supabase
-      .channel(`notifications:${userId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
@@ -89,7 +100,7 @@ export function useNotifications() {
       )
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [userId]);
+  }, [userId, instanceId]);
 
   return { items, loading, unreadCount, markAllRead, markAsRead, refetch: loadData };
 }

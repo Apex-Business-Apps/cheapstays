@@ -21,4 +21,19 @@ describe('notification hotfix static checks', () => {
     expect(text).toContain('DROP TRIGGER IF EXISTS notify_booking_status');
     expect(text).toContain('DROP FUNCTION IF EXISTS public.notify_booking_status_change()');
   });
+
+  // REGRESSION SHIELD — prevents revert of channel collision fix
+  // Root cause: NotificationsModal (always mounted) + Notifications.tsx both called
+  // useNotifications(), both called supabase.channel("notifications:{userId}") — Supabase
+  // returned the same already-subscribed channel instance, .on() threw, ErrorBoundary caught,
+  // page showed "Something went wrong". Fix: per-instance unique channel name via useRef.
+  it('useNotifications uses a per-instance unique channel name to prevent Supabase registry collision', () => {
+    const text = readFileSync('src/hooks/useNotifications.ts', 'utf8');
+    // Must import useRef
+    expect(text).toContain('useRef');
+    // Must have instanceId stable ref
+    expect(text).toContain('instanceId');
+    // Channel name must include instanceId suffix
+    expect(text).toContain('`notifications:${userId}:${instanceId}`');
+  });
 });
