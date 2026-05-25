@@ -6,3 +6,5 @@ full E2E result: PASS 210/210
 typecheck/test/guardrails result: PASS
 final audit decision: READY
 remaining blockers: none
+verified on branch: work
+verified at (UTC): 2026-05-25T00:00:00Z
