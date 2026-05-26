@@ -33,6 +33,7 @@ import emblemHeritage from "@/assets/emblem-heritage.png";
 import emblemUrban from "@/assets/emblem-urban.png";
 import brandMark from "@/assets/brand-mark.png";
 import { Seo } from "@/components/Seo";
+import { AtmosphericSection } from "@/components/AtmosphericSection";
 
 const featureIcons = [iconAiHunt, iconOwnerDirect, iconVerified, iconPay, iconConcierge, iconBook];
 const FEATURE_KEYS = ["f1", "f2", "f3", "f4", "f5", "f6"] as const;
@@ -86,6 +87,7 @@ export default function Index() {
       />
       <div>
         {/* HERO */}
+        <AtmosphericSection variant="beach" parallaxStrength="subtle">
         <section className="container pt-14 pb-20 md:pt-20 md:pb-24">
           <div className="grid gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-14 items-start">
             <motion.div
@@ -97,11 +99,11 @@ export default function Index() {
                 {t("hero.badge")}
               </Badge>
               <h1 className="text-5xl md:text-6xl xl:text-7xl font-semibold tracking-tight leading-[1.02]">
-                {t("hero.h1Line1")}<br />
-                <span className="text-primary">{t("hero.h1Line2")}</span>
+                Short or long.<br />
+                <span className="text-primary">Stay cheap.</span>
               </h1>
               <p className="mt-6 text-lg text-muted-foreground max-w-xl">
-                {t("hero.subtitle")}
+                Smart travelers book short stays instantly or request long stays with owner-direct clarity.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button size="lg" asChild className="group">
@@ -110,9 +112,9 @@ export default function Index() {
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
                   </Link>
                 </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <Link to="/membership">{t("hero.ctaMembership")}</Link>
-                </Button>
+                <Link to="/membership" className="text-sm underline underline-offset-4 text-muted-foreground hover:text-foreground transition-colors">
+                  {t("hero.ctaMembership")}
+                </Link>
               </div>
               <div className="mt-10 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-2">
@@ -132,8 +134,10 @@ export default function Index() {
             </motion.div>
           </div>
         </section>
+        </AtmosphericSection>
 
         {/* WHY CHEAPSTAYS */}
+        <AtmosphericSection variant="neighborhood" parallaxStrength="subtle">
         <section className="container pb-24">
           <div className="max-w-2xl mb-12">
             <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">
@@ -172,6 +176,7 @@ export default function Index() {
             })}
           </div>
         </section>
+        </AtmosphericSection>
 
         {/* STATS STRIP */}
         <section className="border-y border-border/60 bg-secondary/40">
@@ -186,6 +191,7 @@ export default function Index() {
         </section>
 
         {/* DESTINATIONS */}
+        <AtmosphericSection variant="city" parallaxStrength="subtle">
         <section className="container py-24">
           <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
             <div className="max-w-xl">
@@ -243,6 +249,7 @@ export default function Index() {
             ))}
           </div>
         </section>
+        </AtmosphericSection>
 
         {/* CITY STAYCATIONS */}
         <section className="relative overflow-hidden border-y border-border/60 bg-gradient-to-b from-secondary/30 via-background to-background">
@@ -319,7 +326,8 @@ export default function Index() {
         </section>
 
         {/* HOW IT WORKS */}
-        <section className="bg-card/60 border-y border-border/60">
+        <AtmosphericSection variant="interior" parallaxStrength="none" className="border-y border-border/60">
+        <section className="bg-card/35">
           <div className="container py-24 grid lg:grid-cols-[1fr_1.2fr] gap-12 items-start">
             <div>
               <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">
@@ -352,6 +360,7 @@ export default function Index() {
             </div>
           </div>
         </section>
+        </AtmosphericSection>
 
         {/* TESTIMONIALS */}
         <section className="container py-24">

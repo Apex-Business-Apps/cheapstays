@@ -1,0 +1,7 @@
+<svg viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+  <g fill="currentColor">
+    <path d="M0 640h1600v260H0z" opacity="0.85"/>
+    <path d="M40 640V430h90v210h70V360h120v280h80V300h110v340h95V390h100v250h86V335h120v305h84V418h104v222h80V370h120v270h90V520h96v120z" opacity="0.68"/>
+    <path d="M0 585c220 0 340-54 520-54s295 50 475 50c200 0 330-40 605-57v116H0z" opacity="0.35"/>
+  </g>
+</svg>
