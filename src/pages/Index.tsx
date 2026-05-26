@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,11 @@ const ease = [0.22, 1, 0.36, 1] as const;
 export default function Index() {
   const { t } = useTranslation();
 
+  useEffect(() => {
+    document.body.classList.add("snap-landing-active");
+    return () => document.body.classList.remove("snap-landing-active");
+  }, []);
+
   return (
     <div>
       <Seo
@@ -85,7 +91,7 @@ export default function Index() {
         description="Short-term rentals across the Philippines with owner-direct pricing and no platform markup."
         path="/"
       />
-      <div>
+      <div className="snap-landing-page">
         {/* HERO */}
         <AtmosphericSection as="div" variant="beach" parallaxStrength="subtle">
         <section className="container pt-14 pb-20 md:pt-20 md:pb-24">
@@ -179,7 +185,7 @@ export default function Index() {
         </AtmosphericSection>
 
         {/* STATS STRIP */}
-        <section className="border-y border-border/60 bg-secondary/40">
+        <section className="snap-landing-section border-y border-border/60 bg-secondary/40">
           <div className="container py-10 grid grid-cols-2 md:grid-cols-4 gap-6">
             {stats.map((s) => (
               <div key={s.key}>
@@ -252,7 +258,7 @@ export default function Index() {
         </AtmosphericSection>
 
         {/* CITY STAYCATIONS */}
-        <section className="relative overflow-hidden border-y border-border/60 bg-gradient-to-b from-secondary/30 via-background to-background">
+        <section className="snap-landing-section relative overflow-hidden border-y border-border/60 bg-gradient-to-b from-secondary/30 via-background to-background">
           <div className="absolute top-12 right-[-60px] h-72 w-72 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
           <div className="container py-24">
             <div className="flex flex-wrap items-end justify-between gap-6 mb-12">
@@ -326,7 +332,7 @@ export default function Index() {
         </section>
 
         {/* HOW IT WORKS */}
-        <AtmosphericSection variant="interior" parallaxStrength="none" className="border-y border-border/60">
+        <AtmosphericSection variant="interior" parallaxStrength="none" className="snap-landing-section border-y border-border/60">
         <section className="bg-card/35">
           <div className="container py-24 grid lg:grid-cols-[1fr_1.2fr] gap-12 items-start">
             <div>
@@ -363,7 +369,7 @@ export default function Index() {
         </AtmosphericSection>
 
         {/* TESTIMONIALS */}
-        <section className="container py-24">
+        <section className="snap-landing-section container py-24">
           <div className="max-w-xl mb-10">
             <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">
               <Star className="h-3 w-3 mr-1" /> {t("reviews.badge")}
@@ -390,7 +396,7 @@ export default function Index() {
         </section>
 
         {/* FINAL CTA */}
-        <section className="container pb-24">
+        <section className="snap-landing-section container pb-24">
           <div className="relative overflow-hidden rounded-3xl bg-primary text-primary-foreground p-8 md:p-16">
             <div className="absolute -right-20 -bottom-20 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
             <div className="relative max-w-2xl">
