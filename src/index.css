@@ -165,3 +165,54 @@ All colors MUST be HSL.
     .atmo-bg-layer { transform: none !important; }
   }
 }
+
+
+@layer base {
+  :root {
+    --site-header-h: 4rem;
+    --snap-scroll-padding-top: calc(var(--site-header-h) + env(safe-area-inset-top, 0px));
+    --snap-section-min-h: calc(100svh - var(--snap-scroll-padding-top));
+  }
+
+  body.snap-landing-active {
+    scroll-snap-type: y mandatory;
+    scroll-padding-top: var(--snap-scroll-padding-top);
+  }
+
+  body.snap-landing-active .snap-landing-section {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    scroll-margin-top: var(--snap-scroll-padding-top);
+    min-height: var(--snap-section-min-h);
+  }
+
+  /* Footer should participate in end-of-page choreography without becoming a full-screen hard stop. */
+  body.snap-landing-active .snap-landing-footer {
+    min-height: auto;
+    scroll-snap-align: end;
+    scroll-snap-stop: normal;
+  }
+
+  @supports (height: 100dvh) {
+    body.snap-landing-active .snap-landing-section {
+      min-height: calc(100dvh - var(--snap-scroll-padding-top));
+    }
+  }
+
+  /* Reduce strictness on touch-first devices to avoid iOS/Safari momentum jank and trap-like feel. */
+  @media (hover: none) and (pointer: coarse) {
+    body.snap-landing-active {
+      scroll-snap-type: y proximity;
+    }
+
+    body.snap-landing-active .snap-landing-section {
+      scroll-snap-stop: normal;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}

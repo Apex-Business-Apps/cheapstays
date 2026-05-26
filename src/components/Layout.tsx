@@ -16,7 +16,7 @@ export function Layout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       <main>{children}</main>
-      <footer className="mt-16 border-t border-border/60">
+      <footer className="snap-landing-section snap-landing-footer mt-16 border-t border-border/60">
         <div className="container grid gap-8 py-10 text-sm text-muted-foreground md:grid-cols-[1.5fr_1fr]">
           <div>
             <div className="mb-4 flex flex-wrap items-center gap-3">
