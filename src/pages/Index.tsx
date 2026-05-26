@@ -87,7 +87,7 @@ export default function Index() {
       />
       <div>
         {/* HERO */}
-        <AtmosphericSection variant="beach" parallaxStrength="subtle">
+        <AtmosphericSection as="div" variant="beach" parallaxStrength="subtle">
         <section className="container pt-14 pb-20 md:pt-20 md:pb-24">
           <div className="grid gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-14 items-start">
             <motion.div
@@ -137,7 +137,7 @@ export default function Index() {
         </AtmosphericSection>
 
         {/* WHY CHEAPSTAYS */}
-        <AtmosphericSection variant="neighborhood" parallaxStrength="subtle">
+        <AtmosphericSection as="div" variant="neighborhood" parallaxStrength="subtle">
         <section className="container pb-24">
           <div className="max-w-2xl mb-12">
             <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">
@@ -191,7 +191,7 @@ export default function Index() {
         </section>
 
         {/* DESTINATIONS */}
-        <AtmosphericSection variant="city" parallaxStrength="subtle">
+        <AtmosphericSection as="div" variant="city" parallaxStrength="subtle">
         <section className="container py-24">
           <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
             <div className="max-w-xl">
