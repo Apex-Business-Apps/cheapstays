@@ -219,24 +219,24 @@ All colors MUST be HSL.
   /* Logo stroke and glow on hover and select (focus-visible/active) */
   .logo-glow {
     transition: filter 0.3s ease, text-shadow 0.3s ease, transform 0.3s ease;
-    filter: drop-shadow(0 1.5px 2px rgba(0, 0, 0, 0.25));
-    text-shadow: 0 1.5px 2px rgba(0, 0, 0, 0.25);
-    --logo-glow-color: rgba(0, 0, 0, 0.15);
+    filter: drop-shadow(0 1.5px 2px rgba(156, 163, 175, 0.5));
+    text-shadow: 0 1.5px 2px rgba(156, 163, 175, 0.5);
+    --logo-glow-color: rgba(156, 163, 175, 0.35);
   }
   .dark .logo-glow {
-    filter: drop-shadow(0 1.5px 2.5px rgba(255, 255, 255, 0.45));
-    text-shadow: 0 1.5px 2.5px rgba(255, 255, 255, 0.45);
-    --logo-glow-color: rgba(255, 255, 255, 0.75);
+    filter: drop-shadow(0 1.5px 2.5px rgba(209, 213, 219, 0.5));
+    text-shadow: 0 1.5px 2.5px rgba(209, 213, 219, 0.5);
+    --logo-glow-color: rgba(209, 213, 219, 0.7);
   }
   .logo-glow:hover,
   .logo-glow:focus-visible,
   .logo-glow:active,
   .group:hover .logo-glow,
   .group:focus-within .logo-glow {
-    filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.35))
+    filter: drop-shadow(0 3px 5px rgba(156, 163, 175, 0.6))
             drop-shadow(0 0 6px var(--logo-glow-color));
     text-shadow:
-      0 3px 5px rgba(0, 0, 0, 0.35),
+      0 3px 5px rgba(156, 163, 175, 0.6),
       0 0 6px var(--logo-glow-color);
     transform: scale(1.02);
   }
@@ -245,10 +245,10 @@ All colors MUST be HSL.
   .dark .logo-glow:active,
   .dark .group:hover .logo-glow,
   .dark .group:focus-within .logo-glow {
-    filter: drop-shadow(0 3px 6px rgba(255, 255, 255, 0.55))
+    filter: drop-shadow(0 3px 6px rgba(209, 213, 219, 0.6))
             drop-shadow(0 0 8px var(--logo-glow-color));
     text-shadow:
-      0 3px 6px rgba(255, 255, 255, 0.55),
+      0 3px 6px rgba(209, 213, 219, 0.6),
       0 0 8px var(--logo-glow-color);
   }
 
