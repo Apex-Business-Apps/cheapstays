@@ -300,9 +300,26 @@ export function AiChatBubble() {
           setBusy(false);
           return;
         }
-        // Non-OK search response → fall through to ai-chat
-      } catch {
-        // Network error → fall through to ai-chat
+        throw new Error("Edge function search response not OK");
+      } catch (err) {
+        console.warn("Supabase Edge Function search failed, using local database search fallback:", err);
+        const { localSearchFallback } = await import("@/lib/search-fallback");
+        const fallbackData = await localSearchFallback(content);
+        if (fallbackData.results && fallbackData.results.length > 0) {
+          setMessages((prev) => [
+            ...prev,
+            { kind: "results", summary: fallbackData.summary, listings: fallbackData.results as unknown as SearchListing[] },
+          ]);
+          speak(fallbackData.summary);
+          setBusy(false);
+          return;
+        }
+        // If local fallback also has zero results, show a friendly fallback message
+        const msg = fallbackData.summary || t("pip.noResults");
+        setMessages((prev) => [...prev, { kind: "text", role: "assistant", content: msg }]);
+        speak(msg);
+        setBusy(false);
+        return;
       }
     }
 
@@ -333,12 +350,20 @@ export function AiChatBubble() {
         });
       }
       speak(acc);
-    } catch {
+    } catch (err) {
+      console.warn("Supabase Edge Function chat failed, using local conversational fallback:", err);
+      const fallbackReplies = [
+        "I'm experiencing a temporary network hiccup reaching my main concierge engine, but I can still help you navigate! You can find fantastic deals on /search, view our paid plans at /membership, or manage properties at /host.",
+        "Apologies for the brief connection interruption! While my full chat agent is reconnecting, you can explore active stays under /search or view our support helpdesk at /support.",
+        "It looks like our concierge server is super busy right now. Rest assured you can still search all active listings at /search or sign in at /auth to manage your bookings."
+      ];
+      const selectedReply = fallbackReplies[Math.floor(Math.random() * fallbackReplies.length)];
       setMessages((m) => {
         const copy = [...m];
-        copy[copy.length - 1] = { kind: "text", role: "assistant", content: t("pip.error") };
+        copy[copy.length - 1] = { kind: "text", role: "assistant", content: selectedReply };
         return copy;
       });
+      speak(selectedReply);
     } finally {
       setBusy(false);
     }
@@ -556,13 +581,14 @@ export function AiChatBubble() {
                     {messages.map((m, i) => {
                       // ── Text bubble ──
                       if (m.kind === "text") {
+                        const isMemberOnly = m.role === "assistant" && m.content === t("pip.memberOnly");
                         return (
                           <motion.div
                             key={i}
                             initial={{ opacity: 0, y: 6 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                            className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}
+                            className={cn("flex flex-col gap-2", m.role === "user" ? "items-end" : "items-start")}
                           >
                             <div className={cn(
                               "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap",
@@ -572,6 +598,18 @@ export function AiChatBubble() {
                             )}>
                               {m.content || (m.role === "assistant" && busy ? "…" : null)}
                             </div>
+                            {isMemberOnly && (
+                              <Button
+                                size="sm"
+                                className="ml-1 text-xs"
+                                onClick={() => {
+                                  setOpen(false);
+                                  navigate("/membership");
+                                }}
+                              >
+                                {t("hero.ctaMembership")}
+                              </Button>
+                            )}
                           </motion.div>
                         );
                       }
