@@ -1,10 +1,5 @@
-export const PAYMONGO_SIGNATURE_HEADER = "paymongo-signature";
-export const SUPPORTED_PAYMONGO_EVENTS = new Set([
-  "checkout_session.payment.paid",
-  "payment.failed",
-  "payment.refunded",
-  "payment.refund.updated",
-]);
+export const PAYMONGO_SIGNATURE_HEADER = "Paymongo-Signature";
+export const SUPPORTED_PAYMONGO_EVENTS = new Set(["checkout_session.payment.paid"]);
 
 export type PaymongoEventEnvelope = {
   data?: {
@@ -16,6 +11,7 @@ export type PaymongoEventEnvelope = {
         attributes?: {
           metadata?: Record<string, unknown>;
           payment_intent_id?: string;
+          payment_id?: string;
           paid_at?: number | string;
         };
       };
@@ -40,7 +36,7 @@ export function parseSignatureHeader(signatureHeader: string): { timestamp: stri
   const parts: Record<string, string> = {};
   for (const segment of signatureHeader.split(",")) {
     const [k, v] = segment.split("=");
-    if (k && v) parts[k.trim()] = v.trim();
+    if (k && v) parts[k.trim().toLowerCase()] = v.trim();
   }
   const timestamp = parts.t;
   const signature = parts.li ?? parts.te;
@@ -48,12 +44,25 @@ export function parseSignatureHeader(signatureHeader: string): { timestamp: stri
   return { timestamp, signature };
 }
 
+function constantTimeHexEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const aBuf = enc.encode(a.toLowerCase());
+  const bBuf = enc.encode(b.toLowerCase());
+  if (aBuf.length !== bBuf.length) return false;
+  let diff = 0;
+  for (let i = 0; i < aBuf.length; i++) diff |= aBuf[i] ^ bBuf[i];
+  return diff === 0;
+}
+
 export async function verifyPaymongoSignature(rawBody: string, signatureHeader: string, secret: string): Promise<boolean> {
   const parsed = parseSignatureHeader(signatureHeader);
   if (!parsed) return false;
+  const timestampSec = Number(parsed.timestamp);
+  if (!Number.isFinite(timestampSec)) return false;
+  if (Math.abs(Math.floor(Date.now() / 1000) - timestampSec) > 300) return false;
 
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${parsed.timestamp}.${rawBody}`));
   const computed = Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
-  return computed === parsed.signature;
+  return constantTimeHexEqual(computed, parsed.signature);
 }
