@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
 
   const rawBody = await req.text();
   const signatureHeader = req.headers.get(PAYMONGO_SIGNATURE_HEADER) ?? "";
-  if (!(await verifyPaymongoSignature(rawBody, signatureHeader, webhookSecret))) {
+  if (!(await verifyPaymongoSignature(rawBody, signatureHeader, webhookSecret, 300))) {
     return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
