@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 type AtmosphericSectionProps = {
   as?: "section" | "div";
   variant: "beach" | "city" | "neighborhood" | "interior";
-  themeTone?: "light" | "dark" | "auto";
   parallaxStrength?: "none" | "subtle" | "standard";
   className?: string;
   contentClassName?: string;
@@ -22,7 +21,6 @@ const PARALLAX_PIXELS = {
 export function AtmosphericSection({
   as = "section",
   variant,
-  themeTone = "auto",
   parallaxStrength = "subtle",
   className,
   contentClassName,
@@ -37,7 +35,6 @@ export function AtmosphericSection({
   const commonProps = {
     className: cn("atmo-section relative isolate overflow-hidden", className),
     "data-atmo-variant": variant,
-    "data-atmo-tone": themeTone,
     style,
   };
 
