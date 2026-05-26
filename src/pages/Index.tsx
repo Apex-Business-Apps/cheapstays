@@ -121,9 +121,11 @@ export default function Index() {
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
                   </Link>
                 </Button>
-                <Link to="/membership" className="text-sm underline underline-offset-4 text-muted-foreground hover:text-foreground transition-colors">
-                  {t("hero.ctaMembership")}
-                </Link>
+                <Button size="lg" variant="outline" asChild>
+                  <Link to="/membership">
+                    {t("hero.ctaMembership")}
+                  </Link>
+                </Button>
               </div>
             </motion.div>
             <motion.div
