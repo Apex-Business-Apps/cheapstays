@@ -1,9 +1,9 @@
 <svg viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
-  <g fill="currentColor">
-    <rect x="0" y="0" width="1600" height="900" opacity="0.12"/>
-    <path d="M180 180h480v420H180zm68 70v280h340V250z" opacity="0.5"/>
-    <path d="M860 220h560v500H860zm84 90v325h390V310z" opacity="0.42"/>
-    <path d="M80 670h500v130H80zm640 20h760v110H720z" opacity="0.66"/>
-    <path d="M1180 720c-40-100-80-170-150-230 90 20 150 84 210 190-26 8-40 22-60 40z" opacity="0.48"/>
+  <g fill="white">
+    <path d="M180 180h480v420H180zm68 70v280h340V250z" opacity="0.56"/>
+    <path d="M860 220h560v500H860zm84 90v325h390V310z" opacity="0.48"/>
+    <path d="M80 670h500v130H80zm640 20h760v110H720z" opacity="0.7"/>
+    <path d="M1180 720c-40-100-80-170-150-230 90 20 150 84 210 190-26 8-40 22-60 40z" opacity="0.54"/>
+    <path d="M1120 520c44-20 86-14 126 14-36 3-72 14-104 34-6-16-12-30-22-48z" opacity="0.4"/>
   </g>
 </svg>
