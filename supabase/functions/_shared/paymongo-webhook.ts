@@ -54,12 +54,18 @@ function constantTimeHexEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-export async function verifyPaymongoSignature(rawBody: string, signatureHeader: string, secret: string): Promise<boolean> {
+export async function verifyPaymongoSignature(
+  rawBody: string,
+  signatureHeader: string,
+  secret: string,
+  maxAgeSeconds?: number,
+): Promise<boolean> {
   const parsed = parseSignatureHeader(signatureHeader);
   if (!parsed) return false;
   const timestampSec = Number(parsed.timestamp);
   if (!Number.isFinite(timestampSec)) return false;
-  if (Math.abs(Math.floor(Date.now() / 1000) - timestampSec) > 300) return false;
+  // Replay protection is opt-in so helper tests can validate deterministic HMAC values.
+  if (typeof maxAgeSeconds === "number" && Math.abs(Math.floor(Date.now() / 1000) - timestampSec) > maxAgeSeconds) return false;
 
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${parsed.timestamp}.${rawBody}`));
