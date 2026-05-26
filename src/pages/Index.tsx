@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,8 @@ const destinations = [
   { img: s3, name: "Bohol",             tagline: "Chocolate Hills views",   from: "₱2,900", emblem: emblemMountain },
   { img: s7, name: "Baguio",            tagline: "Cool pine highlands",     from: "₱1,950", emblem: emblemMountain },
   { img: s5, name: "Vigan",             tagline: "Heritage Spanish casas",  from: "₱1,500", emblem: emblemHeritage },
+  { img: cityCebu,  name: "Cebu City",          tagline: "Skyline and sea condos",  from: "₱2,100", emblem: emblemUrban },
+  { img: cityCoron, name: "Coron, Palawan",     tagline: "Shipwreck diving cove",   from: "₱3,400", emblem: emblemBeach },
 ];
 
 const cityStaycations = [
@@ -78,6 +80,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Index() {
   const { t } = useTranslation();
+  const [brokenImages, setBrokenImages] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     document.body.classList.add("snap-landing-active");
@@ -93,7 +96,7 @@ export default function Index() {
       />
       <div className="snap-landing-page">
         {/* HERO */}
-        <AtmosphericSection as="div" variant="beach" parallaxStrength="subtle">
+        <AtmosphericSection as="div" variant="beach" parallaxStrength="subtle" className="snap-landing-panel">
         <section className="container pt-14 pb-20 md:pt-20 md:pb-24">
           <div className="grid gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-14 items-start">
             <motion.div
@@ -105,8 +108,8 @@ export default function Index() {
                 {t("hero.badge")}
               </Badge>
               <h1 className="text-5xl md:text-6xl xl:text-7xl font-semibold tracking-tight leading-[1.02]">
-                Short or long.<br />
-                <span className="text-primary">Stay cheap.</span>
+                Short or Long.<br />
+                <span className="text-primary">Stay Cheap.</span>
               </h1>
               <p className="mt-6 text-lg text-muted-foreground max-w-xl">
                 Smart travelers book short stays instantly or request long stays with owner-direct clarity.
@@ -122,14 +125,6 @@ export default function Index() {
                   {t("hero.ctaMembership")}
                 </Link>
               </div>
-              <div className="mt-10 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-                  {t("hero.liveScanner")}
-                </span>
-                <span aria-hidden>·</span>
-                <span>{t("hero.cycling", { count: HERO_STAYS_COUNT })}</span>
-              </div>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 20 }}
@@ -143,7 +138,7 @@ export default function Index() {
         </AtmosphericSection>
 
         {/* WHY CHEAPSTAYS */}
-        <AtmosphericSection as="div" variant="neighborhood" parallaxStrength="subtle">
+        <AtmosphericSection as="div" variant="neighborhood" parallaxStrength="subtle" className="snap-landing-panel">
         <section className="container pb-24">
           <div className="max-w-2xl mb-12">
             <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">
@@ -185,7 +180,7 @@ export default function Index() {
         </AtmosphericSection>
 
         {/* STATS STRIP */}
-        <section className="snap-landing-section border-y border-border/60 bg-secondary/40">
+        <section className="snap-landing-strip border-y border-border/60 bg-secondary/40">
           <div className="container py-10 grid grid-cols-2 md:grid-cols-4 gap-6">
             {stats.map((s) => (
               <div key={s.key}>
@@ -197,7 +192,7 @@ export default function Index() {
         </section>
 
         {/* DESTINATIONS */}
-        <AtmosphericSection as="div" variant="city" parallaxStrength="subtle">
+        <AtmosphericSection as="div" variant="city" parallaxStrength="subtle" className="snap-landing-panel">
         <section className="container py-24">
           <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
             <div className="max-w-xl">
@@ -222,14 +217,21 @@ export default function Index() {
                 className={`group relative overflow-hidden rounded-2xl ring-1 ring-border/60 cursor-pointer ${idx === 0 ? "sm:col-span-2 sm:row-span-2 aspect-[4/5] sm:aspect-auto" : "aspect-[4/5]"}`}
               >
                 <Link to={`/search?q=${encodeURIComponent(d.name)}`} className="absolute inset-0 z-10" aria-label={`Search stays in ${d.name}`} />
-                <img
-                  src={d.img}
-                  alt={`${d.name} — ${d.tagline}`}
-                  loading="lazy"
-                  width={1024}
-                  height={1280}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform [transition-duration:1200ms] ease-out group-hover:scale-[1.06]"
-                />
+                {!brokenImages[idx] ? (
+                  <img
+                    src={d.img}
+                    alt={`${d.name} — ${d.tagline}`}
+                    loading="lazy"
+                    width={1024}
+                    height={1280}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform [transition-duration:1200ms] ease-out group-hover:scale-[1.06]"
+                    onError={() => setBrokenImages((prev) => ({ ...prev, [idx]: true }))}
+                  />
+                ) : (
+                  <div className="absolute inset-0 h-full w-full bg-gradient-to-br from-secondary/60 to-accent/10 flex items-center justify-center">
+                    <Compass className="h-10 w-10 text-muted-foreground/40" />
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/10 to-transparent" />
                 <img
                   src={d.emblem}
@@ -258,7 +260,7 @@ export default function Index() {
         </AtmosphericSection>
 
         {/* CITY STAYCATIONS */}
-        <section className="snap-landing-section relative overflow-hidden border-y border-border/60 bg-gradient-to-b from-secondary/30 via-background to-background">
+        <AtmosphericSection as="section" variant="lake" parallaxStrength="subtle" className="snap-landing-panel border-y border-border/60">
           <div className="absolute top-12 right-[-60px] h-72 w-72 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
           <div className="container py-24">
             <div className="flex flex-wrap items-end justify-between gap-6 mb-12">
@@ -329,10 +331,10 @@ export default function Index() {
               ))}
             </div>
           </div>
-        </section>
+        </AtmosphericSection>
 
         {/* HOW IT WORKS */}
-        <AtmosphericSection variant="interior" parallaxStrength="none" className="snap-landing-section border-y border-border/60">
+        <AtmosphericSection variant="interior" parallaxStrength="none" className="snap-landing-panel border-y border-border/60">
         <section className="bg-card/35">
           <div className="container py-24 grid lg:grid-cols-[1fr_1.2fr] gap-12 items-start">
             <div>
@@ -368,35 +370,37 @@ export default function Index() {
         </section>
         </AtmosphericSection>
 
-        {/* TESTIMONIALS */}
-        <section className="snap-landing-section container py-24">
-          <div className="max-w-xl mb-10">
-            <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">
-              <Star className="h-3 w-3 mr-1" /> {t("reviews.badge")}
-            </Badge>
-            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">{t("reviews.h2")}</h2>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {testimonials.map((item, idx) => (
-              <motion.div
-                key={item.name}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: idx * 0.07, ease }}
-              >
-                <Card className="p-6 h-full border-border/60 bg-card/90">
-                  <Quote className="h-5 w-5 text-accent" />
-                  <p className="mt-3 text-sm leading-relaxed">{item.body}</p>
-                  <p className="mt-4 text-xs text-muted-foreground">{item.name} · {item.city}</p>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </section>
+        {/* TESTIMONIALS & FINAL CTA */}
+        <AtmosphericSection as="div" variant="coastal" parallaxStrength="subtle" className="snap-landing-strip">
+          {/* TESTIMONIALS */}
+          <section className="container py-24">
+            <div className="max-w-xl mb-10">
+              <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">
+                <Star className="h-3 w-3 mr-1" /> {t("reviews.badge")}
+              </Badge>
+              <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">{t("reviews.h2")}</h2>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {testimonials.map((item, idx) => (
+                <motion.div
+                  key={item.name}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: idx * 0.07, ease }}
+                >
+                  <Card className="p-6 h-full border-border/60 bg-card/90">
+                    <Quote className="h-5 w-5 text-accent" />
+                    <p className="mt-3 text-sm leading-relaxed">{item.body}</p>
+                    <p className="mt-4 text-xs text-muted-foreground">{item.name} · {item.city}</p>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </section>
 
-        {/* FINAL CTA */}
-        <section className="snap-landing-section container pb-24">
+          {/* FINAL CTA */}
+          <section className="container pb-24">
           <div className="relative overflow-hidden rounded-3xl bg-primary text-primary-foreground p-8 md:p-16">
             <div className="absolute -right-20 -bottom-20 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
             <div className="relative max-w-2xl">
@@ -413,6 +417,7 @@ export default function Index() {
             </div>
           </div>
         </section>
+      </AtmosphericSection>
       </div>
     </div>
   );

@@ -51,13 +51,13 @@ export function Navbar() {
         {/* Logo — constrained on mobile so right-side buttons fit */}
         <Link to="/" className="group flex h-full items-center font-semibold tracking-tight shrink-0 min-w-0">
           {brandAsset === "text" ? (
-            <span className="text-lg">Cheap<span className="text-accent">Stays</span></span>
+            <span className="logo-glow text-lg">Cheap<span className="text-accent">Stays</span></span>
           ) : (
             <img
               src={brandAsset === "wordmark" ? `/wordmark.png?v=${__CACHE_BUST__}` : `/favicon.png?v=${__CACHE_BUST__}`}
               alt={brandAsset === "wordmark" ? "CheapStays wordmark" : "CheapStays mark"}
-              className={`w-auto object-contain transition-transform duration-500 ease-out group-hover:scale-[1.02] ${
-                brandAsset === "wordmark" ? "h-[90%] max-w-[120px] sm:max-w-[200px]" : "h-10 max-w-10 rounded-md"
+              className={`logo-glow w-auto object-contain transition-transform duration-500 ease-out group-hover:scale-[1.02] ${
+                brandAsset === "wordmark" ? "h-[95%] max-w-[160px] sm:max-w-[240px]" : "h-10 max-w-10 rounded-md"
               }`}
               onError={() =>
                 setBrandAsset((cur) => (cur === "wordmark" ? "icon" : "text"))

@@ -22,6 +22,7 @@ import { Seo } from "@/components/Seo";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { isMember } from "@/lib/rbac";
+import { getListingPrimaryImage, getListingImageAlt } from "@/lib/listings";
 
 type Listing = {
   id: string;
@@ -129,8 +130,10 @@ function activeFilterCount(f: Filters): number {
 type GuestRating = { avg: number; count: number } | null;
 
 function ListingCard({ listing, guestRating }: { listing: Listing; guestRating?: GuestRating }) {
-  const heroImage = listing.images?.[0];
+  const [imageFailed, setImageFailed] = useState(false);
+  const heroImage = getListingPrimaryImage(listing);
   const displayAmenities = (listing.amenities ?? []).filter((a) => AMENITY_ICONS[a]).slice(0, 4);
+  const altText = getListingImageAlt(listing);
 
   return (
     <Link
@@ -138,12 +141,19 @@ function ListingCard({ listing, guestRating }: { listing: Listing; guestRating?:
       className="group block rounded-2xl border border-border/60 bg-card hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden"
     >
       <div className="h-44 bg-gradient-to-br from-secondary/60 to-accent/10 flex items-center justify-center relative overflow-hidden">
-        {heroImage ? (
-          <img src={heroImage} alt={listing.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" loading="lazy" />
+        {heroImage && !imageFailed ? (
+          <img
+            src={heroImage}
+            alt={altText}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            loading="lazy"
+            onError={() => setImageFailed(true)}
+          />
         ) : (
-          <span className="text-4xl opacity-20 select-none">
-            {listing.type === "villa" ? "🏡" : listing.type === "glamping" ? "⛺" : "🏠"}
-          </span>
+          <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground/60 w-full h-full bg-gradient-to-br from-secondary/60 to-accent/10">
+            <BedDouble className="h-8 w-8 stroke-[1.5]" />
+            <span className="text-[10px] uppercase tracking-wider font-medium">No photo available</span>
+          </div>
         )}
         {listing.is_owner_direct && (
           <Badge variant="secondary" className="absolute top-3 right-3 text-[10px]">Owner direct</Badge>

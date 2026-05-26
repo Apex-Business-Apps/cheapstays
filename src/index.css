@@ -119,11 +119,10 @@ All colors MUST be HSL.
 
 @layer components {
   .atmo-section {
+    --atmo-wallpaper-opacity: 0.2;
+    --atmo-wallpaper-position: center;
+    --atmo-wallpaper-scale: 1.08;
     --atmo-art-fill: hsl(152 32% 24%);
-    --atmo-image-opacity: 0.2;
-    --atmo-svg-mask-url: none;
-    --atmo-mask-size: cover;
-    --atmo-mask-position: center;
     --atmo-edge-fade: radial-gradient(120% 100% at 50% 50%, black 0 72%, transparent 100%);
     --atmo-tint: linear-gradient(120deg, hsl(var(--background) / 0.12), hsl(var(--secondary) / 0.08));
     --atmo-veil: radial-gradient(120% 95% at 50% 16%, transparent 0%, hsl(var(--background) / 0.06) 58%, hsl(var(--background) / 0.24) 100%);
@@ -131,72 +130,36 @@ All colors MUST be HSL.
   }
 
   .dark .atmo-section {
+    --atmo-wallpaper-opacity: 0.26;
     --atmo-art-fill: hsl(151 45% 56%);
-    --atmo-image-opacity: 0.26;
     --atmo-tint: linear-gradient(125deg, hsl(155 34% 12% / 0.14), hsl(152 26% 10% / 0.1));
     --atmo-veil: radial-gradient(120% 95% at 50% 16%, transparent 0%, hsl(154 34% 10% / 0.08) 60%, hsl(154 34% 8% / 0.3) 100%);
   }
 
   .atmo-bg-layer {
-    background: var(--atmo-art-fill);
-    opacity: var(--atmo-image-opacity);
-    mask-image: var(--atmo-svg-mask-url, none), var(--atmo-edge-fade);
-    mask-size: var(--atmo-mask-size), cover;
-    mask-position: var(--atmo-mask-position), center;
-    mask-repeat: no-repeat, no-repeat;
-    mask-mode: alpha, alpha;
-    mask-composite: intersect;
-    -webkit-mask-image: var(--atmo-svg-mask-url, none), var(--atmo-edge-fade);
-    -webkit-mask-size: var(--atmo-mask-size), cover;
-    -webkit-mask-position: var(--atmo-mask-position), center;
-    -webkit-mask-repeat: no-repeat, no-repeat;
-    -webkit-mask-composite: source-in;
+    position: absolute;
+    inset: -8% 0;
+    background-image: var(--atmo-wallpaper-url);
+    background-size: cover;
+    background-position: var(--atmo-wallpaper-position);
+    background-repeat: no-repeat;
+    opacity: var(--atmo-wallpaper-opacity);
+    transform: translate3d(0, var(--atmo-parallax-y, 0px), 0) scale(var(--atmo-wallpaper-scale, 1.08));
+    will-change: transform;
   }
 
   .atmo-tint-layer { background: var(--atmo-tint); }
   .atmo-veil-layer { background: var(--atmo-veil); }
 
-  .atmo-section[data-atmo-variant="beach"] {
-    --atmo-svg-mask-url: url('/atmosphere/atmosphere-beach.svg');
-    --atmo-mask-size: 125% auto;
-    --atmo-mask-position: center 44%;
-    --atmo-edge-fade: radial-gradient(128% 110% at 52% 45%, black 0 72%, transparent 100%);
-  }
-  .atmo-section[data-atmo-variant="city"] {
-    --atmo-svg-mask-url: url('/atmosphere/atmosphere-city.svg');
-    --atmo-mask-size: cover;
-    --atmo-mask-position: center 52%;
-  }
-  .atmo-section[data-atmo-variant="neighborhood"] {
-    --atmo-svg-mask-url: url('/atmosphere/atmosphere-neighborhood.svg');
-    --atmo-mask-size: 115% auto;
-    --atmo-mask-position: center 55%;
-  }
-  .atmo-section[data-atmo-variant="interior"] {
-    --atmo-svg-mask-url: url('/atmosphere/atmosphere-interior.svg');
-    --atmo-mask-size: 112% auto;
-    --atmo-mask-position: center 52%;
-  }
-
   @media (max-width: 768px) {
-    .atmo-section { --atmo-image-opacity: 0.18; }
-    .dark .atmo-section { --atmo-image-opacity: 0.22; }
-    .atmo-section[data-atmo-variant="beach"] { --atmo-mask-size: 180% auto; --atmo-mask-position: 84% 32%; }
-    .atmo-section[data-atmo-variant="city"] { --atmo-mask-size: 175% auto; --atmo-mask-position: 86% 52%; }
-    .atmo-section[data-atmo-variant="neighborhood"] { --atmo-mask-size: 170% auto; --atmo-mask-position: 14% 56%; }
-    .atmo-section[data-atmo-variant="interior"] { --atmo-mask-size: 175% auto; --atmo-mask-position: 88% 50%; }
-  }
-
-  @media (min-width: 769px) and (max-width: 1200px) {
-    .atmo-section[data-atmo-variant="beach"] { --atmo-mask-size: 145% auto; --atmo-mask-position: 70% 40%; }
-    .atmo-section[data-atmo-variant="city"] { --atmo-mask-size: 130% auto; --atmo-mask-position: 62% 52%; }
+    .atmo-section { --atmo-wallpaper-opacity: 0.18; }
+    .dark .atmo-section { --atmo-wallpaper-opacity: 0.22; }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .atmo-bg-layer { transform: none !important; }
   }
 }
-
 
 @layer base {
   :root {
@@ -210,22 +173,28 @@ All colors MUST be HSL.
     scroll-padding-top: var(--snap-scroll-padding-top);
   }
 
-  body.snap-landing-active .snap-landing-section {
+  body.snap-landing-active .snap-landing-panel {
     scroll-snap-align: start;
     scroll-snap-stop: always;
     scroll-margin-top: var(--snap-scroll-padding-top);
     min-height: var(--snap-section-min-h);
   }
 
-  /* Footer should participate in end-of-page choreography without becoming a full-screen hard stop. */
-  body.snap-landing-active .snap-landing-footer {
+  body.snap-landing-active .snap-landing-strip {
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
+    scroll-margin-top: var(--snap-scroll-padding-top);
     min-height: auto;
+  }
+
+  body.snap-landing-active .snap-landing-footer {
     scroll-snap-align: end;
     scroll-snap-stop: normal;
+    min-height: auto;
   }
 
   @supports (height: 100dvh) {
-    body.snap-landing-active .snap-landing-section {
+    body.snap-landing-active .snap-landing-panel {
       min-height: calc(100dvh - var(--snap-scroll-padding-top));
     }
   }
@@ -236,7 +205,7 @@ All colors MUST be HSL.
       scroll-snap-type: y proximity;
     }
 
-    body.snap-landing-active .snap-landing-section {
+    body.snap-landing-active .snap-landing-panel {
       scroll-snap-stop: normal;
     }
   }
@@ -245,5 +214,56 @@ All colors MUST be HSL.
     html {
       scroll-behavior: auto;
     }
+  }
+
+  /* Logo stroke and glow on hover and select (focus-visible/active) */
+  .logo-glow {
+    transition: filter 0.3s ease, text-shadow 0.3s ease, transform 0.3s ease;
+    filter: drop-shadow(0 1.5px 2px rgba(0, 0, 0, 0.25));
+    text-shadow: 0 1.5px 2px rgba(0, 0, 0, 0.25);
+    --logo-glow-color: rgba(0, 0, 0, 0.15);
+  }
+  .dark .logo-glow {
+    filter: drop-shadow(0 1.5px 2.5px rgba(255, 255, 255, 0.45));
+    text-shadow: 0 1.5px 2.5px rgba(255, 255, 255, 0.45);
+    --logo-glow-color: rgba(255, 255, 255, 0.75);
+  }
+  .logo-glow:hover,
+  .logo-glow:focus-visible,
+  .logo-glow:active,
+  .group:hover .logo-glow,
+  .group:focus-within .logo-glow {
+    filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.35))
+            drop-shadow(0 0 6px var(--logo-glow-color));
+    text-shadow:
+      0 3px 5px rgba(0, 0, 0, 0.35),
+      0 0 6px var(--logo-glow-color);
+    transform: scale(1.02);
+  }
+  .dark .logo-glow:hover,
+  .dark .logo-glow:focus-visible,
+  .dark .logo-glow:active,
+  .dark .group:hover .logo-glow,
+  .dark .group:focus-within .logo-glow {
+    filter: drop-shadow(0 3px 6px rgba(255, 255, 255, 0.55))
+            drop-shadow(0 0 8px var(--logo-glow-color));
+    text-shadow:
+      0 3px 6px rgba(255, 255, 255, 0.55),
+      0 0 8px var(--logo-glow-color);
+  }
+
+  /* Header background adjustments in dark mode for readability */
+  .dark header {
+    background-color: hsl(150 18% 14% / 0.8) !important;
+  }
+
+  .logo-glow {
+    font-family: 'Lora', Georgia, Cambria, "Times New Roman", Times, serif !important;
+    font-weight: 650 !important;
+  }
+
+  /* Global headline typography match */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Lora', Georgia, Cambria, "Times New Roman", Times, serif !important;
   }
 }

@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Star, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SearchListing } from "@/types/pip";
+import { getListingPrimaryImage, getListingImageAlt } from "@/lib/listings";
 
 type Props = {
   listing: SearchListing;
@@ -14,23 +16,26 @@ export function PipListingCard({ listing, onBook }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const img = listing.images?.[0];
+  const [imageFailed, setImageFailed] = useState(false);
+  const img = getListingPrimaryImage(listing);
+  const altText = getListingImageAlt(listing);
   const navTarget = listing.slug ? `/listing/${listing.slug}` : `/listing/${listing.id}`;
 
   return (
     <div className="rounded-xl border border-border/50 bg-background/80 overflow-hidden shadow-sm w-full">
       {/* Thumbnail */}
-      {img ? (
+      {img && !imageFailed ? (
         <div className="h-28 w-full overflow-hidden bg-secondary/40">
           <img
             src={img}
-            alt={listing.title}
+            alt={altText}
             className="w-full h-full object-cover"
             loading="lazy"
+            onError={() => setImageFailed(true)}
           />
         </div>
       ) : (
-        <div className="h-20 w-full bg-secondary/50 flex items-center justify-center">
+        <div className="h-28 w-full bg-gradient-to-br from-secondary/60 to-accent/10 flex items-center justify-center">
           <MapPin className="h-5 w-5 text-muted-foreground/50" />
         </div>
       )}
