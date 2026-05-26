@@ -346,11 +346,24 @@ export default function Search() {
     setSearched(false);
     setAgodaResults([]);
     try {
-      const { data, error } = await supabase.functions.invoke("ai-search", { body: { query: q } });
-      if (error) throw error;
-      const searchResults: Listing[] = data?.results ?? [];
+      let searchResults: Listing[] = [];
+      let searchSummary = "";
+      
+      try {
+        const { data, error } = await supabase.functions.invoke("ai-search", { body: { query: q } });
+        if (error) throw error;
+        searchResults = data?.results ?? [];
+        searchSummary = data?.summary ?? "";
+      } catch (invokeErr) {
+        console.warn("Supabase Edge Function failed, falling back to local database search:", invokeErr);
+        const { localSearchFallback } = await import("@/lib/search-fallback");
+        const fallback = await localSearchFallback(q);
+        searchResults = fallback.results as unknown as Listing[];
+        searchSummary = fallback.summary;
+      }
+
       setResults(searchResults);
-      setSummary(data?.summary ?? "");
+      setSummary(searchSummary);
       setSearched(true);
       fetchHostRatings(searchResults);
       if (!memberUser && user != null) {
