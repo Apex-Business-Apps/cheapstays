@@ -14,6 +14,7 @@ import { HostApplicationReview, type HostApp } from "@/features/admin/HostApplic
 import { submitHostApplicationDecision } from "@/features/admin/adminHostApproval.service";
 import type { AppRole } from "@/lib/rbac";
 import { Seo } from "@/components/Seo";
+import { AdminDisbursementPanel } from "@/components/wallet/AdminDisbursementPanel";
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Loader2, MessageSquare } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -632,6 +633,10 @@ export default function Admin() {
           </TabsContent>
 
           {/* ── AUDIT LOG ── */}
+          <TabsContent value="disbursements" className="pt-4">
+            <AdminDisbursementPanel />
+          </TabsContent>
+
           <TabsContent value="audit" className="pt-4 space-y-2">
             <p className="text-sm text-muted-foreground mb-3">Immutable record of all privileged role mutations.</p>
             {auditLog.length === 0 && <p className="text-sm text-muted-foreground">No audit records yet.</p>}
