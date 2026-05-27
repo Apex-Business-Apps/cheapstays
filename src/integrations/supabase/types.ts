@@ -14,14 +14,180 @@ export type Database = {
   }
   public: {
     Tables: {
+      host_wallets: {
+        Row: {
+          id: string;
+          host_id: string;
+          available_balance: number;
+          pending_balance: number;
+          currency: string;
+          is_frozen: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: unknown;
+        Update: unknown;
+        Relationships: [];
+      };
+      wallet_transactions: {
+        Row: {
+          id: string;
+          wallet_id: string;
+          type: string;
+          amount: number;
+          status: string;
+          booking_id: string | null;
+          disbursement_id: string | null;
+          xendit_reference_id: string | null;
+          description: string | null;
+          created_at: string;
+        };
+        Insert: unknown;
+        Update: unknown;
+        Relationships: [];
+      };
+      disbursement_requests: {
+        Row: {
+          id: string;
+          wallet_id: string;
+          amount: number;
+          status: string;
+          payout_method: string;
+          account_details_enc: string;
+          xendit_disbursement_id: string | null;
+          xendit_reference_id: string | null;
+          failure_reason: string | null;
+          retry_count: number;
+          retry_after: string | null;
+          requested_at: string;
+          processed_at: string | null;
+          cycle_month: string;
+        };
+        Insert: unknown;
+        Update: unknown;
+        Relationships: [];
+      };
+      host_payout_accounts: {
+        Row: {
+          id: string;
+          host_id: string;
+          payout_method: string;
+          account_holder_name: string;
+          account_number_enc: string;
+          is_verified: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: unknown;
+        Update: unknown;
+        Relationships: [];
+      };
+      role_mutation_audit: {
+        Row: {
+          id: string;
+          command_id: string;
+          command_source: string;
+          operation: string;
+          target_user_id: string;
+          reason_code: string;
+          before_state: unknown;
+          after_state: unknown;
+          executed_by: string | null;
+          created_at: string;
+        };
+        Insert: unknown;
+        Update: unknown;
+        Relationships: [];
+      };
+      ai_audit_logs: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          decision: string
+          id: string
+          payload: Json
+          prompt_version: string
+          reason: string
+          surface: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          decision: string
+          id?: string
+          payload?: Json
+          prompt_version: string
+          reason: string
+          surface: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          decision?: string
+          id?: string
+          payload?: Json
+          prompt_version?: string
+          reason?: string
+          surface?: string
+        }
+        Relationships: []
+      }
+      booking_transitions: {
+        Row: {
+          actor_role: string
+          actor_user_id: string | null
+          booking_id: string
+          created_at: string
+          from_state: string | null
+          id: string
+          metadata: Json
+          reason: string | null
+          to_state: string
+        }
+        Insert: {
+          actor_role: string
+          actor_user_id?: string | null
+          booking_id: string
+          created_at?: string
+          from_state?: string | null
+          id?: string
+          metadata?: Json
+          reason?: string | null
+          to_state: string
+        }
+        Update: {
+          actor_role?: string
+          actor_user_id?: string | null
+          booking_id?: string
+          created_at?: string
+          from_state?: string | null
+          id?: string
+          metadata?: Json
+          reason?: string | null
+          to_state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_transitions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
+          approval_deadline_at: string | null
+          booking_flow: string
           cancellation_reason: string | null
           cancelled_at: string | null
           check_in: string
           check_out: string
+          completed_at: string | null
           confirmed_at: string | null
           created_at: string
+          flow_state: string
           guest_id: string
           guest_message: string | null
           guests: number
@@ -31,6 +197,7 @@ export type Database = {
           incidental_hold_required: boolean
           listing_id: string
           nights: number
+          partial_refundable_until: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           payment_provider:
             | Database["public"]["Enums"]["payment_provider"]
@@ -42,16 +209,22 @@ export type Database = {
           payout_release_on: string | null
           refundable_until: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          stay_type: string
+          stripe_payment_intent_id: string | null
           total_php: number
           updated_at: string
         }
         Insert: {
+          approval_deadline_at?: string | null
+          booking_flow: string
           cancellation_reason?: string | null
           cancelled_at?: string | null
           check_in: string
           check_out: string
+          completed_at?: string | null
           confirmed_at?: string | null
           created_at?: string
+          flow_state: string
           guest_id: string
           guest_message?: string | null
           guests?: number
@@ -61,6 +234,7 @@ export type Database = {
           incidental_hold_required?: boolean
           listing_id: string
           nights: number
+          partial_refundable_until?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_provider?:
             | Database["public"]["Enums"]["payment_provider"]
@@ -72,16 +246,22 @@ export type Database = {
           payout_release_on?: string | null
           refundable_until?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
+          stay_type: string
+          stripe_payment_intent_id?: string | null
           total_php: number
           updated_at?: string
         }
         Update: {
+          approval_deadline_at?: string | null
+          booking_flow?: string
           cancellation_reason?: string | null
           cancelled_at?: string | null
           check_in?: string
           check_out?: string
+          completed_at?: string | null
           confirmed_at?: string | null
           created_at?: string
+          flow_state?: string
           guest_id?: string
           guest_message?: string | null
           guests?: number
@@ -91,6 +271,7 @@ export type Database = {
           incidental_hold_required?: boolean
           listing_id?: string
           nights?: number
+          partial_refundable_until?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_provider?:
             | Database["public"]["Enums"]["payment_provider"]
@@ -102,6 +283,8 @@ export type Database = {
           payout_release_on?: string | null
           refundable_until?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
+          stay_type?: string
+          stripe_payment_intent_id?: string | null
           total_php?: number
           updated_at?: string
         }
@@ -111,6 +294,50 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_holds: {
+        Row: {
+          authorized_at: string
+          booking_id: string
+          captured_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          payment_intent_id: string
+          provider: string
+          reauth_sent_at: string | null
+        }
+        Insert: {
+          authorized_at?: string
+          booking_id: string
+          captured_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          payment_intent_id: string
+          provider?: string
+          reauth_sent_at?: string | null
+        }
+        Update: {
+          authorized_at?: string
+          booking_id?: string
+          captured_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          payment_intent_id?: string
+          provider?: string
+          reauth_sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_holds_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]
@@ -145,6 +372,30 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      github_command_registry: {
+        Row: {
+          approved: boolean
+          created_at: string
+          id: string
+          metadata: Json
+          source: string
+        }
+        Insert: {
+          approved?: boolean
+          created_at?: string
+          id: string
+          metadata?: Json
+          source?: string
+        }
+        Update: {
+          approved?: boolean
+          created_at?: string
+          id?: string
+          metadata?: Json
+          source?: string
         }
         Relationships: []
       }
@@ -262,45 +513,6 @@ export type Database = {
         }
         Relationships: []
       }
-      role_mutation_audit: {
-        Row: {
-          after_state: Json
-          before_state: Json
-          command_id: string | null
-          command_source: string
-          created_at: string
-          executed_by: string | null
-          id: string
-          operation: string
-          reason_code: string | null
-          target_user_id: string
-        }
-        Insert: {
-          after_state?: Json
-          before_state?: Json
-          command_id?: string | null
-          command_source: string
-          created_at?: string
-          executed_by?: string | null
-          id?: string
-          operation: string
-          reason_code?: string | null
-          target_user_id: string
-        }
-        Update: {
-          after_state?: Json
-          before_state?: Json
-          command_id?: string | null
-          command_source?: string
-          created_at?: string
-          executed_by?: string | null
-          id?: string
-          operation?: string
-          reason_code?: string | null
-          target_user_id?: string
-        }
-        Relationships: []
-      }
       incidental_reviews: {
         Row: {
           booking_id: string
@@ -399,6 +611,161 @@ export type Database = {
         }
         Relationships: []
       }
+      listing_availability_windows: {
+        Row: {
+          declared_at: string
+          declared_through: string
+          id: string
+          listing_id: string
+          updated_at: string
+        }
+        Insert: {
+          declared_at?: string
+          declared_through: string
+          id?: string
+          listing_id: string
+          updated_at?: string
+        }
+        Update: {
+          declared_at?: string
+          declared_through?: string
+          id?: string
+          listing_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_availability_windows_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_blackout_dates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          end_date: string
+          id: string
+          listing_id: string
+          reason: string | null
+          start_date: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          id?: string
+          listing_id: string
+          reason?: string | null
+          start_date: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          listing_id?: string
+          reason?: string | null
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_blackout_dates_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_house_rules: {
+        Row: {
+          created_at: string
+          current_hash: string
+          current_version: string
+          id: string
+          listing_id: string
+          rules_json: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_hash: string
+          current_version: string
+          id?: string
+          listing_id: string
+          rules_json: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_hash?: string
+          current_version?: string
+          id?: string
+          listing_id?: string
+          rules_json?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_house_rules_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_stay_instructions: {
+        Row: {
+          access_instructions: string
+          check_in_window: string
+          check_out_time: string
+          created_at: string
+          emergency_contact: string
+          id: string
+          listing_id: string
+          updated_at: string
+          wifi_details: string | null
+        }
+        Insert: {
+          access_instructions: string
+          check_in_window: string
+          check_out_time: string
+          created_at?: string
+          emergency_contact: string
+          id?: string
+          listing_id: string
+          updated_at?: string
+          wifi_details?: string | null
+        }
+        Update: {
+          access_instructions?: string
+          check_in_window?: string
+          check_out_time?: string
+          created_at?: string
+          emergency_contact?: string
+          id?: string
+          listing_id?: string
+          updated_at?: string
+          wifi_details?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_stay_instructions_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listings: {
         Row: {
           address: string | null
@@ -416,11 +783,14 @@ export type Database = {
           is_owner_direct: boolean
           lat: number | null
           lng: number | null
+          long_term_enabled: boolean
           max_guests: number | null
+          max_nights: number | null
           min_nights: number | null
           nightly_php: number
           province: string
           review_count: number | null
+          short_term_enabled: boolean
           slug: string | null
           status: Database["public"]["Enums"]["listing_status"]
           title: string
@@ -444,11 +814,14 @@ export type Database = {
           is_owner_direct?: boolean
           lat?: number | null
           lng?: number | null
+          long_term_enabled?: boolean
           max_guests?: number | null
+          max_nights?: number | null
           min_nights?: number | null
           nightly_php: number
           province: string
           review_count?: number | null
+          short_term_enabled?: boolean
           slug?: string | null
           status?: Database["public"]["Enums"]["listing_status"]
           title: string
@@ -472,17 +845,59 @@ export type Database = {
           is_owner_direct?: boolean
           lat?: number | null
           lng?: number | null
+          long_term_enabled?: boolean
           max_guests?: number | null
+          max_nights?: number | null
           min_nights?: number | null
           nightly_php?: number
           province?: string
           review_count?: number | null
+          short_term_enabled?: boolean
           slug?: string | null
           status?: Database["public"]["Enums"]["listing_status"]
           title?: string
           type?: Database["public"]["Enums"]["listing_type"]
           updated_at?: string
           video_url?: string | null
+        }
+        Relationships: []
+      }
+      membership_subscriptions: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          paymongo_session_id: string | null
+          plan: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          paymongo_session_id?: string | null
+          plan?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          paymongo_session_id?: string | null
+          plan?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -655,6 +1070,240 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      physiomni_devices: {
+        Row: {
+          device_name: string | null
+          device_serial: string
+          firmware_version: string | null
+          id: string
+          is_active: boolean
+          last_seen_at: string | null
+          location_tag: string | null
+          metadata: Json
+          registered_at: string
+          tenant_id: string
+        }
+        Insert: {
+          device_name?: string | null
+          device_serial: string
+          firmware_version?: string | null
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string | null
+          location_tag?: string | null
+          metadata?: Json
+          registered_at?: string
+          tenant_id: string
+        }
+        Update: {
+          device_name?: string | null
+          device_serial?: string
+          firmware_version?: string | null
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string | null
+          location_tag?: string | null
+          metadata?: Json
+          registered_at?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      physiomni_telemetry: {
+        Row: {
+          captured_at: string
+          device_serial: string
+          id: string
+          metadata: Json
+          received_at: string
+          temperature_c: number
+          tenant_id: string
+          vibration_x: number
+          vibration_y: number
+          vibration_z: number
+        }
+        Insert: {
+          captured_at: string
+          device_serial: string
+          id?: string
+          metadata?: Json
+          received_at?: string
+          temperature_c: number
+          tenant_id: string
+          vibration_x: number
+          vibration_y: number
+          vibration_z: number
+        }
+        Update: {
+          captured_at?: string
+          device_serial?: string
+          id?: string
+          metadata?: Json
+          received_at?: string
+          temperature_c?: number
+          tenant_id?: string
+          vibration_x?: number
+          vibration_y?: number
+          vibration_z?: number
+        }
+        Relationships: []
+      }
+      physiomni_telemetry_2026_05: {
+        Row: {
+          captured_at: string
+          device_serial: string
+          id: string
+          metadata: Json
+          received_at: string
+          temperature_c: number
+          tenant_id: string
+          vibration_x: number
+          vibration_y: number
+          vibration_z: number
+        }
+        Insert: {
+          captured_at: string
+          device_serial: string
+          id?: string
+          metadata?: Json
+          received_at?: string
+          temperature_c: number
+          tenant_id: string
+          vibration_x: number
+          vibration_y: number
+          vibration_z: number
+        }
+        Update: {
+          captured_at?: string
+          device_serial?: string
+          id?: string
+          metadata?: Json
+          received_at?: string
+          temperature_c?: number
+          tenant_id?: string
+          vibration_x?: number
+          vibration_y?: number
+          vibration_z?: number
+        }
+        Relationships: []
+      }
+      physiomni_telemetry_2026_06: {
+        Row: {
+          captured_at: string
+          device_serial: string
+          id: string
+          metadata: Json
+          received_at: string
+          temperature_c: number
+          tenant_id: string
+          vibration_x: number
+          vibration_y: number
+          vibration_z: number
+        }
+        Insert: {
+          captured_at: string
+          device_serial: string
+          id?: string
+          metadata?: Json
+          received_at?: string
+          temperature_c: number
+          tenant_id: string
+          vibration_x: number
+          vibration_y: number
+          vibration_z: number
+        }
+        Update: {
+          captured_at?: string
+          device_serial?: string
+          id?: string
+          metadata?: Json
+          received_at?: string
+          temperature_c?: number
+          tenant_id?: string
+          vibration_x?: number
+          vibration_y?: number
+          vibration_z?: number
+        }
+        Relationships: []
+      }
+      physiomni_telemetry_2026_07: {
+        Row: {
+          captured_at: string
+          device_serial: string
+          id: string
+          metadata: Json
+          received_at: string
+          temperature_c: number
+          tenant_id: string
+          vibration_x: number
+          vibration_y: number
+          vibration_z: number
+        }
+        Insert: {
+          captured_at: string
+          device_serial: string
+          id?: string
+          metadata?: Json
+          received_at?: string
+          temperature_c: number
+          tenant_id: string
+          vibration_x: number
+          vibration_y: number
+          vibration_z: number
+        }
+        Update: {
+          captured_at?: string
+          device_serial?: string
+          id?: string
+          metadata?: Json
+          received_at?: string
+          temperature_c?: number
+          tenant_id?: string
+          vibration_x?: number
+          vibration_y?: number
+          vibration_z?: number
+        }
+        Relationships: []
+      }
+      physiomni_telemetry_2026_08: {
+        Row: {
+          captured_at: string
+          device_serial: string
+          id: string
+          metadata: Json
+          received_at: string
+          temperature_c: number
+          tenant_id: string
+          vibration_x: number
+          vibration_y: number
+          vibration_z: number
+        }
+        Insert: {
+          captured_at: string
+          device_serial: string
+          id?: string
+          metadata?: Json
+          received_at?: string
+          temperature_c: number
+          tenant_id: string
+          vibration_x: number
+          vibration_y: number
+          vibration_z: number
+        }
+        Update: {
+          captured_at?: string
+          device_serial?: string
+          id?: string
+          metadata?: Json
+          received_at?: string
+          temperature_c?: number
+          tenant_id?: string
+          vibration_x?: number
+          vibration_y?: number
+          vibration_z?: number
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -928,11 +1577,57 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_events: {
+        Row: {
+          booking_id: string | null
+          event_id: string
+          event_type: string
+          id: string
+          processed_at: string
+          provider: string
+        }
+        Insert: {
+          booking_id?: string | null
+          event_id: string
+          event_type: string
+          id?: string
+          processed_at?: string
+          provider: string
+        }
+        Update: {
+          booking_id?: string | null
+          event_id?: string
+          event_type?: string
+          id?: string
+          processed_at?: string
+          provider?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: {
+          p_identifier: string
+          p_max_count: number
+          p_window_start: string
+        }
+        Returns: {
+          allowed: boolean
+          current_count: number
+        }[]
+      }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       generate_listing_slug: {
         Args: { listing_id: string; title: string }
@@ -963,6 +1658,16 @@ export type Database = {
           requires_full_scroll: boolean
         }[]
       }
+      notify_user: {
+        Args: {
+          p_body: string
+          p_data?: Json
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "host" | "member" | "user"
@@ -991,12 +1696,14 @@ export type Database = {
       payment_state:
         | "intent_created"
         | "authorized"
+        | "capturing"
         | "captured"
         | "refunding"
         | "refunded"
         | "payout_on_hold"
         | "payout_released"
         | "failed"
+        | "expired"
       payment_status: "unpaid" | "pending" | "paid" | "failed" | "refunded"
       ticket_priority: "low" | "normal" | "high" | "urgent"
       ticket_status: "open" | "pending" | "resolved" | "closed" | "escalated"
@@ -1156,12 +1863,14 @@ export const Constants = {
       payment_state: [
         "intent_created",
         "authorized",
+        "capturing",
         "captured",
         "refunding",
         "refunded",
         "payout_on_hold",
         "payout_released",
         "failed",
+        "expired",
       ],
       payment_status: ["unpaid", "pending", "paid", "failed", "refunded"],
       ticket_priority: ["low", "normal", "high", "urgent"],
