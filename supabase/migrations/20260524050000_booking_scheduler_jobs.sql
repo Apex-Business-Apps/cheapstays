@@ -5,12 +5,8 @@
 --   auto-approve-long-term-requests    — every hour: requested → auto_approved (flag-gated)
 --   complete-bookings-past-checkout    — every 30 min: active → completed when check_out passed
 --
--- Documented gap (not yet implemented):
---   bill-monthly-long-term             — monthly billing for 31+ night stays in 'active' state.
---     This requires a payout schedule table (booking_id, due_date, amount, status) and a
---     PayMongo recurring-charge or manual-capture flow. Out of scope for this phase.
---     Design note: each billing period should insert a row into a booking_charges table and
---     fire the PayMongo charge API; failures should flip flow_state to cancel_requested.
+-- Feature status:
+--   Stays over 30 days are restricted to upfront payments; monthly recurring billing is disabled.
 --
 -- Requires extensions: pg_cron, pg_net (both present per §1 of CLAUDE.md).
 -- Migration is idempotent: stale jobs are deleted before re-creation.

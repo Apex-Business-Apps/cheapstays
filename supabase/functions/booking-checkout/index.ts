@@ -99,16 +99,9 @@ Deno.serve(async (req) => {
     }
 
     if (!paymongoKey) {
-      if (appEnv === "production") {
-        return new Response(JSON.stringify({ error: "Payment configuration missing in production" }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      // Graceful no-op: payment provider not configured, booking stands without payment
-      return new Response(
-        JSON.stringify({ checkout_url: null, reason: "payment_not_configured" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: "Payment configuration missing" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const siteUrl = Deno.env.get("SITE_URL") ?? "https://cheapstays.me";
