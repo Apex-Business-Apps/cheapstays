@@ -86,14 +86,14 @@ export default function Membership() {
 
       toast({
         title: "Membership payment unavailable",
-        description: "Host support at cheapstays.me@gmail.com while we finish membership checkout setup.",
+        description: "Please contact support at support@cheapstays.me for assistance.",
         variant: "destructive",
       });
       setPayDialogOpen(false);
     } catch (err) {
       toast({
         title: "Membership payment unavailable",
-        description: (err as Error).message || "Host support at cheapstays.me@gmail.com while we finish membership checkout setup.",
+        description: (err as Error).message || "Please contact support at support@cheapstays.me for assistance.",
         variant: "destructive",
       });
     } finally {

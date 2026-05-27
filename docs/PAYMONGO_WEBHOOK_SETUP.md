@@ -2,16 +2,19 @@
 
 ## Deploy function
 
+Since the functions are configured in `supabase/config.toml` with `verify_jwt = false`, no manual `--no-verify-jwt` CLI flag is required. Deploy them directly:
+
 ```bash
-supabase functions deploy paymongo-webhook --no-verify-jwt
+supabase functions deploy paymongo-webhook
+supabase functions deploy membership-webhook
 ```
 
 ## Required Supabase secrets
 
 ```bash
+supabase secrets set PAYMONGO_SECRET_KEY="..."
 supabase secrets set PAYMONGO_WEBHOOK_SECRET="..."
-supabase secrets set SUPABASE_URL="..."
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY="..."
+supabase secrets set SITE_URL="https://cheapstays.me"
 ```
 
 ## Webhook endpoint URL (PayMongo dashboard)

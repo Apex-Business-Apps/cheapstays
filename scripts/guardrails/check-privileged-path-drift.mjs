@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 
 const workflowFiles = [
   '.github/workflows/pr-checks.yml',
-  '.github/workflows/release-production.yml',
   '.github/workflows/deploy-production.yml',
 ];
 

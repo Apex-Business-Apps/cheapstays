@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.payment-webhook]
 verify_jwt = false
+
+[functions.paymongo-webhook]
+verify_jwt = false
+
+[functions.membership-webhook]
+verify_jwt = false

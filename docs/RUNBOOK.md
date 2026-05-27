@@ -105,11 +105,11 @@ Deploy individual edge functions using the Supabase CLI:
 SUPABASE_ACCESS_TOKEN=<token> npx supabase functions deploy <function-name> --project-ref muqdmvkapsxrsgdkfoxn
 ```
 
-Replace `<function-name>` with one of: `book-listing`, `payment-intent`, `ai-search`, or any other function under `supabase/functions/`.
+Replace `<function-name>` with one of: `book-listing`, `booking-checkout`, `ai-search`, or any other function under `supabase/functions/`.
 
 The access token must have edge function deploy permissions scoped to the project.
 
-After deploying, verify the function is reachable and returns expected responses. For `book-listing` and `payment-intent`, confirm rate limiting is active by checking response headers.
+After deploying, verify the function is reachable and returns expected responses. For `book-listing` and `booking-checkout`, confirm rate limiting is active by checking response headers.
 
 ## 7) Payment Gateway (PayMongo)
 
@@ -118,27 +118,26 @@ After deploying, verify the function is reachable and returns expected responses
 1. Log in to the Supabase dashboard for project `muqdmvkapsxrsgdkfoxn`.
 2. Navigate to Project Settings > Edge Functions > Secrets.
 3. Add a new secret named `PAYMONGO_SECRET_KEY` with the value from the PayMongo dashboard.
-4. Redeploy the `payment-intent` function so it picks up the new secret.
+4. Redeploy the `booking-checkout` function so it picks up the new secret.
 
-### Demo mode behavior
+### Production Gating & Fail-Closed Behavior
 
-When `PAYMONGO_SECRET_KEY` is not set, the `payment-intent` function operates in demo mode:
+To guarantee money-path safety, CheapStays uses an environment-gated fail-closed payment architecture:
 
-- No real payment intent is created with PayMongo.
-- The booking record is set to `confirmed` status immediately.
-- No real money movement occurs.
-- The response includes a `demo: true` flag.
+- **APP_ENV=production**: If `PAYMONGO_SECRET_KEY` is missing or payments are disabled, all payment checkout creation requests fail hard (returning a `500 Internal Server Error` response) and block booking confirmation. Null checkout URL responses are prevented.
+- **APP_ENV=development/staging**: If `PAYMONGO_SECRET_KEY` is absent, the function operates in local/demo mode (returning a `checkout_url: null` response) to allow local/staging guest demo flows to proceed.
+- **PAYMENTS_ENABLED=false**: All checkout attempts fail with a `403 Forbidden` response.
 
-Demo mode is intended for local development and pre-launch testing only.
+Manual card-hold holds via client keys are completely disabled in favor of secure, 3DS-compliant hosted checkouts.
 
 ### Go-live checklist
 
 - [ ] Obtain live secret key from PayMongo dashboard (separate from test key).
 - [ ] Add `PAYMONGO_SECRET_KEY` to Supabase Edge Function secrets in the production project.
-- [ ] Redeploy `payment-intent` function.
+- [ ] Set `APP_ENV=production` and `PAYMENTS_ENABLED=true` in secrets.
+- [ ] Redeploy `booking-checkout` function.
 - [ ] Perform an end-to-end test payment using a PayMongo test card or GCash sandbox.
 - [ ] Confirm booking status transitions from `pending` to `confirmed` only after payment success webhook or intent confirmation.
-- [ ] Update `docs/STATUS.md` to mark the P1 PayMongo risk as resolved.
 
 ## 8) Troubleshooting Matrix
 
@@ -148,9 +147,9 @@ Demo mode is intended for local development and pre-launch testing only.
 | Non-admin can mutate role data | RLS regression | Inspect `pg_policies` | Reapply migration/hotfix policy |
 | Support messages insert fails | ticket ownership mismatch / sender policy | Verify `ticket_id`, `author_user_id`, sender | Align payload with RLS rules |
 | Deploy succeeds but domain not live | DNS/cert propagation | Check Pages domain status | Wait propagation; confirm CNAME/proxy |
-| `payment-intent` returns demo flag | PAYMONGO_SECRET_KEY not set | Check Edge Function secrets in Supabase dashboard | Add key and redeploy function |
+| `booking-checkout` fails with 500 | PAYMONGO_SECRET_KEY not set in production | Check Edge Function secrets in Supabase dashboard | Add key and redeploy function |
 | `book-listing` returns 429 | Rate limit exceeded (10 req/min per IP) | Confirm caller IP and request frequency | Reduce request rate or review client retry logic |
-| Booking stuck in pending after payment | PayMongo webhook not delivered or key misconfigured | Check PayMongo dashboard for intent status | Verify secret key and webhook endpoint configuration |
+| Booking stuck in pending after payment | PayMongo webhook not delivered or key misconfigured | Check PayMongo dashboard for session status | Verify secret key and webhook endpoint configuration |
 
 ## 9) Rollback Playbook
 
