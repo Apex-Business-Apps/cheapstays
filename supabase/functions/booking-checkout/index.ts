@@ -88,8 +88,22 @@ Deno.serve(async (req) => {
       .eq("id", booking.listing_id)
       .single();
 
+    const appEnv = Deno.env.get("APP_ENV") || Deno.env.get("VITE_APP_ENV") || "production";
+    const paymentsEnabled = Deno.env.get("PAYMENTS_ENABLED") !== "false";
     const paymongoKey = Deno.env.get("PAYMONGO_SECRET_KEY");
+
+    if (!paymentsEnabled) {
+      return new Response(JSON.stringify({ error: "Payments are currently disabled" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!paymongoKey) {
+      if (appEnv === "production") {
+        return new Response(JSON.stringify({ error: "Payment configuration missing in production" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       // Graceful no-op: payment provider not configured, booking stands without payment
       return new Response(
         JSON.stringify({ checkout_url: null, reason: "payment_not_configured" }),

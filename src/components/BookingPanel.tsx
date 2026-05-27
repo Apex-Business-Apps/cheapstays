@@ -22,7 +22,6 @@ type HouseRulesRow = {
 import { toast } from "@/hooks/use-toast";
 import { CalendarDays, ChevronDown, CreditCard, Loader2, Smartphone, Users, Wallet, Zap, CheckCircle2 } from "lucide-react";
 import { LegalScrollGate } from "@/components/LegalScrollGate";
-import { CardHoldForm } from "@/components/CardHoldForm";
 import { legalDocs } from "@/pages/legal/content";
 
 // Canonical stay-length boundary — must match book-listing edge function.
@@ -210,8 +209,6 @@ export function BookingPanel({ listing }: Props) {
   }
 
   if (step === "pay") {
-    const WALLET_METHODS = PAYMENT_METHODS.filter((m) => m.id !== "card");
-
     return (
       <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-5">
         <div className="text-center space-y-1">
@@ -239,7 +236,7 @@ export function BookingPanel({ listing }: Props) {
                 <p className="text-sm font-medium">{label}</p>
                 <p className="text-xs text-muted-foreground">
                   {id === "card"
-                    ? "Card held now — charged on check-in day"
+                    ? "Pay secure now via Card"
                     : id === "gcash"
                     ? "Pay now via GCash e-wallet"
                     : "Pay now via Maya (PayMaya)"}
@@ -249,24 +246,16 @@ export function BookingPanel({ listing }: Props) {
           ))}
         </div>
 
-        {payMethod === "card" ? (
-          <CardHoldForm
-            bookingId={bookingId!}
-            totalPhp={total}
-            onSuccess={() => setStep("done")}
-          />
-        ) : (
-          <>
-            <Button className="w-full" onClick={pay} disabled={paying}>
-              {paying
-                ? <Loader2 className="h-4 w-4 animate-spin" />
-                : `Pay with ${WALLET_METHODS.find((m) => m.id === payMethod)?.label}`}
-            </Button>
-            <p className="text-xs text-center text-muted-foreground">
-              You will be redirected to complete payment.
-            </p>
-          </>
-        )}
+        <>
+          <Button className="w-full" onClick={pay} disabled={paying}>
+            {paying
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : `Pay with ${PAYMENT_METHODS.find((m) => m.id === payMethod)?.label}`}
+          </Button>
+          <p className="text-xs text-center text-muted-foreground">
+            You will be redirected to complete payment.
+          </p>
+        </>
       </div>
     );
   }

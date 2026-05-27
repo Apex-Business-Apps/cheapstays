@@ -10,11 +10,44 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify-release:
+    name: Verify Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Guardrails
+        run: npm run guardrails
+
+      - name: Unit Tests
+        run: npm run test
+
+      - name: Security audit
+        run: npm audit --audit-level=high
+
   # ──────────────────────────────────────────────
   # 1. Build & deploy frontend to Cloudflare Pages
   # ──────────────────────────────────────────────
   deploy-frontend:
     name: Frontend → Cloudflare Pages
+    needs: verify-release
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -43,6 +76,7 @@ jobs:
   # ──────────────────────────────────────────────
   deploy-functions:
     name: Edge Functions → Supabase
+    needs: verify-release
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -93,6 +127,7 @@ jobs:
   # ──────────────────────────────────────────────
   apply-migrations:
     name: Migrations → Supabase
+    needs: verify-release
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
