@@ -85,15 +85,15 @@ export default function Membership() {
       }
 
       toast({
-        title: "Membership payment unavailable",
-        description: "Please contact support at support@cheapstays.me for assistance.",
+        title: "Payment Unavailable",
+        description: "Online payment is currently unavailable. Please try again later.",
         variant: "destructive",
       });
       setPayDialogOpen(false);
     } catch (err) {
       toast({
-        title: "Membership payment unavailable",
-        description: (err as Error).message || "Please contact support at support@cheapstays.me for assistance.",
+        title: "Payment Error",
+        description: (err as Error).message || "Online payment is currently unavailable. Please try again later.",
         variant: "destructive",
       });
     } finally {
