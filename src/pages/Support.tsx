@@ -119,7 +119,7 @@ export default function Support() {
       .subscribe();
 
     return () => { void supabase.removeChannel(channel); };
-  }, [active?.id]);
+  }, [active]);
 
   async function createTicket(e: React.FormEvent) {
     e.preventDefault();
