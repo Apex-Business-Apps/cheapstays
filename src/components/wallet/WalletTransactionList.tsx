@@ -43,7 +43,7 @@ export function WalletTransactionList() {
         .order('created_at', { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-      setTransactions(data || []);
+      setTransactions((data as unknown as WalletTransaction[]) || []);
       setLoading(false);
     }
     fetchTransactions();

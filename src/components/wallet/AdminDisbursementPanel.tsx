@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { DisbursementRequest } from '@/types/wallet';
+import type { Database } from '@/integrations/supabase/types';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-500/10 text-yellow-500',
@@ -29,7 +30,7 @@ export function AdminDisbursementPanel() {
       if (filter !== 'all') query = query.eq('status', filter);
 
       const { data } = await query;
-      setRequests(data || []);
+      setRequests((data as unknown as DisbursementRequest[]) || []);
       setLoading(false);
     }
     fetch();
