@@ -198,9 +198,7 @@ export function BookingPanel({ listing }: Props) {
         window.location.href = data.checkout_url as string;
         return;
       }
-      // Payment not configured — booking is still valid, just pay at check-in
-      toast({ title: "Online payment unavailable", description: "Your booking is confirmed. You can pay at check-in." });
-      setStep("done");
+      throw new Error("Online payment is currently unavailable. Please try again later or contact support.");
     } catch (err) {
       toast({ title: "Payment error", description: (err as Error).message, variant: "destructive" });
     } finally {

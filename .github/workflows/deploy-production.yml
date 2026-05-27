@@ -39,30 +39,74 @@ jobs:
       - name: Unit Tests
         run: npm run test
 
+      - name: Build
+        env:
+          VITE_VAPID_PUBLIC_KEY: ${{ secrets.VITE_VAPID_PUBLIC_KEY }}
+        run: npm run build
+
       - name: Security audit
         run: npm audit --audit-level=high
 
-  # ──────────────────────────────────────────────
-  # 1. Build & deploy frontend to Cloudflare Pages
-  # ──────────────────────────────────────────────
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-production
+          path: dist/
+          retention-days: 3
+
+  e2e:
+    name: E2E Tests (responsive)
+    runs-on: ubuntu-latest
+    needs: verify-release
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-production
+          path: dist
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        run: npm run e2e
+        env:
+          BASE_URL: http://127.0.0.1:4173
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-production
+          path: playwright-report/
+          retention-days: 7
+
   deploy-frontend:
     name: Frontend → Cloudflare Pages
-    needs: verify-release
+    needs: e2e
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
         with:
-          node-version: 22
-          cache: npm
-
-      - run: npm ci
-
-      - env:
-          VITE_VAPID_PUBLIC_KEY: ${{ secrets.VITE_VAPID_PUBLIC_KEY }}
-        run: npm run build
+          name: dist-production
+          path: dist
 
       - name: Deploy to Cloudflare Pages (production)
         uses: cloudflare/wrangler-action@v3
@@ -76,7 +120,7 @@ jobs:
   # ──────────────────────────────────────────────
   deploy-functions:
     name: Edge Functions → Supabase
-    needs: verify-release
+    needs: e2e
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -127,7 +171,7 @@ jobs:
   # ──────────────────────────────────────────────
   apply-migrations:
     name: Migrations → Supabase
-    needs: verify-release
+    needs: e2e
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
