@@ -40,5 +40,17 @@ Deno.serve(async (req) => {
 
   await adminClient.from("payment_audit_log").insert({ booking_id: bookingId, event_type: "paid", paymongo_ref: payload?.data?.attributes?.data?.id ?? null, metadata: { event_id: eventId } });
 
+  // Credit Host Wallet
+  try {
+    await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/credit-host-wallet`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ booking_id: bookingId })
+    });
+  } catch (err) { console.error("credit-host-wallet error:", err); }
+
   return new Response(JSON.stringify({ received: true, processed: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });

@@ -17,6 +17,7 @@ const Search = lazy(() => import("./pages/Search"));
 const Membership = lazy(() => import("./pages/Membership"));
 const Host = lazy(() => import("./pages/Host"));
 const HostApply = lazy(() => import("./pages/HostApply"));
+const HostWallet = lazy(() => import("./pages/host/WalletPage").then(module => ({ default: module.HostWalletPage })));
 const Support = lazy(() => import("./pages/Support"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const Admin = lazy(() => import("./pages/Admin"));
@@ -51,6 +52,7 @@ const App = () => (
                   <Route path="/membership" element={<Membership />} />
                   <Route path="/host" element={<Host />} />
                   <Route path="/host/apply" element={<HostApply />} />
+                  <Route path="/host/wallet" element={<HostWallet />} />
                   <Route path="/support" element={<Support />} />
                   <Route path="/my-bookings" element={<MyBookings />} />
                   <Route path="/privacy" element={<LegalDocumentPage docKey="privacy" />} />
