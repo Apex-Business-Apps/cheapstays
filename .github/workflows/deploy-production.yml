@@ -27,7 +27,9 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run build
+      - env:
+          VITE_VAPID_PUBLIC_KEY: ${{ secrets.VITE_VAPID_PUBLIC_KEY }}
+        run: npm run build
 
       - name: Deploy to Cloudflare Pages (production)
         uses: cloudflare/wrangler-action@v3
