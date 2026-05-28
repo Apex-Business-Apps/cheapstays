@@ -253,8 +253,10 @@ function HostApplicationForm() {
   const [propertyType, setPropertyType] = useState("");
   const [location, setLocation] = useState("");
   const [message, setMessage] = useState("");
-  const [idPhotoUrls, setIdPhotoUrls] = useState<string[]>([]);
-  const [selfieUrls, setSelfieUrls] = useState<string[]>([]);
+  const [idPhotoPath, setIdPhotoPath] = useState("");
+  const [selfiePath, setSelfiePath] = useState("");
+  const [idUploading, setIdUploading] = useState(false);
+  const [selfieUploading, setSelfieUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -283,22 +285,43 @@ function HostApplicationForm() {
     );
   }
 
+  async function uploadPrivateDoc(file: File, prefix: "id-front" | "selfie", setUploading: (v: boolean) => void) {
+    if (!user) throw new Error("Not authenticated");
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const path = `${user.id}/${prefix}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("host-verification").upload(path, file, { upsert: true });
+      if (error) throw error;
+      return path;
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleDocUpload(file: File, type: "id" | "selfie") {
+    try {
+      if (type === "id") setIdPhotoPath(await uploadPrivateDoc(file, "id-front", setIdUploading));
+      else setSelfiePath(await uploadPrivateDoc(file, "selfie", setSelfieUploading));
+      toast({ title: "Document uploaded" });
+    } catch (err) {
+      toast({ title: "Upload failed", description: (err as Error).message, variant: "destructive" });
+    }
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!propertyType.trim() || !location.trim()) {
+    if (!propertyType.trim() || !location.trim() || !idPhotoPath || !selfiePath) {
       toast({ title: "Please fill in all required fields.", variant: "destructive" });
       return;
     }
     setSubmitting(true);
     try {
-      const idPhotoUrl = idPhotoUrls[0] ?? null;
-      const selfieUrl = selfieUrls[0] ?? null;
-
       const [ticketResult, profileResult] = await Promise.all([
         supabase.functions.invoke("support-ticket", {
           body: {
             subject: "Host application",
-            message: `Property type: ${propertyType}\nLocation: ${location}${idPhotoUrl ? `\nID photo: ${idPhotoUrl}` : ""}${selfieUrl ? `\nSelfie: ${selfieUrl}` : ""}\n\n${message.trim()}`,
+            message: `Property type: ${propertyType}\nLocation: ${location}\nKYC ID path: ${idPhotoPath}\nKYC selfie path: ${selfiePath}\n\n${message.trim()}`,
             category: "host_verification",
             priority: "normal",
           },
@@ -307,8 +330,8 @@ function HostApplicationForm() {
           {
             user_id: user!.id,
             location: location.trim(),
-            id_photo_url: idPhotoUrl,
-            selfie_url: selfieUrl,
+            id_photo_url: null,
+            selfie_url: null,
             verification_status: "pending",
           },
           { onConflict: "user_id" }
@@ -370,23 +393,25 @@ function HostApplicationForm() {
             </div>
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Government-issued ID (passport, driver's license, UMID)</Label>
-              <ImageUploader
-                userId={user.id}
-                listingId="host-id"
-                value={idPhotoUrls}
-                onChange={setIdPhotoUrls}
-                maxFiles={1}
+              <Input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleDocUpload(f, "id"); }}
+                disabled={idUploading}
               />
+              {idUploading && <p className="text-xs text-muted-foreground">Uploading ID…</p>}
+              {!idUploading && idPhotoPath && <p className="text-xs text-muted-foreground">ID uploaded securely.</p>}
             </div>
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Selfie holding your ID</Label>
-              <ImageUploader
-                userId={user.id}
-                listingId="host-selfie"
-                value={selfieUrls}
-                onChange={setSelfieUrls}
-                maxFiles={1}
+              <Input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleDocUpload(f, "selfie"); }}
+                disabled={selfieUploading}
               />
+              {selfieUploading && <p className="text-xs text-muted-foreground">Uploading selfie…</p>}
+              {!selfieUploading && selfiePath && <p className="text-xs text-muted-foreground">Selfie uploaded securely.</p>}
             </div>
           </div>
 
