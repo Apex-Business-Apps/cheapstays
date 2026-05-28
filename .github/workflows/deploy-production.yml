@@ -101,29 +101,42 @@ jobs:
           SHARED_CHANGED=$(echo "$CHANGED_FILES" | grep '^supabase/functions/_shared/' || true)
           if [ -n "$SHARED_CHANGED" ]; then
             # _shared changed: redeploy all functions
-            CHANGED=$(ls supabase/functions/ | grep -v '^_shared$' | tr '\n' ' ')
-            echo "Shared code changed — redeploying all: ${CHANGED}"
+            CHANGED=$(find supabase/functions -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | grep -v '^_shared$' | sort)
+            echo "Shared code changed — redeploying all"
           else
             CHANGED=$(echo "$CHANGED_FILES" \
               | grep -v '^supabase/functions/_shared/' \
               | sed 's|supabase/functions/||' \
               | cut -d'/' -f1 \
-              | sort -u \
-              | tr '\n' ' ')
-            echo "Changed functions: ${CHANGED}"
+              | sort -u)
+            echo "Changed functions detected"
           fi
-          echo "functions=${CHANGED}" >> "$GITHUB_OUTPUT"
+          VALIDATED=""
+          while IFS= read -r fn; do
+            [ -z "$fn" ] && continue
+            if ! [[ "$fn" =~ ^[A-Za-z0-9_-]+$ ]]; then
+              echo "Invalid function directory name: $fn" >&2
+              exit 1
+            fi
+            VALIDATED+="$fn"$'\n'
+          done <<< "$CHANGED"
+
+          echo "functions<<EOF" >> "$GITHUB_OUTPUT"
+          printf '%s' "$VALIDATED" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Deploy changed functions
         if: steps.changed.outputs.functions != ''
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_TOKEN }}
+          CHANGED_FUNCTIONS: ${{ steps.changed.outputs.functions }}
         run: |
-          for fn in ${{ steps.changed.outputs.functions }}; do
+          while IFS= read -r fn; do
+            [ -z "$fn" ] && continue
             echo "Deploying: $fn"
             npx supabase functions deploy "$fn" \
               --project-ref ${{ vars.SUPABASE_PROJECT_REF || 'muqdmvkapsxrsgdkfoxn' }}
-          done
+          done <<< "$CHANGED_FUNCTIONS"
 
   # ──────────────────────────────────────────────
   # 3. Apply new Supabase migrations
@@ -143,23 +156,35 @@ jobs:
         run: |
           NEW=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- 'supabase/migrations/*.sql' \
             | sort)
+
+          VALIDATED=""
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            if ! [[ "$file" =~ ^supabase/migrations/[0-9]{14}_[A-Za-z0-9_]+\.sql$ ]]; then
+              echo "Invalid migration filename: $file" >&2
+              exit 1
+            fi
+            VALIDATED+="$file"$'\n'
+          done <<< "$NEW"
+
           echo "files<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$NEW" >> "$GITHUB_OUTPUT"
+          printf '%s' "$VALIDATED" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
-          echo "New migrations: $NEW"
+          echo "New migrations detected"
 
       - name: Apply migrations
         if: steps.migrations.outputs.files != ''
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF || 'muqdmvkapsxrsgdkfoxn' }}
+          MIGRATION_FILES: ${{ steps.migrations.outputs.files }}
         run: |
           python3 -c "
           import json, http.client, ssl, os, sys
 
           token = os.environ['SUPABASE_ACCESS_TOKEN']
           ref   = os.environ['SUPABASE_PROJECT_REF']
-          files = '''${{ steps.migrations.outputs.files }}'''.strip().splitlines()
+          files = os.environ.get('MIGRATION_FILES', '').strip().splitlines()
 
           for f in files:
               f = f.strip()
