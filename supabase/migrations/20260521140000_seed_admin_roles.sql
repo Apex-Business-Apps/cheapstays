@@ -13,7 +13,10 @@ DECLARE
   ];
 BEGIN
   FOREACH v_email IN ARRAY v_emails LOOP
-    SELECT id INTO v_uid FROM auth.users WHERE email = v_email;
+    SELECT id INTO v_uid
+    FROM auth.users
+    WHERE email = v_email
+      AND COALESCE(email_confirmed_at, confirmed_at) IS NOT NULL;
     IF v_uid IS NOT NULL THEN
       INSERT INTO public.user_roles (user_id, role)
       VALUES (v_uid, 'admin')
@@ -29,7 +32,8 @@ BEGIN
   IF NEW.email IN (
     'james.plofino.ceo@cheapstays.me',
     'jrmendozaceo@apexbusiness-systems.icu'
-  ) THEN
+  )
+    AND COALESCE(NEW.email_confirmed_at, NEW.confirmed_at) IS NOT NULL THEN
     INSERT INTO public.user_roles (user_id, role)
     VALUES (NEW.id, 'admin')
     ON CONFLICT (user_id, role) DO NOTHING;
@@ -39,5 +43,5 @@ END $$;
 
 DROP TRIGGER IF EXISTS trg_auto_grant_admin ON auth.users;
 CREATE TRIGGER trg_auto_grant_admin
-  AFTER INSERT ON auth.users
+  AFTER INSERT OR UPDATE OF email_confirmed_at, confirmed_at ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.auto_grant_admin_on_signup();
