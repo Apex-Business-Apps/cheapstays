@@ -101,7 +101,13 @@ Deno.serve(async (req) => {
 
     // Mark host_profiles as verified so the dashboard shows the correct status.
     const { error: profileErr } = await adminClient.from("host_profiles").upsert(
-      { user_id: target_user_id, verification_status: "verified", verified_at: new Date().toISOString() },
+      {
+        user_id: target_user_id,
+        verification_status: "verified",
+        verified_at: new Date().toISOString(),
+        id_photo_url: null,
+        selfie_url: null,
+      },
       { onConflict: "user_id" },
     );
     if (profileErr) throw profileErr;
