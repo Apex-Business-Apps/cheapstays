@@ -34,18 +34,9 @@ Deno.serve(async (req) => {
   }
 
   if (booking.payment_status === "paid") {
-    const key = Deno.env.get("PAYMONGO_SECRET_KEY");
-    if (!key) return new Response(JSON.stringify({ error: "PAYMONGO_SECRET_KEY required" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    const res = await fetch("https://api.paymongo.com/v1/refunds", {
-      method: "POST",
-      headers: { Authorization: `Basic ${btoa(`${key}:`)}`, "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
-      body: JSON.stringify({ data: { attributes: { amount: Math.round(Number(booking.total_php) * 100), payment_id: booking.paymongo_payment_id, reason: "requested_by_customer" } } }),
-    });
-    const data = await res.json();
-    if (!res.ok) return new Response(JSON.stringify({ error: "Refund failed", detail: data }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    await adminClient.from("bookings").update({ payment_status: "refunded", refunded_at: new Date().toISOString(), refund_ref: data?.data?.id ?? null, updated_at: new Date().toISOString() }).eq("id", booking_id);
-    await adminClient.from("payment_audit_log").insert({ booking_id, event_type: "refunded", actor_user_id: user.id, paymongo_ref: data?.data?.id ?? null, amount_centavos: Math.round(Number(booking.total_php) * 100) });
-    return new Response(JSON.stringify({ ok: true, status: "refunded" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Paid booking refunds must flow through cancel-booking-guest + process-refund
+    // so state checks and policy-based refund calculations are enforced server-side.
+    return new Response(JSON.stringify({ error: "Use the standard cancellation flow for paid bookings" }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   return new Response(JSON.stringify({ error: "Booking is not cancellable" }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
