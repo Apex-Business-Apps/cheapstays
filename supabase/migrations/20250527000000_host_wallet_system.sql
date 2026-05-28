@@ -110,6 +110,10 @@ CREATE INDEX idx_host_wallets_host_id ON host_wallets(host_id);
 CREATE INDEX idx_wallet_transactions_wallet_id ON wallet_transactions(wallet_id);
 CREATE INDEX idx_wallet_transactions_booking_id ON wallet_transactions(booking_id);
 CREATE INDEX idx_wallet_transactions_created_at ON wallet_transactions(created_at DESC);
+CREATE UNIQUE INDEX uniq_wallet_tx_booking_type
+  ON wallet_transactions (booking_id, type)
+  WHERE booking_id IS NOT NULL
+    AND type IN ('credit_pending', 'release_to_available');
 CREATE INDEX idx_disbursement_requests_wallet_id ON disbursement_requests(wallet_id);
 CREATE INDEX idx_disbursement_requests_status ON disbursement_requests(status);
 CREATE INDEX idx_disbursement_requests_cycle ON disbursement_requests(cycle_month);
