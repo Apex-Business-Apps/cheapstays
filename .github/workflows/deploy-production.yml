@@ -9,6 +9,9 @@ concurrency:
   group: deploy-production
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   verify-release:
     name: Verify Release
@@ -65,7 +68,7 @@ jobs:
         run: npm run build
 
       - name: Deploy to Cloudflare Pages (production)
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd
         with:
           apiToken: ${{ secrets.CLOUDFLARE_AGENT_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
