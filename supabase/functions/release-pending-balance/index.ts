@@ -9,6 +9,12 @@ const PLATFORM_FEE_RATE = 0.10;
 serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
 
+  const authHeader = req.headers.get('Authorization');
+  const expectedToken = `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!}`;
+  if (!authHeader || authHeader !== expectedToken) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -26,6 +32,20 @@ serve(async (req) => {
   if (!booking) return new Response('Booking not found', { status: 404 });
 
   const hostEarnings = Number(booking.total_amount) * (1 - PLATFORM_FEE_RATE);
+
+  // Idempotency guard: booking can only be released once
+  const { data: existingRelease } = await supabase
+    .from('wallet_transactions')
+    .select('id')
+    .eq('booking_id', booking_id)
+    .eq('type', 'release_to_available')
+    .maybeSingle();
+
+  if (existingRelease) {
+    return new Response(JSON.stringify({ success: true, released: 0, already_processed: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 
   const { data: wallet } = await supabase
     .from('host_wallets')

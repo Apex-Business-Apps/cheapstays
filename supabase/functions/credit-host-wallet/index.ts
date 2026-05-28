@@ -10,7 +10,10 @@ serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
 
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader) return new Response('Unauthorized', { status: 401 });
+  const expectedToken = `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!}`;
+  if (!authHeader || authHeader !== expectedToken) {
+    return new Response('Unauthorized', { status: 401 });
+  }
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -36,6 +39,20 @@ serve(async (req) => {
   }
 
   const hostEarnings = Number(booking.total_amount) * (1 - PLATFORM_FEE_RATE);
+
+  // Idempotency guard: booking can only be credited once
+  const { data: existingCredit } = await supabase
+    .from('wallet_transactions')
+    .select('id')
+    .eq('booking_id', booking_id)
+    .eq('type', 'credit_pending')
+    .maybeSingle();
+
+  if (existingCredit) {
+    return new Response(JSON.stringify({ success: true, credited: 0, already_processed: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 
   // Upsert wallet (create if first booking)
   const { data: wallet, error: walletError } = await supabase

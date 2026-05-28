@@ -86,7 +86,13 @@ Deno.serve(async (req) => {
         rejection_reason: null,
       }).eq("id", application_id),
       adminClient.from("host_profiles").upsert(
-        { user_id: target_user_id, verification_status: "verified", verified_at: new Date().toISOString() },
+        {
+          user_id: target_user_id,
+          verification_status: "verified",
+          verified_at: new Date().toISOString(),
+          id_photo_url: null,
+          selfie_url: null,
+        },
         { onConflict: "user_id" },
       ),
     ]);

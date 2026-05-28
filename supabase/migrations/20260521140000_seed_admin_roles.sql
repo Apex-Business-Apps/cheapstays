@@ -8,8 +8,7 @@ DECLARE
   v_email  TEXT;
   v_uid    UUID;
   v_emails TEXT[] := ARRAY[
-    'james.plofino.ceo@cheapstays.me',
-    'jrmendozaceo@apexbusiness-systems.icu'
+    'james.plofino.ceo@cheapstays.me'
   ];
 BEGIN
   FOREACH v_email IN ARRAY v_emails LOOP
