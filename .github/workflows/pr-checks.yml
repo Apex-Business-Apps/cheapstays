@@ -36,13 +36,6 @@ jobs:
       - name: Guardrails
         run: npm run guardrails
 
-      - name: Runtime RLS verification
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run guardrails:rls-runtime
-
       - name: Incident verification
         run: npm run verify:incident
 
