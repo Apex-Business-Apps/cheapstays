@@ -1,4 +1,3 @@
-INSERT INTO public.user_roles (user_id, role, granted_by)
-SELECT u.id, 'admin'::app_role, u.id FROM auth.users u
-WHERE u.email = 'cheapstays.me@gmail.com'
-ON CONFLICT (user_id, role) DO NOTHING;
+-- SECURITY: Do not hard-code privileged role grants in migrations.
+-- Admin roles must be granted through authenticated admin workflows.
+SELECT 1;
