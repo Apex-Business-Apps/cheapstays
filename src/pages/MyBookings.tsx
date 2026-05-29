@@ -104,7 +104,7 @@ function BookingCard({
               <Button size="sm" variant="outline" asChild>
                 <Link to={listingHref}>View listing</Link>
               </Button>
-              {["pending", "confirmed"].includes(b.status) && b.payment_status === "unpaid" && (
+              {["pending", "confirmed"].includes(b.status) && ["unpaid", "pending", "failed"].includes(b.payment_status) && (
                 <Button
                   size="sm"
                   disabled={paying === b.id}
@@ -114,7 +114,7 @@ function BookingCard({
                   {paying === b.id
                     ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     : <CreditCard className="h-3.5 w-3.5" />}
-                  Pay now
+                  {b.payment_status === "pending" ? "Resume payment" : "Pay now"}
                 </Button>
               )}
               {(["pending","confirmed"].includes(b.status) && !isPast(parseISO(b.check_in))) && (

@@ -21,11 +21,12 @@ const BodySchema = z.object({
   payment_method: z.enum(["gcash", "maya", "card"]).default("gcash"),
 });
 
-function pmHeaders(key: string) {
+function pmHeaders(key: string, idempotencyKey: string) {
   return {
     Authorization: `Basic ${btoa(`${key}:`)}`,
     "Content-Type": "application/json",
     Accept: "application/json",
+    "Idempotency-Key": idempotencyKey,
   };
 }
 
@@ -65,7 +66,7 @@ Deno.serve(async (req) => {
     // Verify booking belongs to this user and is awaiting payment
     const { data: booking } = await adminClient
       .from("bookings")
-      .select("id, guest_id, listing_id, check_in, check_out, total_php, status, payment_status")
+      .select("id, guest_id, listing_id, check_in, check_out, total_php, status, payment_status, flow_state")
       .eq("id", booking_id)
       .eq("guest_id", user.id)
       .single();
@@ -76,7 +77,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!["pending", "confirmed"].includes(booking.status) || booking.payment_status !== "unpaid") {
+    if (!["pending", "confirmed"].includes(booking.status) || !["unpaid", "pending", "failed"].includes(booking.payment_status)) {
       return new Response(JSON.stringify({ error: "Booking is not awaiting payment" }), {
         status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -88,7 +89,6 @@ Deno.serve(async (req) => {
       .eq("id", booking.listing_id)
       .single();
 
-    const appEnv = Deno.env.get("APP_ENV") || Deno.env.get("VITE_APP_ENV") || "production";
     const paymentsEnabled = Deno.env.get("PAYMENTS_ENABLED") !== "false";
     const paymongoKey = Deno.env.get("PAYMONGO_SECRET_KEY");
 
@@ -116,6 +116,8 @@ Deno.serve(async (req) => {
       (new Date(booking.check_out).getTime() - new Date(booking.check_in).getTime()) / 86400000,
     );
 
+    const idempotencyKey = `booking-checkout:${booking_id}:${payment_method}:v1`;
+
     const sessionPayload = {
       data: {
         attributes: {
@@ -138,7 +140,7 @@ Deno.serve(async (req) => {
 
     const res = await fetch(`${PAYMONGO_BASE}/checkout_sessions`, {
       method: "POST",
-      headers: pmHeaders(paymongoKey),
+      headers: pmHeaders(paymongoKey, idempotencyKey),
       body: JSON.stringify(sessionPayload),
     });
 
@@ -154,18 +156,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    const checkoutUrl = json.data!.attributes.checkout_url;
+    const checkoutSession = json.data;
+    const checkoutUrl = checkoutSession?.attributes?.checkout_url;
+    if (!checkoutSession?.id || !checkoutUrl) {
+      return new Response(JSON.stringify({ error: "Payment provider returned an invalid checkout session" }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // Update booking payment state
-    await adminClient.from("bookings").update({
+    // Persist the checkout session before redirecting; otherwise webhooks can pay an untracked booking.
+    const { error: updateError } = await adminClient.from("bookings").update({
       payment_provider: "paymongo",
       payment_method,
+      payment_ref: checkoutSession.id,
+      paymongo_idempotency_key: idempotencyKey,
       payment_state: "intent_created",
       payment_status: "pending",
     }).eq("id", booking_id);
 
+    if (updateError) {
+      return new Response(JSON.stringify({ error: "Failed to persist checkout session", detail: updateError.message }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(
-      JSON.stringify({ checkout_url: checkoutUrl }),
+      JSON.stringify({ checkout_url: checkoutUrl, session_id: checkoutSession.id }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
