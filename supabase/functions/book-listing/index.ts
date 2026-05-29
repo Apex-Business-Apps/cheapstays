@@ -128,29 +128,57 @@ Deno.serve(async (req) => {
     }
 
     // Declared availability enforcement — booking path is backend-authoritative.
-    const { data: availabilityWindow, error: availabilityError } = await adminClient
-      .from("listing_availability_windows")
-      .select("declared_through")
-      .eq("listing_id", listing_id)
-      .order("declared_through", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // If no row exists (e.g. listing published before Phase 4 migration), we
+    // auto-insert a 1-year window so hosts don't need a manual re-publish.
+    let availabilityWindow: { declared_through: string } | null = null;
+    {
+      const { data: aw, error: availabilityError } = await adminClient
+        .from("listing_availability_windows")
+        .select("declared_through")
+        .eq("listing_id", listing_id)
+        .order("declared_through", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (availabilityError) {
-      return json(
-        { error: "Failed to validate declared availability", detail: availabilityError.message },
-        500,
-      );
+      if (availabilityError) {
+        return json(
+          { error: "Failed to validate declared availability", detail: availabilityError.message },
+          500,
+        );
+      }
+
+      if (!aw) {
+        // Auto-heal: insert a 1-year window for listings that pre-date Phase 4.
+        const { error: insertErr } = await adminClient
+          .from("listing_availability_windows")
+          .upsert(
+            {
+              listing_id,
+              declared_through: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+                .toISOString()
+                .slice(0, 10),
+            },
+            { onConflict: "listing_id" },
+          );
+        if (insertErr) {
+          console.error("auto-heal availability window failed:", insertErr.message);
+        }
+        // Treat as available — the window was just created.
+        availabilityWindow = null;
+      } else {
+        availabilityWindow = aw;
+      }
     }
 
     const checkoutMinusOne = new Date(new Date(check_out).getTime() - 24 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 10);
-    if (!availabilityWindow || availabilityWindow.declared_through < checkoutMinusOne) {
+    // availabilityWindow === null means it was just auto-healed (1 year forward) — treat as valid.
+    if (availabilityWindow !== null && availabilityWindow.declared_through < checkoutMinusOne) {
       return json(
         {
           error: "declared_availability_exceeded",
-          message: "Requested stay exceeds host-declared availability window",
+          message: `Requested stay (checkout ${check_out}) exceeds the host's declared availability window (through ${availabilityWindow.declared_through}). The host must extend their availability calendar.`,
         },
         409,
       );

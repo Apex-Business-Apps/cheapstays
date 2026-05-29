@@ -170,7 +170,9 @@ export function BookingPanel({ listing }: Props) {
           guest_message: message.trim() || undefined,
         },
       });
-      if (error) throw error;
+      if (error || data?.error) {
+        throw new Error(data?.message ?? data?.error ?? error?.message ?? "Booking failed");
+      }
       setBookingId(data.booking_id);
       // Short-term (booking_flow=instant_book) → proceed to payment.
       // Long-term (booking_flow=request_booking) → wait for host approval.
@@ -193,8 +195,9 @@ export function BookingPanel({ listing }: Props) {
       const { data, error } = await supabase.functions.invoke("booking-checkout", {
         body: { booking_id: bookingId, payment_method: payMethod },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (error || data?.error) {
+        throw new Error(data?.message ?? data?.error ?? error?.message ?? "Payment failed");
+      }
       if (data?.checkout_url) {
         window.location.href = data.checkout_url as string;
         return;

@@ -94,16 +94,16 @@ export function HostBookings({ hostId }: { hostId: string }) {
     setUpdating(bookingId);
     try {
       if (newStatus === "confirmed") {
-        const { error } = await supabase.functions.invoke("approve-long-term-request", {
+        const { data, error } = await supabase.functions.invoke("approve-long-term-request", {
           body: { booking_id: bookingId },
         });
-        if (error) throw error;
+        if (error || data?.error) throw new Error(data?.message ?? data?.error ?? error?.message ?? "Approve failed");
         toast({ title: "Booking confirmed" });
       } else {
-        const { error } = await supabase.functions.invoke("cancel-booking-host", {
+        const { data, error } = await supabase.functions.invoke("cancel-booking-host", {
           body: { booking_id: bookingId, reason: "Host declined this booking" },
         });
-        if (error) throw error;
+        if (error || data?.error) throw new Error(data?.message ?? data?.error ?? error?.message ?? "Cancel failed");
         toast({ title: "Booking declined" });
       }
       setBookings((prev) =>
