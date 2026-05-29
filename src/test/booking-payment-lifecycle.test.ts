@@ -34,7 +34,7 @@ describe("booking payment lifecycle regression", () => {
   });
 
   it("does not silently mark bookings done when checkout returns an error payload", () => {
-    expect(bookingPanel).toContain("if (data?.error) throw new Error(data.error)");
+    expect(bookingPanel).toContain("if (error || data?.error)");
     expect(bookingPanel).toContain('throw new Error("Payment provider did not return a checkout URL")');
   });
 

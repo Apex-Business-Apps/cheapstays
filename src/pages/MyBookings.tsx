@@ -176,13 +176,14 @@ export default function MyBookings() {
       const { data, error } = await supabase.functions.invoke("booking-checkout", {
         body: { booking_id: bookingId, payment_method: "gcash" },
       });
-      if (error) throw error;
+      if (error || data?.error) {
+        throw new Error(data?.message ?? data?.error ?? error?.message ?? "Payment provider unavailable");
+      }
       if (data?.checkout_url) {
         window.location.href = data.checkout_url as string;
         return;
       }
-      if (data?.error) throw new Error(data.error);
-      throw new Error("Payment provider unavailable");
+      throw new Error("Payment provider did not return a checkout URL");
     } catch (err) {
       toast({ title: "Payment error", description: (err as Error).message, variant: "destructive" });
     } finally {
@@ -199,10 +200,12 @@ export default function MyBookings() {
     }
     setCancelling(bookingId);
     try {
-      const { error } = await supabase.functions.invoke("cancel-booking-guest", {
+      const { data, error } = await supabase.functions.invoke("cancel-booking-guest", {
         body: { booking_id: bookingId, reason: cancelReason.trim() },
       });
-      if (error) throw error;
+      if (error || data?.error) {
+        throw new Error(data?.message ?? data?.error ?? error?.message ?? "Cancellation failed");
+      }
       toast({ title: "Booking cancelled" });
       setCancelTarget(null);
       setCancelReason("");

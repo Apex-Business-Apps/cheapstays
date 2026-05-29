@@ -99,8 +99,11 @@ Deno.serve(async (req) => {
     }
 
     if (!paymongoKey) {
-      return new Response(JSON.stringify({ error: "Payment configuration missing" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({
+        error: "Payment gateway not configured",
+        message: "PAYMONGO_SECRET_KEY is not set in Supabase Edge Function secrets. Add it in the Supabase dashboard under Settings → Edge Functions → Secrets.",
+      }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
