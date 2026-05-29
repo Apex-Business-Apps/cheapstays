@@ -194,13 +194,12 @@ export function BookingPanel({ listing }: Props) {
         body: { booking_id: bookingId, payment_method: payMethod },
       });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       if (data?.checkout_url) {
         window.location.href = data.checkout_url as string;
         return;
       }
-      // Payment not configured — booking is still valid, just pay at check-in
-      toast({ title: "Online payment unavailable", description: "Your booking is confirmed. You can pay at check-in." });
-      setStep("done");
+      throw new Error("Payment provider did not return a checkout URL");
     } catch (err) {
       toast({ title: "Payment error", description: (err as Error).message, variant: "destructive" });
     } finally {
