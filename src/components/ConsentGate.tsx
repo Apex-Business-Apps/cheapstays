@@ -5,12 +5,19 @@ import { useAuth } from "@/hooks/useAuth";
 
 // /legal/accept MUST be exempt — it is the remediation route. Blocking it causes
 // an infinite loop where the gate prevents its own resolution.
+// All legal document pages are exempt so users can read them before accepting.
 const EXEMPT = new Set([
   "/auth",
-  "/terms",
-  "/privacy",
   "/legal",
   "/legal/accept",
+  "/terms",
+  "/privacy",
+  "/host-terms",
+  "/renter-rules",
+  "/refunds",
+  "/safety",
+  "/account-deletion",
+  "/support-policy",
 ]);
 
 export function ConsentGate({ children }: { children: ReactNode }) {

@@ -153,7 +153,7 @@ Only surface high-signal findings.
 - create canonical folder structure
 - create governing files
 - create source index and correction ledger templates
-- set user-facing default timezone to `America/Edmonton`
+- set user-facing default timezone to `Asia/Manila`
 - define metadata schema for all ingested evidence
 
 ### Phase B: Backfill

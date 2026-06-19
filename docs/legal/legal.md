@@ -1,6 +1,6 @@
 # Legal Center
 
-CheapStays is operated by APEX Business Systems Ltd. (Edmonton, Alberta, Canada). These documents govern your use of the platform and the short-term rental transactions that take place on it.
+CheapStays is operated by JGP Corporation (Pasig City, Metro Manila, Philippines). These documents govern your use of the platform and the short-term rental transactions that take place on it.
 
 ## Platform Documents
 

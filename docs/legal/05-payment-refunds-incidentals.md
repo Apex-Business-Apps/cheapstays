@@ -5,15 +5,15 @@ version: "1.0.0"
 effective: "2026-05-22"
 jurisdictions: "Republic of the Philippines"
 requires: "UAC-1.0 (Universal Account Consent)"
-operator: "APEX Business Systems Ltd., Edmonton, AB, Canada"
+operator: "JGP Corporation, Pasig City, Metro Manila, Philippines"
 platform: "CheapStays (cheapstays.me)"
 payment-processor: "PayMongo (BSP-regulated)"
 currency: "Philippine Peso (PHP ₱)"
 ---
 
-<!-- COUNSEL: Philippines — review against BSP Circular 1048 (e-payment regulations), RA 8792 (E-Commerce Act), RA 7653 (BSP Charter), RA 7394 (Consumer Act) refund-timeline obligations, and PayMongo merchant-agreement requirements for APEX — [DATE] -->
+<!-- COUNSEL: Philippines — review against BSP Circular 1048 (e-payment regulations), RA 8792 (E-Commerce Act), RA 7653 (BSP Charter), RA 7394 (Consumer Act) refund-timeline obligations, and PayMongo merchant-agreement requirements for JGP Corporation — [DATE] -->
 <!-- COUNSEL: Philippines — assess whether CheapStays as a marketplace is required to register as a payment aggregator or facilitator under BSP rules — [DATE] -->
-<!-- COUNSEL: Alberta — confirm whether APEX's facilitation of PHP-denominated transactions triggers FINTRAC / PCMLTFA reporting obligations — [DATE] -->
+<!-- COUNSEL: Philippines — confirm whether JGP Corporation's facilitation of PHP-denominated transactions triggers AMLC / AMLA reporting obligations — [DATE] -->
 
 ---
 

@@ -1,7 +1,7 @@
 # Platform Status
 
-**Organization:** APEX Business Systems Ltd.  
-**Location:** Edmonton, AB  
+**Organization:** JGP Corporation  
+**Location:** Pasig City, Metro Manila, Philippines  
 **Document Version:** 1.2.1  
 **Status Date:** 2026-05-25  
 **Service State:** Operational with noted risks

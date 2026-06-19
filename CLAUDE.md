@@ -3,7 +3,7 @@
 **Canonical baseline as of:** 2026-05-24  
 **Branch:** main @ `a393243` + hotfixes (PR post-#43)  
 **Project:** CheapStays — Philippine short-term rental marketplace  
-**Org:** APEX Business Systems Ltd.
+**Org:** JGP Corporation, Pasig City, Metro Manila, Philippines
 
 This file is the single source of truth for any AI agent working on this repo. Read it before touching anything. It documents working architecture, contracts, RLS constraints, and regression trip-wires established after fixing production bugs in PRs #41–43.
 

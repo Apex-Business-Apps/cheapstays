@@ -11,7 +11,7 @@
 - If historical data is missing, say so plainly and mark backfill pending.
 - Capture meaningful corrections in `/wiki/corrections/` and promote stable ones to directives or `user-operating-model.md`.
 - Separate verified fact from inference and claimed-but-unverified evidence.
-- Default timezone for user-facing date interpretation: `America/Edmonton`.
+- Default timezone for user-facing date interpretation: `Asia/Manila`.
 - Use absolute dates when clarity matters.
 - Optimize for "wind, not dashboard": quiet by default, surface only real drift, conflict, risk, or decisions.
 - Prioritize these memory objects: projects, decisions, directives, user patterns, open loops, corrections.

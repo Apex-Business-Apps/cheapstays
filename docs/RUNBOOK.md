@@ -1,7 +1,7 @@
 # Operations Runbook
 
-**Organization:** APEX Business Systems Ltd.  
-**Location:** Edmonton, AB  
+**Organization:** JGP Corporation  
+**Location:** Pasig City, Metro Manila, Philippines  
 **Document Version:** 1.2.0  
 **Last Updated:** 2026-05-21
 
@@ -161,6 +161,6 @@ Manual card-hold holds via client keys are completely disabled in favor of secur
 
 ## 10) Contact & Ownership
 
-- Product/Engineering Owner: APEX Business Systems Ltd.
-- Operational Base: Edmonton, AB
+- Product/Engineering Owner: JGP Corporation
+- Operational Base: Pasig City, Metro Manila, Philippines
 - Escalation Path: Engineering lead → Platform owner → Executive stakeholder

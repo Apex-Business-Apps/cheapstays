@@ -5,12 +5,12 @@ version: "1.0.0"
 effective: "2026-05-22"
 jurisdictions: "Republic of the Philippines"
 requires: "UAC-1.0 (Universal Account Consent)"
-operator: "APEX Business Systems Ltd., Edmonton, AB, Canada"
+operator: "JGP Corporation, Pasig City, Metro Manila, Philippines"
 platform: "CheapStays (cheapstays.me)"
 ---
 
 <!-- COUNSEL: Philippines — review against RA 9653 (Rent Control Act, for stays ≥ 1 month), RA 7394 (Consumer Act, guest consumer-protection rights), DILG tourism-accommodation guidelines, and applicable LGU ordinances — [DATE] -->
-<!-- COUNSEL: Alberta — confirm no separate consumer-disclosure obligation applies to non-resident renters transacting on a Philippine-property platform — [DATE] -->
+<!-- COUNSEL: Philippines — confirm no additional DTI/NPC consumer-disclosure obligation applies to non-resident renters transacting on a Philippine-property platform — [DATE] -->
 
 ---
 

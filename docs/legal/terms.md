@@ -59,7 +59,7 @@ CheapStays may suspend or terminate your account immediately for serious violati
 
 ## 8. Governing Law and Disputes
 
-These Terms are governed by Alberta law (Canada) for entity-level matters, and by applicable Philippine law for in-country property transactions. Disputes are resolved through the platform's support process first, then mediation, then the courts.
+These Terms are governed by Philippine law. Disputes are resolved through the platform's support process first, then mediation, then the courts.
 
 Raise disputes through the CheapStays support system before pursuing external remedies. CheapStays is a marketplace intermediary — not a party to the accommodation contract between host and guest. We act as a neutral facilitator in disputes and may enforce outcomes through platform tools (e.g., holding a refund pending investigation).
 
