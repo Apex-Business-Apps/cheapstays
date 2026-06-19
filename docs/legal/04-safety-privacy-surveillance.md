@@ -3,13 +3,13 @@ title: "Safety, Privacy & Surveillance Bundle"
 document-id: SPSB-1.0
 version: "1.0.0"
 effective: "2026-05-22"
-jurisdictions: "Alberta, Canada · Republic of the Philippines"
+jurisdictions: "Republic of the Philippines"
 requires: "UAC-1.0 (Universal Account Consent)"
-operator: "APEX Business Systems Ltd., Edmonton, AB, Canada"
+operator: "JGP Corporation, Pasig City, Metro Manila, Philippines"
 platform: "CheapStays (cheapstays.me)"
 ---
 
-<!-- COUNSEL: Alberta — review against PIPA (SA 2003, c P-6.5) and OIPC guidance; confirm consent model for cross-border data transfers to Supabase (US/EU infrastructure) and Cloudflare CDN — [DATE] -->
+<!-- COUNSEL: Philippines — review against RA 10173 (Data Privacy Act) and NPC Circular 16-01; confirm consent model for cross-border data transfers to Supabase (US/EU infrastructure) and Cloudflare CDN — [DATE] -->
 <!-- COUNSEL: Philippines — review against RA 10173 (Data Privacy Act 2012), NPC Circular 16-01 (Security of Personal Information), RA 4200 (Anti-Wiretapping Act), RA 9995 (Anti-Photo and Video Voyeurism Act); confirm NPC registration obligation and Data Protection Officer requirement — [DATE] -->
 <!-- COUNSEL: EU/EEA — assess GDPR applicability for EU-resident users of a Philippine-property platform; determine whether data-processor agreements are required with Supabase and Cloudflare — [DATE] -->
 
@@ -145,7 +145,7 @@ You have rights over your personal data. Here is how to exercise them.
 | Objection to processing | Email **cheapstays.me@gmail.com** — we will assess and respond |
 
 <!-- COUNSEL: Philippines — confirm response timelines against NPC requirements; confirm whether a Data Protection Officer must be designated and whether platform must register with NPC — [DATE] -->
-<!-- COUNSEL: Alberta — confirm PIPA response timelines and whether OIPC complaints process must be disclosed to users — [DATE] -->
+<!-- COUNSEL: Philippines — confirm NPC response timelines and whether NPC complaints process must be disclosed to users — [DATE] -->
 
 ---
 

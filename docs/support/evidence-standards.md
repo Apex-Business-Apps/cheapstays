@@ -1,7 +1,7 @@
 # Evidence Standards
 
-**Organization:** APEX Business Systems Ltd.
-**Location:** Edmonton, AB
+**Organization:** JGP Corporation
+**Location:** Pasig City, Metro Manila, Philippines
 **Document Version:** 1.0.0
 **Classification:** Internal — Support Operations / Legal
 **Last Updated:** 2026-05-22
@@ -140,7 +140,7 @@ CheapStays does not make emergency disclosures to private parties, attorneys, or
 All production exports are generated directly from the live Supabase database by an admin with the service role. Exports are not modified after generation.
 
 - The generating admin records the export timestamp and the query or filter used
-- The cover letter is signed by an authorized APEX Business Systems representative
+- The cover letter is signed by an authorized JGP Corporation representative
 - Exports are transmitted to authorities via encrypted email or secure file transfer; records are not sent via plain email or consumer file-sharing services
 
 CheapStays does not alter, fabricate, or selectively omit records in response to a legal order. If a record no longer exists at the time of a lawful request (e.g., because the retention period elapsed before a hold was placed), the absence of the record is noted in the production letter.

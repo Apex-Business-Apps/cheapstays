@@ -21,7 +21,7 @@ It exists to reduce rediscovery, preserve durable project and preference memory,
 - Learn from corrections and promote stable ones
 - Keep raw evidence immutable
 - Surface only high-signal drift, conflict, risk, or decision needs
-- Use absolute dates when clarity matters; default user timezone is `America/Edmonton`
+- Use absolute dates when clarity matters; default user timezone is `Asia/Manila`
 
 ## Related Pages
 

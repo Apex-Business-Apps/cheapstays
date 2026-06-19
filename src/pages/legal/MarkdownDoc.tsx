@@ -1,26 +1,33 @@
 import { Fragment, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 const slugify = (value: string) =>
   value.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-");
 
 // Order matters: bold (**) must come before italic (*) so ** is not consumed as two * matches.
-const INLINE_RE = /(\*\*(.+?)\*\*|\*([^*\n]+)\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\))/g;
+// A new regex instance is created per call so recursive invocations don't share lastIndex state.
+const INLINE_PATTERN = /(\*\*(.+?)\*\*|\*([^*\n]+)\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\))/g;
 
 const inlineFormat = (text: string): ReactNode[] => {
+  const re = new RegExp(INLINE_PATTERN.source, "g");
   const nodes: ReactNode[] = [];
   let last = 0;
   let m: RegExpExecArray | null;
-  INLINE_RE.lastIndex = 0;
-  while ((m = INLINE_RE.exec(text)) !== null) {
+  while ((m = re.exec(text)) !== null) {
     if (m.index > last) nodes.push(text.slice(last, m.index));
     if (m[2] !== undefined) {
-      nodes.push(<strong key={m.index}>{m[2]}</strong>);
+      nodes.push(<strong key={m.index}>{inlineFormat(m[2])}</strong>);
     } else if (m[3] !== undefined) {
-      nodes.push(<em key={m.index}>{m[3]}</em>);
+      nodes.push(<em key={m.index}>{inlineFormat(m[3])}</em>);
     } else if (m[4] !== undefined) {
       nodes.push(<code key={m.index} className="rounded bg-secondary px-1 py-0.5 font-mono text-[0.875em]">{m[4]}</code>);
     } else if (m[5] !== undefined) {
-      nodes.push(<a key={m.index} href={m[6]} className="text-primary underline underline-offset-4 hover:opacity-80">{m[5]}</a>);
+      const href = m[6];
+      nodes.push(
+        href.startsWith("/")
+          ? <Link key={m.index} to={href} className="text-primary underline underline-offset-4 hover:opacity-80">{m[5]}</Link>
+          : <a key={m.index} href={href} className="text-primary underline underline-offset-4 hover:opacity-80" rel="noopener noreferrer">{m[5]}</a>
+      );
     }
     last = m.index + m[0].length;
   }

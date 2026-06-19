@@ -6,14 +6,14 @@ effective: "2026-05-22"
 jurisdictions: "Republic of the Philippines"
 requires: "UAC-1.0 · RBR-1.0 · PRI-1.0"
 trigger: "Bookings of 28 consecutive nights or more"
-operator: "APEX Business Systems Ltd., Edmonton, AB, Canada"
+operator: "JGP Corporation, Pasig City, Metro Manila, Philippines"
 platform: "CheapStays (cheapstays.me)"
 ---
 
 <!-- COUNSEL: Philippines — HIGHEST RISK DOCUMENT. Review against RA 9653 (Rent Control Act of 2009, as amended), Civil Code Arts. 1642–1688 (lease provisions), RA 877 (superseded but may have residual effect), and DHSUD / HLURB rules on lease registration. Determine the exact occupancy threshold at which a short-stay booking becomes a lease triggering eviction protections. Confirm whether back-to-back booking structures constitute evasion of tenancy law. Assess LGU-specific ordinances in Metro Manila, Cebu, Davao, and other high-volume markets. — [DATE] -->
 <!-- COUNSEL: Philippines — confirm whether the Barangay Justice System (RA 7160 Secs. 399–422) must be exhausted before any eviction action can be filed; assess Katarungang Pambarangay applicability — [DATE] -->
 <!-- COUNSEL: Philippines — confirm whether CheapStays must report long-stay bookings to DHSUD, NHA, or BIR — [DATE] -->
-<!-- COUNSEL: Alberta — confirm no Alberta Residential Tenancies Act obligations are triggered for an Alberta entity facilitating Philippine long-stay transactions — [DATE] -->
+<!-- COUNSEL: Philippines — confirm no additional Philippine tenancy-law obligations are triggered for JGP Corporation beyond RA 9653 and Civil Code lease provisions — [DATE] -->
 
 ---
 

@@ -3,12 +3,12 @@ title: "Universal Account Consent"
 document-id: UAC-1.0
 version: "1.0.0"
 effective: "2026-05-22"
-jurisdictions: "Alberta, Canada · Republic of the Philippines"
-operator: "APEX Business Systems Ltd., Edmonton, AB, Canada"
+jurisdictions: "Republic of the Philippines"
+operator: "JGP Corporation, Pasig City, Metro Manila, Philippines"
 platform: "CheapStays (cheapstays.me)"
 ---
 
-<!-- COUNSEL: Alberta, Canada — review against PIPA (SA 2003, c P-6.5), Consumer Protection Act 2000, and Electronic Commerce Act; confirm age-verification and electronic-consent validity obligations — [DATE] -->
+<!-- COUNSEL: Philippines — review against RA 10173 (Data Privacy Act), NPC Advisory No. 2021-01, and RA 8792 (E-Commerce Act); confirm age-verification and electronic-consent validity obligations — [DATE] -->
 <!-- COUNSEL: Philippines — review against RA 10173 (Data Privacy Act), NPC Advisory No. 2021-01, and RA 8484 (Access Devices Regulation Act); confirm electronic-consent validity and disclosure requirements — [DATE] -->
 
 ---
@@ -114,7 +114,7 @@ CheapStays may suspend or terminate your account immediately for serious violati
 ## 7. Governing Law & Disputes
 
 ### What this means
-These documents are governed by Alberta law (Canada) for entity-level matters, and by applicable Philippine law for in-country property transactions. Disputes are resolved through the platform's support process first, then mediation, then the courts.
+These documents are governed by Philippine law. Disputes are resolved through the platform's support process first, then mediation, then the courts.
 
 ### Your obligation
 - Raise disputes through the CheapStays support system before pursuing external remedies.
@@ -123,7 +123,7 @@ These documents are governed by Alberta law (Canada) for entity-level matters, a
 ### Platform boundary
 CheapStays is a marketplace intermediary, not a party to the accommodation contract between host and guest. We will act as a neutral facilitator in disputes and may enforce outcomes through platform tools (e.g., holding a refund pending investigation).
 
-<!-- COUNSEL: Alberta — confirm choice-of-law clause enforceability for Philippine-resident users; assess Consumer Contract Regulations implications — [DATE] -->
+<!-- COUNSEL: Philippines — confirm Philippine choice-of-law clause enforceability; assess DTI/NPC requirements for consumer contract disclosures — [DATE] -->
 <!-- COUNSEL: Philippines — confirm BSP and DTI mediation requirements for Philippine consumer disputes; assess DHSUD jurisdiction for accommodation disputes — [DATE] -->
 
 ---

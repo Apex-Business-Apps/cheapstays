@@ -1,6 +1,6 @@
 # Edge Function API Reference
 
-**Organization:** APEX Business Systems Ltd.
+**Organization:** JGP Corporation
 **Document Version:** 1.2.1
 **Last Updated:** 2026-05-25
 **Base URL:** `https://muqdmvkapsxrsgdkfoxn.supabase.co/functions/v1`

@@ -1,6 +1,6 @@
 -- ============================================================
 -- MIGRATION: Host Wallet System
--- CheapStays | APEX Business Systems Ltd.
+-- CheapStays | JGP Corporation
 -- ============================================================
 
 -- Enable pgcrypto for encryption

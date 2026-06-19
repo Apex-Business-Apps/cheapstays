@@ -1,7 +1,7 @@
 # Engineering Onboarding Guide
 
-**Organization:** APEX Business Systems Ltd.  
-**Location:** Edmonton, AB  
+**Organization:** JGP Corporation  
+**Location:** Pasig City, Metro Manila, Philippines  
 **Document Version:** 1.2.0  
 **Last Updated:** 2026-05-21
 

@@ -1,7 +1,7 @@
 # Security Policy
 
-**Organization:** APEX Business Systems Ltd.
-**Location:** Edmonton, AB
+**Organization:** JGP Corporation
+**Location:** Pasig City, Metro Manila, Philippines
 **Document Version:** 1.0.0
 **Classification:** Internal — Engineering & Operations
 **Last Updated:** 2026-05-21

@@ -2,7 +2,7 @@
 
 - status: active
 - type: Philippine short-term rental marketplace
-- org: APEX Business Systems Ltd.
+- org: JGP Corporation, Pasig City, Metro Manila, Philippines
 - canonical_baseline: 2026-05-25 @ main `e2af13e`
 - source: `CLAUDE.md` (repo root)
 

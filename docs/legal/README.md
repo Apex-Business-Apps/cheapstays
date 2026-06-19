@@ -1,10 +1,10 @@
 # CheapStays Legal Document Suite
 
-**Operator:** APEX Business Systems Ltd., Edmonton, AB, Canada  
+**Operator:** JGP Corporation, Pasig City, Metro Manila, Philippines  
 **Platform:** CheapStays (cheapstays.me)  
 **Suite version:** 1.0.0  
 **Effective:** 2026-05-22  
-**Jurisdictions:** Alberta, Canada · Republic of the Philippines  
+**Jurisdictions:** Republic of the Philippines  
 
 ---
 

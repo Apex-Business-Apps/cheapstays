@@ -5,13 +5,13 @@ version: "1.0.0"
 effective: "2026-05-22"
 jurisdictions: "Republic of the Philippines"
 requires: "UAC-1.0 (Universal Account Consent)"
-operator: "APEX Business Systems Ltd., Edmonton, AB, Canada"
+operator: "JGP Corporation, Pasig City, Metro Manila, Philippines"
 platform: "CheapStays (cheapstays.me)"
 ---
 
 <!-- COUNSEL: Philippines — review against RA 9593 (Tourism Act), DHSUD / HLURB short-term-rental accreditation requirements, DOT Accreditation Order, LGU business-permit and zoning requirements, BIR rental-income registration (RR 11-2020), and RA 10173 (Data Privacy Act) for guest data handling — [DATE] -->
 <!-- COUNSEL: Philippines — confirm host obligations under RA 6713 (Code of Conduct) if host is a public officer; assess RA 9168 (Homeowners Association Act) if property is in a subdivision — [DATE] -->
-<!-- COUNSEL: Alberta — confirm no Foreign Investment Act or FINTRAC implications for APEX as a marketplace operator facilitating Philippine-property rentals — [DATE] -->
+<!-- COUNSEL: Philippines — confirm no Foreign Investment Act (RA 7042) or AMLC implications for JGP Corporation as a marketplace operator facilitating Philippine-property rentals — [DATE] -->
 
 ---
 
@@ -120,7 +120,7 @@ CheapStays charges a percentage fee on each completed booking. You receive the r
 ### Platform boundary
 Payouts are released after guest check-out, subject to any dispute-hold periods. The fee schedule may change with **30 days' advance notice**. CheapStays does not provide tax or legal advice.
 
-<!-- COUNSEL: Philippines — confirm BIR creditable-withholding-tax obligations for marketplace platforms under RR 11-2020 or successor regulations; clarify whether APEX must withhold on host payouts — [DATE] -->
+<!-- COUNSEL: Philippines — confirm BIR creditable-withholding-tax obligations for marketplace platforms under RR 11-2020 or successor regulations; clarify whether JGP Corporation must withhold on host payouts — [DATE] -->
 
 ---
 
