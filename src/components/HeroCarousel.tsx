@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import s1 from "@/assets/stay-1.jpg";
@@ -51,3 +52,4 @@ export function HeroCarousel() {
       <div className="absolute top-4 right-4 flex gap-1.5">{stays.map((_, idx) => (<button key={idx} aria-label={`Show stay ${idx + 1}`} onClick={() => setI(idx)} className={`h-1.5 rounded-full transition-all duration-500 ${idx === i ? "w-6 bg-background" : "w-1.5 bg-background/50 hover:bg-background/80"}`} />))}</div>
     </div>);
 }
+

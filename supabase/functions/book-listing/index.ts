@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
       endsAt = dateObj.toISOString();
     }
 
-    const payload: any = {
+    const payload: Record<string, string | number | boolean | null | undefined> = {
       listing_id,
       guest_id: user.id,
       host_id: listing.host_id,

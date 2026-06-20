@@ -554,7 +554,7 @@ export default function Host() {
         host_id: user.id,
         title: title.trim(),
         description: form.description.trim(),
-        type: inferLegacyType(form.stay_category) as any,
+        type: inferLegacyType(form.stay_category) as never,
         stay_availability_type: form.stay_availability_type,
         stay_category: form.stay_category,
         booking_mode: form.booking_mode,
