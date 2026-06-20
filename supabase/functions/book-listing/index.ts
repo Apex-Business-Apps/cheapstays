@@ -148,11 +148,10 @@ Deno.serve(async (req) => {
     } else {
       // hourly
       bookingFlow = "instant_book"; // Hourly is always instant book for now
-      if (durationHours === 3 && listing.price_3h) subtotal = listing.price_3h;
-      else if (durationHours === 6 && listing.price_6h) subtotal = listing.price_6h;
-      else if (durationHours === 12 && listing.price_12h) subtotal = listing.price_12h;
-      else if (listing.hourly_php) subtotal = listing.hourly_php * (durationHours ?? 1);
-      else return json({ error: "Hourly pricing is not configured for this duration" }, 400);
+      if (duration_hours === 3 && listing.price_3h) subtotal = listing.price_3h;
+      else if (duration_hours === 6 && listing.price_6h) subtotal = listing.price_6h;
+      else if (duration_hours === 12 && listing.price_12h) subtotal = listing.price_12h;
+      else return json({ error: "Hourly pricing is not configured for this duration or invalid duration specified (must be 3, 6, or 12)" }, 400);
     }
 
     const serviceFee = Math.round(subtotal * 0.05);
@@ -167,6 +166,25 @@ Deno.serve(async (req) => {
       const dateObj = new Date(startsAt);
       dateObj.setHours(dateObj.getHours() + duration_hours);
       endsAt = dateObj.toISOString();
+
+      // Server-side overlap protection
+      const { data: overlapping, error: overlapError } = await adminClient
+        .from("bookings")
+        .select("id")
+        .eq("listing_id", listing_id)
+        .in("status", ["pending", "confirmed"])
+        .lt("starts_at", endsAt)
+        .gt("ends_at", startsAt)
+        .limit(1);
+      
+      if (overlapError) {
+        console.error("Overlap check error:", overlapError);
+        return json({ error: "Failed to verify listing availability" }, 500);
+      }
+      
+      if (overlapping && overlapping.length > 0) {
+        return json({ error: "This time slot overlaps with an existing booking" }, 409);
+      }
     }
 
     const payload: Record<string, string | number | boolean | null | undefined> = {

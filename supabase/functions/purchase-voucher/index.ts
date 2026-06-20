@@ -5,7 +5,7 @@ import { rateLimit } from "../_shared/rate-limit.ts";
 
 const BodySchema = z.object({
   listing_id: z.string().uuid(),
-  duration_hours: z.number().int().optional(),
+  duration_hours: z.number().int(),
 });
 
 function json(body: unknown, status = 200): Response {
@@ -57,6 +57,10 @@ Deno.serve(async (req) => {
       return json({ error: "Listing is not available" }, 409);
     }
     
+    // P0 Hotfix: Block the voucher payment path as requested by APEX rules
+    // until full integration with PayMongo is deployed and tested.
+    return json({ error: "Voucher purchases are currently disabled pending payment gateway integration." }, 403);
+    
     if (listing.booking_mode !== "voucher") {
       return json({ error: "This listing does not support open-date vouchers." }, 400);
     }
@@ -65,7 +69,7 @@ Deno.serve(async (req) => {
       return json({ error: "You cannot buy a voucher for your own listing" }, 403);
     }
 
-    if (duration_hours !== undefined && ![3, 6, 12].includes(duration_hours)) {
+    if (![3, 6, 12].includes(duration_hours)) {
       return json({ error: "Unsupported duration. Must be 3, 6, or 12 hours." }, 400);
     }
 
@@ -74,7 +78,6 @@ Deno.serve(async (req) => {
     if (duration_hours === 3 && listing.price_3h) subtotal = listing.price_3h;
     else if (duration_hours === 6 && listing.price_6h) subtotal = listing.price_6h;
     else if (duration_hours === 12 && listing.price_12h) subtotal = listing.price_12h;
-    else if (listing.hourly_php) subtotal = listing.hourly_php * (duration_hours ?? 1);
     else return json({ error: "Pricing is not configured for this voucher duration" }, 400);
 
     const serviceFee = Math.round(subtotal * 0.05);
