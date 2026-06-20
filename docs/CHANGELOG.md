@@ -11,6 +11,10 @@ Format guidance follows Keep a Changelog principles and semantic release heading
 
 ## [1.3.0] - 2026-06-20
 
+### Fixed
+
+- **Supabase Advisor Criticals:** Dropped erroneously migrated `physiomni_telemetry` tables and partitions originating from APEX-OmniHub. Resolved "RLS Disabled in Public" security warnings. See `supabase/migrations/20260620051848_drop_erroneous_physiomni_telemetry.sql`.
+
 ### Added
 
 - `supabase/migrations/20260620120000_phase1_domain_schema.sql` — Domain-level schemas and bounds for explicit pricing tiers and operational booking modes (`nightly`, `hourly`, `voucher`).
