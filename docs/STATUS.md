@@ -2,8 +2,8 @@
 
 **Organization:** JGP Corporation  
 **Location:** Pasig City, Metro Manila, Philippines  
-**Document Version:** 1.2.1  
-**Status Date:** 2026-05-25  
+**Document Version:** 1.3.0  
+**Status Date:** 2026-06-20  
 **Service State:** Operational with noted risks
 
 ## Environment Matrix
@@ -21,14 +21,16 @@
 - Support RLS hardened for update/insert ownership/admin checks.
 - Live authorization smoke test executed for admin/non-admin flows.
 - `host_profiles` table with verification workflow (unverified/pending/verified/rejected) and RLS.
-- `listings` table with RLS, instant book support, draft/published states, and dynamic avg_rating via trigger.
-- `bookings` table with date availability validation, payment status tracking, and PayMongo reference storage.
+- `listings` table with RLS, instant book support, draft/published states, dynamic avg_rating via trigger, and **hourly pricing blocks (3h, 6h, 12h, hourly)**.
+- `bookings` table with date availability validation, payment status tracking, PayMongo reference storage, and **hourly duration support** (`starts_at`, `ends_at`, `stay_type`).
+- **Voucher System**: `vouchers` table with unique duration codes, `pending_payment` support, and atomic redemption into bookings via Postgres RPC `redeem_voucher_transaction`.
 - `reviews` table with one-review-per-booking enforcement and automated rating aggregation.
-- `book-listing` edge function with date conflict detection, instant book logic, JWT auth, and rate limiting.
+- `book-listing` edge function with date conflict detection, instant book logic, JWT auth, and rate limiting. Updated to map duration-based pricing.
+- `purchase-voucher` & `redeem-voucher` edge functions to issue unique codes and safely generate completed bookings idempotently.
 - `payment-intent` edge function for GCash, Maya, and card payments via PayMongo. Operates in demo mode when secret key is not configured.
 - `paymongo-webhook` edge function for checkout-session payment confirmation (`checkout_session.payment.paid`) with signature verification and event idempotency via `webhook_events`.
 - `ai-search` edge function queries real listings data with city, price, and min_nights filters. Groq used for relevance scoring only.
-- Host onboarding flow (profile creation, listing creation with 12 amenities, instant book toggle, draft/publish).
+- Host onboarding flow (profile creation, listing creation with 12 amenities, instant book toggle, draft/publish). **Updated with granular UI for Quick Stays and Vouchers**.
 - 25 seed listings across 15 Philippine destinations. Price range PHP 1,400 to PHP 6,200 per night.
 - Internationalization across 9 languages with navbar language switcher and voice command support in Pip.
 
@@ -54,6 +56,7 @@
 
 ## Recent Change Log
 
+- **2026-06-20:** Implemented Option B PPTX parity: Hourly Stays (3h/6h/12h) DB tracking, dynamic host pricing blocks, and atomic Voucher redemptions.
 - **2026-05-25:** Added verification provenance to `final_report.txt` (`verified on branch`, `verified at (UTC)`) to make release-readiness evidence auditable.
 - **2026-05-25:** Added `paymongo-webhook` edge function, helper module, tests, and deployment/setup documentation.
 - **2026-05-25:** Verified Omniport audit emitters are present in role mutation flows (`admin-role-mutation`, `omnihub-role-authority`) and synchronized this branch documentation with `main/omni-recall` governance assets (path: `/omni-recall`).

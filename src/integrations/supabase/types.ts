@@ -200,6 +200,14 @@ export type Database = {
           status: Database["public"]["Enums"]["booking_status"]
           total_php: number
           updated_at: string
+          stay_type: string
+          booking_flow: string
+          flow_state: string
+          arrival_time: string | null
+          duration_hours: number | null
+          starts_at: string | null
+          ends_at: string | null
+          booking_mode: string | null
         }
         Insert: {
           cancellation_reason?: string | null
@@ -230,6 +238,14 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_status"]
           total_php: number
           updated_at?: string
+          stay_type?: string
+          booking_flow?: string
+          flow_state?: string
+          arrival_time?: string | null
+          duration_hours?: number | null
+          starts_at?: string | null
+          ends_at?: string | null
+          booking_mode?: string | null
         }
         Update: {
           cancellation_reason?: string | null
@@ -260,6 +276,14 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_status"]
           total_php?: number
           updated_at?: string
+          stay_type?: string
+          booking_flow?: string
+          flow_state?: string
+          arrival_time?: string | null
+          duration_hours?: number | null
+          starts_at?: string | null
+          ends_at?: string | null
+          booking_mode?: string | null
         }
         Relationships: [
           {
@@ -583,6 +607,15 @@ export type Database = {
           type: Database["public"]["Enums"]["listing_type"]
           updated_at: string
           video_url: string | null
+          stay_availability_type: string | null
+          stay_category: string | null
+          booking_mode: string | null
+          hourly_php: number | null
+          price_3h: number | null
+          price_6h: number | null
+          price_12h: number | null
+          overnight_php: number | null
+          promo_price: number | null
         }
         Insert: {
           address?: string | null
@@ -611,6 +644,15 @@ export type Database = {
           type?: Database["public"]["Enums"]["listing_type"]
           updated_at?: string
           video_url?: string | null
+          stay_availability_type?: string | null
+          stay_category?: string | null
+          booking_mode?: string | null
+          hourly_php?: number | null
+          price_3h?: number | null
+          price_6h?: number | null
+          price_12h?: number | null
+          overnight_php?: number | null
+          promo_price?: number | null
         }
         Update: {
           address?: string | null
@@ -639,6 +681,15 @@ export type Database = {
           type?: Database["public"]["Enums"]["listing_type"]
           updated_at?: string
           video_url?: string | null
+          stay_availability_type?: string | null
+          stay_category?: string | null
+          booking_mode?: string | null
+          hourly_php?: number | null
+          price_3h?: number | null
+          price_6h?: number | null
+          price_12h?: number | null
+          overnight_php?: number | null
+          promo_price?: number | null
         }
         Relationships: []
       }
@@ -810,6 +861,73 @@ export type Database = {
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      vouchers: {
+        Row: {
+          id: string
+          code: string
+          listing_id: string
+          guest_id: string
+          status: string
+          amount_paid: number
+          duration_hours: number | null
+          booking_id: string | null
+          created_at: string
+          expires_at: string | null
+          redeemed_at: string | null
+          redeemed_by: string | null
+        }
+        Insert: {
+          id?: string
+          code: string
+          listing_id: string
+          guest_id: string
+          status?: string
+          amount_paid: number
+          duration_hours?: number | null
+          booking_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+        }
+        Update: {
+          id?: string
+          code?: string
+          listing_id?: string
+          guest_id?: string
+          status?: string
+          amount_paid?: number
+          duration_hours?: number | null
+          booking_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vouchers_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_redeemed_by_fkey"
+            columns: ["redeemed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
         ]
       }
       profiles: {

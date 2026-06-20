@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+# Python script to rewrite BookingPanel.tsx
+content = """import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { format, differenceInCalendarDays, eachDayOfInterval, isWithinInterval, parseISO, addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
@@ -169,8 +170,6 @@ export function BookingPanel({ listing }: Props) {
   let stayLengthBlocked = false;
   let isShortTermStay = true;
   let isLongTermStay = false;
-  let shortTermBlocked = false;
-  let longTermBlocked = false;
 
   if (stayMode === "overnight") {
     rangeInvalid = !!(range?.from && range?.to && hasBookedDayInRange(range.from, range.to));
@@ -179,8 +178,8 @@ export function BookingPanel({ listing }: Props) {
     isShortTermStay = nights > 0 && nights <= SHORT_TERM_MAX_NIGHTS;
     isLongTermStay = nights > SHORT_TERM_MAX_NIGHTS;
     
-    shortTermBlocked = isShortTermStay && listing.short_term_enabled === false;
-    longTermBlocked = isLongTermStay && listing.long_term_enabled !== true;
+    const shortTermBlocked = isShortTermStay && listing.short_term_enabled === false;
+    const longTermBlocked = isLongTermStay && listing.long_term_enabled !== true;
     stayLengthBlocked = shortTermBlocked || longTermBlocked;
 
     canBook = !!(range?.from && range?.to && nights >= listing.min_nights && !rangeInvalid && !tooLong && !stayLengthBlocked && guests >= 1 && guests <= listing.max_guests);
@@ -694,3 +693,9 @@ export function BookingPanel({ listing }: Props) {
     </>
   );
 }
+"""
+
+with open(r"c:\Users\sinyo\CheapStays\cheapstays\src\components\BookingPanel.tsx", "w", encoding="utf-8") as f:
+    f.write(content)
+
+print("BookingPanel.tsx rewritten successfully.")

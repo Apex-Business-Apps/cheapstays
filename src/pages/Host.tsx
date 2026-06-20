@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 import { ImageUploader } from "@/components/ImageUploader";
 import { VideoUploader } from "@/components/VideoUploader";
 import { HostBookings } from "@/components/HostBookings";
+import { HostVouchers } from "@/components/HostVouchers";
 import { HostDashboard } from "@/components/HostDashboard";
 import { ListingPublishGate } from "@/components/ListingPublishGate";
 import { HostCalendar } from "@/components/HostCalendar";
@@ -32,6 +33,30 @@ const LISTING_TYPES = [
   { value: "villa", label: "Villa" },
   { value: "glamping", label: "Glamping" },
 ];
+
+const STAY_CATEGORIES = [
+  { value: "quick_stay", label: "Quick Stay" },
+  { value: "hourly_stay", label: "Hourly Stay" },
+  { value: "overnight_stay", label: "Overnight Stay" },
+  { value: "hostel", label: "Hostel" },
+  { value: "private_pool", label: "Private Pool" },
+  { value: "condo", label: "Condo" },
+  { value: "apartment", label: "Apartment" },
+  { value: "hotel_room", label: "Hotel Room" },
+  { value: "motel_room", label: "Motel Room" },
+];
+
+function inferLegacyType(cat: string) {
+  switch (cat) {
+    case 'hostel': return 'shared_room';
+    case 'hotel_room':
+    case 'motel_room': return 'private_room';
+    case 'private_pool': return 'villa';
+    case 'hourly_stay':
+    case 'quick_stay': return 'glamping';
+    default: return 'entire_place';
+  }
+}
 
 const AMENITY_OPTIONS = [
   "wifi", "aircon", "fan", "kitchen", "kitchenette", "kitchen_shared",
@@ -445,14 +470,22 @@ export default function Host() {
 
   // Listing form
   const [form, setForm] = useState({
-    type: "entire_place",
+    stay_availability_type: "overnight", // 'hourly', 'overnight', 'both'
+    stay_category: "overnight_stay",
+    booking_mode: "instant",
     city: "",
     province: "",
     address: "",
     bedrooms: 1,
     bathrooms: 1,
     max_guests: 2,
-    nightly_php: 1500,
+    hourly_php: 0,
+    price_3h: 0,
+    price_6h: 0,
+    price_12h: 0,
+    overnight_php: 1500,
+    nightly_php: 1500, // Legacy sync
+    promo_price: 0,
     min_nights: 1,
     description: "",
   });
@@ -521,14 +554,23 @@ export default function Host() {
         host_id: user.id,
         title: title.trim(),
         description: form.description.trim(),
-        type: form.type as "entire_place" | "glamping" | "private_room" | "resort" | "shared_room" | "villa",
+        type: inferLegacyType(form.stay_category) as any,
+        stay_availability_type: form.stay_availability_type,
+        stay_category: form.stay_category,
+        booking_mode: form.booking_mode,
         city: form.city.trim(),
         province: form.province.trim(),
         address: form.address.trim() || null,
         bedrooms: form.bedrooms,
         bathrooms: form.bathrooms,
         max_guests: form.max_guests,
-        nightly_php: form.nightly_php,
+        hourly_php: form.hourly_php || null,
+        price_3h: form.price_3h || null,
+        price_6h: form.price_6h || null,
+        price_12h: form.price_12h || null,
+        overnight_php: form.overnight_php || null,
+        promo_price: form.promo_price || null,
+        nightly_php: form.overnight_php, // Legacy backfill
         min_nights: form.min_nights,
         amenities: selectedAmenities,
         images,
@@ -632,6 +674,7 @@ export default function Host() {
             <TabsTrigger value="bookings" className="gap-2">
               <CalendarDays className="h-4 w-4" /> Bookings
             </TabsTrigger>
+            <TabsTrigger value="vouchers">Vouchers</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -731,15 +774,63 @@ export default function Host() {
               </div>
 
               <div className="space-y-2">
-                <Label>Property type</Label>
+                <Label>Stay Category</Label>
                 <div className="flex flex-wrap gap-2">
-                  {LISTING_TYPES.map((t) => (
+                  {STAY_CATEGORIES.map((t) => (
                     <button
                       key={t.value}
                       type="button"
-                      onClick={() => setForm((f) => ({ ...f, type: t.value }))}
+                      onClick={() => setForm((f) => ({ ...f, stay_category: t.value }))}
                       className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                        form.type === t.value
+                        form.stay_category === t.value
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border/60 hover:border-foreground/30"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Availability Type</Label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: "overnight", label: "Overnight stays only" },
+                    { value: "hourly", label: "Hourly stays only" },
+                    { value: "both", label: "Both overnight & hourly" },
+                  ].map((t) => (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, stay_availability_type: t.value }))}
+                      className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                        form.stay_availability_type === t.value
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border/60 hover:border-foreground/30"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Booking Mode</Label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: "instant", label: "Instant Book" },
+                    { value: "manual_review", label: "Manual Review" },
+                    { value: "voucher", label: "Voucher / Open Date" },
+                  ].map((t) => (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, booking_mode: t.value }))}
+                      className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                        form.booking_mode === t.value
                           ? "bg-primary text-primary-foreground border-primary"
                           : "border-border/60 hover:border-foreground/30"
                       }`}
@@ -776,20 +867,68 @@ export default function Host() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Nightly price (₱)</Label>
+                  <Label>Promo price (₱) <span className="text-muted-foreground text-xs">(optional slash price)</span></Label>
                   <Input
-                    type="number" min={100} step={50} value={form.nightly_php}
-                    onChange={(e) => setForm((f) => ({ ...f, nightly_php: Number(e.target.value) }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Minimum nights</Label>
-                  <Input
-                    type="number" min={1} max={30} value={form.min_nights}
-                    onChange={(e) => setForm((f) => ({ ...f, min_nights: Number(e.target.value) }))}
+                    type="number" min={0} step={50} value={form.promo_price || ""}
+                    onChange={(e) => setForm((f) => ({ ...f, promo_price: Number(e.target.value) }))}
                   />
                 </div>
               </div>
+
+              {(form.stay_availability_type === "overnight" || form.stay_availability_type === "both") && (
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/60">
+                  <div className="space-y-2">
+                    <Label>Overnight price (₱)</Label>
+                    <Input
+                      type="number" min={100} step={50} value={form.overnight_php}
+                      onChange={(e) => setForm((f) => ({ ...f, overnight_php: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Minimum nights</Label>
+                    <Input
+                      type="number" min={1} max={30} value={form.min_nights}
+                      onChange={(e) => setForm((f) => ({ ...f, min_nights: Number(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {(form.stay_availability_type === "hourly" || form.stay_availability_type === "both") && (
+                <div className="space-y-4 pt-2 border-t border-border/60">
+                  <h3 className="font-medium text-sm">Hourly Pricing</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Base Hourly Rate (₱)</Label>
+                      <Input
+                        type="number" min={0} step={50} value={form.hourly_php || ""}
+                        onChange={(e) => setForm((f) => ({ ...f, hourly_php: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>3-Hour Block (₱)</Label>
+                      <Input
+                        type="number" min={0} step={50} value={form.price_3h || ""}
+                        onChange={(e) => setForm((f) => ({ ...f, price_3h: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>6-Hour Block (₱)</Label>
+                      <Input
+                        type="number" min={0} step={50} value={form.price_6h || ""}
+                        onChange={(e) => setForm((f) => ({ ...f, price_6h: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>12-Hour Block (₱)</Label>
+                      <Input
+                        type="number" min={0} step={50} value={form.price_12h || ""}
+                        onChange={(e) => setForm((f) => ({ ...f, price_12h: Number(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label>Description</Label>
@@ -880,6 +1019,10 @@ export default function Host() {
           {/* ── Bookings tab ── */}
           <TabsContent value="bookings">
             <HostBookings hostId={user.id} />
+          </TabsContent>
+
+          <TabsContent value="vouchers">
+            <HostVouchers hostId={user.id} />
           </TabsContent>
         </Tabs>
       </div>

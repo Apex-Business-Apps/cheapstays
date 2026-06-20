@@ -1,4 +1,6 @@
-import { z } from "npm:zod@3.23.8";
+import os
+
+content = """import { z } from "npm:zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
@@ -10,12 +12,12 @@ const SHORT_TERM_MAX_NIGHTS = 30;
 
 const BodySchema = z.object({
   listing_id: z.string().uuid(),
-  check_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD"),
-  check_out: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD"),
+  check_in: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/, "Must be YYYY-MM-DD"),
+  check_out: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/, "Must be YYYY-MM-DD"),
   guests: z.number().int().min(1).max(20),
   guest_message: z.string().max(1000).optional(),
   stay_type: z.enum(["overnight", "hourly"]).optional().default("overnight"),
-  arrival_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  arrival_time: z.string().regex(/^\\d{2}:\\d{2}$/).optional(),
   duration_hours: z.number().int().optional(),
 });
 
@@ -216,3 +218,9 @@ Deno.serve(async (req) => {
     return json({ error: "Internal server error" }, 500);
   }
 });
+"""
+
+with open(r"c:\Users\sinyo\CheapStays\cheapstays\supabase\functions\book-listing\index.ts", "w", encoding="utf-8") as f:
+    f.write(content)
+
+print("book-listing edge function rewritten successfully.")
