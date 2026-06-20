@@ -211,7 +211,7 @@ export function BookingPanel({ listing }: Props) {
         setBookingId(data.voucher_id);
         setStep("pay");
       } else {
-        const payload: Record<string, string | number | undefined> = {
+        const payload: Record<string, string | number | null | undefined> = {
           listing_id: listing.id,
           guests,
           guest_message: message.trim() || undefined,
@@ -386,7 +386,7 @@ export function BookingPanel({ listing }: Props) {
         </div>
 
         {listing.stay_availability_type === "both" && listing.booking_mode !== "voucher" && (
-          <Tabs value={stayMode} onValueChange={(v: "overnight" | "hourly" | "voucher") => setStayMode(v)} className="w-full">
+          <Tabs value={stayMode} onValueChange={(v) => setStayMode(v as "overnight" | "hourly" | "voucher")} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="overnight">Overnight</TabsTrigger>
               <TabsTrigger value="hourly">Hourly</TabsTrigger>
@@ -467,7 +467,7 @@ export function BookingPanel({ listing }: Props) {
             </Popover>
 
             <div className="grid grid-cols-2 gap-2">
-              <Select value={hourlyBlock} onValueChange={(v: "base" | "3h" | "6h" | "12h") => setHourlyBlock(v)}>
+              <Select value={hourlyBlock} onValueChange={(v) => setHourlyBlock(v as "base" | "3h" | "6h" | "12h")}>
                 <SelectTrigger>
                   <SelectValue placeholder="Duration" />
                 </SelectTrigger>
@@ -500,7 +500,7 @@ export function BookingPanel({ listing }: Props) {
             <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-sm text-muted-foreground">
               Buy an open-date voucher to use later.
             </div>
-            <Select value={hourlyBlock} onValueChange={(v: "base" | "3h" | "6h" | "12h") => setHourlyBlock(v)}>
+            <Select value={hourlyBlock} onValueChange={(v) => setHourlyBlock(v as "base" | "3h" | "6h" | "12h")}>
               <SelectTrigger>
                 <SelectValue placeholder="Duration" />
               </SelectTrigger>
