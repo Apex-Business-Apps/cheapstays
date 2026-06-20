@@ -2,12 +2,31 @@
 
 **Organization:** JGP Corporation  
 **Location:** Pasig City, Metro Manila, Philippines  
-**Document Version:** 1.2.1  
-**Last Updated:** 2026-05-25
+**Document Version:** 1.3.0  
+**Last Updated:** 2026-06-20
 
 All notable changes to this project are documented in this file.
 
 Format guidance follows Keep a Changelog principles and semantic release headings.
+
+## [1.3.0] - 2026-06-20
+
+### Added
+
+- `supabase/migrations/20260620120000_phase1_domain_schema.sql` — Domain-level schemas and bounds for explicit pricing tiers and operational booking modes (`nightly`, `hourly`, `voucher`).
+- `supabase/migrations/20260620130000_phase3_bookings_hourly.sql` — Re-architected `bookings` table to natively handle `starts_at`, `ends_at`, `arrival_time`, and `duration_hours` for precise hourly reservations.
+- `supabase/migrations/20260620140000_phase4_vouchers_schema.sql` — Introduced `vouchers` table with unique constraint bindings. Implemented atomic Postgres RPC `redeem_voucher_transaction` to prevent race conditions during voucher redemption.
+- `supabase/functions/purchase-voucher` & `supabase/functions/redeem-voucher` — Idempotent edge functions handling voucher purchase lifecycle and atomic database redemption.
+- `src/components/HostVouchers.tsx` — Host-facing voucher validation and redemption portal, enforcing local UI `active`/`expired` lifecycle boundaries.
+- `src/test/voucher-redemption.test.ts` — Comprehensive unit test constraints validating database mutation structure and idempotency checks.
+
+### Changed
+
+- **Pricing System:** Listings can now declare explicit integer prices for `price_3h`, `price_6h`, `price_12h`, and standard `hourly_php` models.
+- **Booking Rules:** `bookings.stay_type` ensures clear logical separation between legacy `overnight` and new `hourly` models.
+- **Host Dashboard UI:** Extended host layout across tabs to include dedicated areas for `My Listings`, `Bookings`, and `Vouchers`. Host listing creation forms now dynamically surface duration and mode-specific input controls based on operational parameters.
+- **Listing Validation:** `book-listing` Edge Function securely prevents crossing operational domain rules (e.g., trying to book a voucher mode property hourly).
+- **Public Checkout:** `ListingDetail.tsx` natively supports purchasing open-date vouchers and booking real-time hourly blocks directly through a modernized booking panel.
 
 ## [1.2.1] - 2026-05-25
 

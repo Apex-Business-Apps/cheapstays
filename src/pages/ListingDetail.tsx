@@ -37,6 +37,15 @@ type Listing = {
   avg_rating: number | null;
   review_count: number;
   created_at: string;
+  stay_availability_type?: "overnight" | "hourly" | "both" | null;
+  stay_category?: string | null;
+  booking_mode?: "instant" | "voucher" | "manual_review" | null;
+  hourly_php?: number | null;
+  price_3h?: number | null;
+  price_6h?: number | null;
+  price_12h?: number | null;
+  promo_price?: number | null;
+  overnight_php?: number | null;
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -145,9 +154,19 @@ export default function ListingDetail() {
                 <div className="flex flex-wrap gap-2 mb-2">
                   <Badge variant="secondary">{TYPE_LABELS[listing.type] ?? listing.type}</Badge>
                   {listing.is_owner_direct && <Badge variant="outline">Owner direct</Badge>}
-                  {listing.instant_book && (
+                  {listing.instant_book && listing.booking_mode !== "voucher" && (
                     <Badge className="bg-primary text-primary-foreground gap-1">
                       <Zap className="h-3 w-3" /> Instant book
+                    </Badge>
+                  )}
+                  {listing.stay_availability_type === "hourly" || listing.stay_availability_type === "both" ? (
+                    <Badge variant="outline" className="gap-1 border-primary/50 text-primary">
+                      Hourly available
+                    </Badge>
+                  ) : null}
+                  {listing.booking_mode === "voucher" && (
+                    <Badge variant="outline" className="gap-1 border-primary/50 text-primary">
+                      Voucher stay
                     </Badge>
                   )}
                 </div>
@@ -245,17 +264,24 @@ export default function ListingDetail() {
 
           {/* ── Right column: sticky booking panel ── */}
           <div className="lg:sticky lg:top-24">
-            <BookingPanel
-              listing={{
-                id: listing.id,
-                nightly_php: listing.nightly_php,
-                min_nights: listing.min_nights,
-                max_guests: listing.max_guests,
-                max_nights: listing.max_nights ?? null,
-                short_term_enabled: listing.short_term_enabled ?? true,
-                long_term_enabled: listing.long_term_enabled ?? false,
-              }}
-            />
+              <BookingPanel
+                listing={{
+                  id: listing.id,
+                  nightly_php: listing.nightly_php,
+                  min_nights: listing.min_nights,
+                  max_guests: listing.max_guests,
+                  max_nights: listing.max_nights ?? null,
+                  short_term_enabled: listing.short_term_enabled ?? true,
+                  long_term_enabled: listing.long_term_enabled ?? false,
+                  stay_availability_type: listing.stay_availability_type,
+                  booking_mode: listing.booking_mode,
+                  hourly_php: listing.hourly_php,
+                  price_3h: listing.price_3h,
+                  price_6h: listing.price_6h,
+                  price_12h: listing.price_12h,
+                  promo_price: listing.promo_price,
+                }}
+              />
           </div>
         </div>
       </div>

@@ -1,0 +1,45 @@
+{
+  "name": "apexomni-test-universal",
+  "version": "1.0.0",
+  "supersedes": ["omni-test", "webapp-testing"],
+  "type": "universal-vendor-agnostic",
+  "license": "Proprietary - APEX Business Systems Ltd. Edmonton, AB, Canada. Copyright © 2026 All Rights Reserved",
+  "description": "20x omnipotent software testing intelligence. Universal system prompt. Zero-modification deployment to any LLM API.",
+  "deployment_method": "system_prompt_injection",
+  "llm_agnostic": true,
+  "compatible_providers": [
+    "Anthropic Claude (all versions)",
+    "OpenAI GPT-4o, GPT-4-turbo, o1, o1-mini, o3, o3-mini",
+    "Google Gemini 1.5 Pro/Flash, Gemini 2.0",
+    "xAI Grok (all versions)",
+    "Groq (all hosted models: Llama, Mixtral, Gemma)",
+    "Mistral AI (all versions)",
+    "Meta Llama (3.x, 4.x, all future versions)",
+    "DeepSeek (all versions)",
+    "Qwen (all versions)",
+    "Cohere Command (all versions)",
+    "Amazon Bedrock (all hosted models)",
+    "Azure OpenAI (all hosted models)",
+    "Google Vertex AI (all hosted models)",
+    "Ollama (all locally hosted models)",
+    "LM Studio (all locally hosted models)",
+    "Any OpenAI-compatible API endpoint"
+  ],
+  "deployment_params": {
+    "openai": "messages[0].role = 'system'",
+    "anthropic": "system parameter",
+    "google": "system_instruction parameter",
+    "groq": "messages[0].role = 'system'",
+    "xai": "messages[0].role = 'system'",
+    "ollama": "system parameter in modelfile or messages[0].role = 'system'"
+  },
+  "context_window_requirement": "minimum 8K tokens recommended, 32K+ for full activation",
+  "metrics": {
+    "test_types_covered": 48,
+    "execution_modes": 10,
+    "quality_rubric_items": 20,
+    "pitfalls_documented": 14,
+    "pre_test_checkpoints": 22,
+    "upgrade_factor": "20x vs omni-test v3.0"
+  }
+}
