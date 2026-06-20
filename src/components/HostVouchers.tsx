@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+ 
 import { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { Loader2, Ticket, CheckCircle2, AlertCircle } from "lucide-react";
@@ -161,3 +163,5 @@ export function HostVouchers({ hostId }: { hostId: string }) {
     </div>
   );
 }
+
+
