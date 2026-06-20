@@ -56,6 +56,7 @@
 
 ## Recent Change Log
 
+- **2026-06-20:** Dropped erroneous `physiomni_telemetry` tables and partitions from the database to clear Supabase Advisor RLS warnings.
 - **2026-06-20:** Implemented Option B PPTX parity: Hourly Stays (3h/6h/12h) DB tracking, dynamic host pricing blocks, and atomic Voucher redemptions.
 - **2026-05-25:** Added verification provenance to `final_report.txt` (`verified on branch`, `verified at (UTC)`) to make release-readiness evidence auditable.
 - **2026-05-25:** Added `paymongo-webhook` edge function, helper module, tests, and deployment/setup documentation.

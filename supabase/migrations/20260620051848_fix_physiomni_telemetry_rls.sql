@@ -1,0 +1,1 @@
+-- This migration was replaced by 20260620051848_drop_erroneous_physiomni_telemetry.sql
