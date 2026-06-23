@@ -1,0 +1,15 @@
+export { Hero } from "./Hero";
+export { WhyCheapStays } from "./WhyCheapStays";
+export { StatsStrip } from "./StatsStrip";
+export { Destinations } from "./Destinations";
+export { CityStaycations } from "./CityStaycations";
+export { HowItWorks } from "./HowItWorks";
+export { PopularCitiesSection } from "./PopularCitiesSection";
+export { FeaturedStaysSection } from "./FeaturedStaysSection";
+export { QuickStaysSection } from "./QuickStaysSection";
+export { BecomeHost } from "./BecomeHost";
+export { BecomePartner } from "./BecomePartner";
+export { CustomerSupport } from "./CustomerSupport";
+export { AboutUs } from "./AboutUs";
+export { Testimonials } from "./Testimonials";
+export { FinalCta } from "./FinalCta";
