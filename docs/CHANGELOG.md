@@ -2,12 +2,34 @@
 
 **Organization:** JGP Corporation  
 **Location:** Pasig City, Metro Manila, Philippines  
-**Document Version:** 1.3.0  
-**Last Updated:** 2026-06-20
+**Document Version:** 1.4.0  
+**Last Updated:** 2026-06-23
 
 All notable changes to this project are documented in this file.
 
 Format guidance follows Keep a Changelog principles and semantic release headings.
+
+## [1.4.0] - 2026-06-23
+
+### Added
+
+- Homepage code-split into modular section components under `src/components/homepage/` (`Hero`, `PopularCitiesSection`, `FeaturedStaysSection`, `QuickStaysSection`, `BecomeHost`, plus retained `Destinations`, `BecomePartner`, `CustomerSupport`, `AboutUs`, etc.).
+- New navigation pages: `/types-of-stays`, `/become-a-partner`, `/customer-support`, `/about`.
+- `src/pages/TypesOfStays.tsx` — tabbed browse page (All Stays, Overnight Stays, Quick Stays, Hostels, Private Pools) with per-tab counts and city/price/guests/amenity filters, all derived from `listings`.
+- `src/lib/discovery.ts` — shared, RLS-safe listing discovery layer: `fetchActiveListings`, `fetchLatestListings`, `fetchFeaturedStays`, `fetchQuickStays`, `fetchPopularCities`, and the `isPromoted` helper.
+- Live, database-backed homepage sections with loading skeletons and graceful empty states for Popular Cities, Featured Stays, and Quick Stays.
+
+### Changed
+
+- Navbar restructured to: Homepage, Types of Stays, Become a Partner, Customer Support, About Us.
+- Hero carousel now renders the newest active listings from the database (each slide links to its listing page), falling back to curated imagery only when there is no data.
+- Featured Stays ranks promoted listings (`promo_price`) first, then top-rated/most-reviewed; cards show a "Promo" badge and discounted price.
+- Quick Stays fetches the latest hourly-capable listings (`stay_availability_type IN ('hourly','both')`), newest first.
+- `Search.tsx` supports structured `category` and `availability` query params for filtered browse.
+
+### Notes
+
+- No schema or migration changes. All discovery features rely on existing `listings` columns and public, RLS-safe reads.
 
 ## [1.3.0] - 2026-06-20
 

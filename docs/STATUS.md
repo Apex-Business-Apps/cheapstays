@@ -2,8 +2,8 @@
 
 **Organization:** JGP Corporation  
 **Location:** Pasig City, Metro Manila, Philippines  
-**Document Version:** 1.3.0  
-**Status Date:** 2026-06-20  
+**Document Version:** 1.4.0  
+**Status Date:** 2026-06-23  
 **Service State:** Operational with noted risks
 
 ## Environment Matrix
@@ -16,7 +16,10 @@
 ## Current Capability Snapshot
 
 - RBAC admin dashboard for role management and support/audit visibility.
-- Hero carousel expanded with 15 Philippine destination slides.
+- Homepage code-split into modular section components under `src/components/homepage/`.
+- Hero carousel renders the newest active listings from the database (slides link to listing pages), with curated fallback imagery when no data is available.
+- Discovery surfaces backed by live data with loading skeletons and empty states: Popular Cities (grouped by `city`), Featured Stays (promoted + top-rated), Quick Stays (hourly-capable, newest first).
+- `Types of Stays` browse page (`/types-of-stays`) with tabs (All, Overnight, Quick, Hostels, Private Pools) and city/price/guests/amenity filters, plus marketing pages: Become a Partner, Customer Support, About Us.
 - `concierge_requests` table with RLS and audit-oriented schema.
 - Support RLS hardened for update/insert ownership/admin checks.
 - Live authorization smoke test executed for admin/non-admin flows.

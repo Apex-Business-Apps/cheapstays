@@ -8,6 +8,8 @@ export type DiscoveryListing = {
   province: string;
   type: string;
   images: string[];
+  max_guests: number;
+  amenities: string[];
   nightly_php: number;
   avg_rating: number | null;
   review_count: number | null;
@@ -29,7 +31,7 @@ export type PopularCity = {
 };
 
 const SELECT_COLS =
-  "id, slug, title, city, province, type, images, nightly_php, avg_rating, review_count, stay_category, stay_availability_type, hourly_php, price_3h, price_6h, price_12h, promo_price";
+  "id, slug, title, city, province, type, images, max_guests, amenities, nightly_php, avg_rating, review_count, stay_category, stay_availability_type, hourly_php, price_3h, price_6h, price_12h, promo_price";
 
 // stay_* columns are present in the DB but not always in generated types in older builds.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,6 +51,8 @@ function mapRow(row: Record<string, unknown>): DiscoveryListing {
     province: String(row.province ?? ""),
     type: String(row.type ?? ""),
     images: normalizeImages(row.images),
+    max_guests: Number(row.max_guests ?? 0),
+    amenities: Array.isArray(row.amenities) ? (row.amenities as unknown[]).filter((x): x is string => typeof x === "string") : [],
     nightly_php: Number(row.nightly_php ?? 0),
     avg_rating: row.avg_rating != null ? Number(row.avg_rating) : null,
     review_count: row.review_count != null ? Number(row.review_count) : null,
@@ -65,6 +69,18 @@ function mapRow(row: Record<string, unknown>): DiscoveryListing {
 /** A listing counts as "promoted" when the host set a real discount price. */
 export function isPromoted(l: DiscoveryListing): boolean {
   return l.promo_price != null && l.promo_price > 0 && l.promo_price < l.nightly_php;
+}
+
+/** All active listings (newest first), for the Types of Stays browse page. */
+export async function fetchActiveListings(limit = 200): Promise<DiscoveryListing[]> {
+  const { data, error } = await sb
+    .from("listings")
+    .select(SELECT_COLS)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Record<string, unknown>[]).map(mapRow);
 }
 
 /** Newest active listings, for the Hero carousel ("fresh" arrivals). */
