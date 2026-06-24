@@ -108,6 +108,7 @@ function MyListings({ userId }: { userId: string }) {
   const [saving, setSaving] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -125,17 +126,31 @@ function MyListings({ userId }: { userId: string }) {
 
   async function saveMedia(id: string, images: string[], video_url: string | null) {
     setSaving(id);
-    const { error } = await supabase
+    // Filter by host_id (defence-in-depth with RLS) and read back the row so we
+    // can tell a real save from a silent 0-row no-op that still returns 204.
+    const { data, error } = await supabase
       .from("listings")
       .update({ images, video_url })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("host_id", userId)
+      .select("id, images, video_url");
     setSaving(null);
     if (error) {
       toast({ title: "Save failed", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Media saved" });
-      setListings((prev) => prev.map((l) => (l.id === id ? { ...l, images, video_url } : l)));
+      return;
     }
+    if (!data || data.length === 0) {
+      toast({
+        title: "Nothing was saved",
+        description: "The listing couldn't be updated — you may not own it or a permission rule blocked the change.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const saved = data[0] as { images: string[] | null; video_url: string | null };
+    toast({ title: "Media saved" });
+    // Sync from the DB response so the UI reflects exactly what persisted.
+    setListings((prev) => prev.map((l) => (l.id === id ? { ...l, images: saved.images ?? [], video_url: saved.video_url ?? null } : l)));
   }
 
   async function deleteListing(id: string) {
@@ -218,6 +233,7 @@ function MyListings({ userId }: { userId: string }) {
               listingId={listing.id}
               value={listing.images ?? []}
               onChange={(imgs) => setListings((prev) => prev.map((l) => (l.id === listing.id ? { ...l, images: imgs } : l)))}
+              onUploadingChange={(up) => setUploadingId(up ? listing.id : null)}
               maxFiles={10}
             />
           </div>
@@ -235,11 +251,11 @@ function MyListings({ userId }: { userId: string }) {
           <div className="flex items-center gap-2 flex-wrap">
             <Button
               size="sm"
-              disabled={saving === listing.id}
+              disabled={saving === listing.id || uploadingId === listing.id}
               onClick={() => saveMedia(listing.id, listing.images ?? [], listing.video_url ?? null)}
             >
               {saving === listing.id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : null}
-              Save media
+              {uploadingId === listing.id ? "Uploading…" : "Save media"}
             </Button>
             {confirmDelete === listing.id ? (
               <>
@@ -459,8 +475,10 @@ export default function Host() {
   const { user, roles, rolesError, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Pre-generate listing ID so ImageUploader can use it before submit
-  const [listingId] = useState(() => crypto.randomUUID());
+  // Pre-generate listing ID so ImageUploader can use it before submit.
+  // Kept in state so it can be rotated after a successful publish, preventing
+  // a duplicate-key (23505) crash if the form is submitted again.
+  const [listingId, setListingId] = useState(() => crypto.randomUUID());
 
   // AI description generator
   const [title, setTitle] = useState("");
@@ -492,6 +510,7 @@ export default function Host() {
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [imagesUploading, setImagesUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [publishGateOpen, setPublishGateOpen] = useState(false);
@@ -548,7 +567,11 @@ export default function Host() {
       // The DB-level publish-gate trigger backstops any client bypass.
       // is_owner_direct and instant_book are legacy/marketing fields and are
       // no longer written from the listing setup flow.
-      const { error } = await supabase.from("listings").insert({
+      //
+      // Upsert (not insert) so re-submitting the same draft — e.g. closing the
+      // publish gate and clicking "Publish listing" again — updates the row
+      // instead of crashing with a 23505 duplicate-key on listings_pkey.
+      const { error } = await supabase.from("listings").upsert({
         id: listingId,
         slug,
         host_id: user.id,
@@ -576,7 +599,7 @@ export default function Host() {
         images,
         video_url: videoUrl,
         status: "draft",
-      });
+      }, { onConflict: "id" });
 
       if (error) throw error;
 
@@ -599,9 +622,12 @@ export default function Host() {
 
   async function finalizePublish() {
     if (!publishingId) return;
+    // Persist the latest media alongside the publish. Image/video uploads are
+    // async, so the URLs may not have been in state at the initial draft insert;
+    // writing them here guarantees the published listing keeps its photos/video.
     const { error } = await supabase
       .from("listings")
-      .update({ status: "active" })
+      .update({ status: "active", images, video_url: videoUrl })
       .eq("id", publishingId);
     if (error) {
       toast({
@@ -613,6 +639,10 @@ export default function Host() {
     }
     toast({ title: "Listing published!", description: "Your listing is now live." });
     setPublishGateOpen(false);
+    setPublishingId(null);
+    // Rotate to a fresh id so a subsequent "New listing" can't collide with the
+    // row we just published.
+    setListingId(crypto.randomUUID());
     navigate(`/listing/${publishingId}`);
   }
 
@@ -981,6 +1011,7 @@ export default function Host() {
                   listingId={listingId}
                   value={images}
                   onChange={setImages}
+                  onUploadingChange={setImagesUploading}
                   maxFiles={10}
                 />
               </div>
@@ -1000,11 +1031,11 @@ export default function Host() {
               </div>
 
               <div className="flex flex-wrap gap-3 pt-2 border-t border-border/60">
-                <Button onClick={() => submitListing(false)} disabled={submitting} className="gap-2">
+                <Button onClick={() => submitListing(false)} disabled={submitting || imagesUploading} className="gap-2">
                   {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Publish listing
+                  {imagesUploading ? "Uploading photos…" : "Publish listing"}
                 </Button>
-                <Button variant="outline" onClick={() => submitListing(true)} disabled={submitting}>
+                <Button variant="outline" onClick={() => submitListing(true)} disabled={submitting || imagesUploading}>
                   Save as draft
                 </Button>
               </div>

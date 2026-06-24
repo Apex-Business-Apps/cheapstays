@@ -133,8 +133,12 @@ export function PopularCitiesSection() {
                   <Card className="group relative overflow-hidden border-border/60 bg-card/95 p-0 h-full transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_30px_80px_-40px_hsl(150_30%_10%/0.5)]">
                     <Link to={`/search?q=${encodeURIComponent(c.city)}`} className="absolute inset-0 z-10" aria-label={`Search stays in ${c.city}`} />
                     <div className="relative aspect-[5/4] overflow-hidden bg-gradient-to-br from-secondary/60 to-accent/10">
-                      {img && (
+                      {img ? (
                         <img src={img} alt={`${c.city}, ${c.province}`} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform [transition-duration:1400ms] ease-out group-hover:scale-[1.08]" />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-6xl opacity-20 select-none">🏙️</span>
+                        </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-transparent to-transparent" />
                       <span className="absolute top-4 right-4 text-[10px] uppercase tracking-[0.18em] bg-background/85 backdrop-blur text-foreground px-2.5 py-1 rounded-full ring-1 ring-border/60">

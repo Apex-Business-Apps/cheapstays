@@ -88,9 +88,12 @@ export function ListingPublishGate({ listingId, userId, onAllPassed }: Props) {
 
       if (cancelled) return;
 
-      const requiredThrough = addDays(new Date(), REQUIRED_AVAILABILITY_DAYS);
-      const declaredThrough = windowRes.data?.declared_through
-        ? new Date(windowRes.data.declared_through)
+      // Compare calendar days only (matches the DB publish-gate trigger which
+      // uses CURRENT_DATE + 90). Comparing a date-only value against a full
+      // timestamp incorrectly fails when "now" is past midnight.
+      const requiredThroughStr = format(addDays(new Date(), REQUIRED_AVAILABILITY_DAYS), "yyyy-MM-dd");
+      const declaredThroughStr = windowRes.data?.declared_through
+        ? String(windowRes.data.declared_through).slice(0, 10)
         : null;
 
       if (listingRes.data) {
@@ -119,7 +122,7 @@ export function ListingPublishGate({ listingId, userId, onAllPassed }: Props) {
         minMaxNightsOk: Boolean(
           listingRes.data?.min_nights != null && listingRes.data?.max_nights != null,
         ),
-        availabilityOk: declaredThrough != null && declaredThrough >= requiredThrough,
+        availabilityOk: declaredThroughStr != null && declaredThroughStr >= requiredThroughStr,
         houseRulesOk: Boolean(rulesRes.data?.current_version),
         stayInstructionsOk: Boolean(
           instructionsRes.data?.check_in_window &&
@@ -220,7 +223,7 @@ export function ListingPublishGate({ listingId, userId, onAllPassed }: Props) {
       setGates({
         stayLengthOk: shortTerm || longTerm,
         minMaxNightsOk: true,
-        availabilityOk: new Date(availabilityThrough) >= addDays(new Date(), REQUIRED_AVAILABILITY_DAYS),
+        availabilityOk: availabilityThrough >= format(addDays(new Date(), REQUIRED_AVAILABILITY_DAYS), "yyyy-MM-dd"),
         houseRulesOk: trimmedRules.length > 0,
         stayInstructionsOk: Boolean(checkInWindow && checkOutTime && accessInstructions && emergencyContact),
         blackoutOk: true,

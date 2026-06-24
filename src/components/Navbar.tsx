@@ -28,7 +28,11 @@ export function Navbar() {
   const mobileLinks = [
     { to: "/",                  label: "Homepage" },
     { to: "/types-of-stays",    label: "Types of Stays" },
-    { to: "/become-a-partner",  label: "Become a Partner" },
+    // Hosts get a direct link to their dashboard; everyone else sees the
+    // partner-onboarding entry point.
+    isHost(roles)
+      ? { to: "/host",             label: "Host Dashboard" }
+      : { to: "/become-a-partner", label: "Become a Partner" },
     { to: "/customer-support",  label: "Customer Support" },
     { to: "/about",             label: "About Us" },
     ...(user ? [{ to: "/my-bookings", label: "My Bookings" }] : []),
