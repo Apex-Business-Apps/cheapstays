@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AtmosphericSection } from "@/components/AtmosphericSection";
 import { fetchQuickStays, type DiscoveryListing } from "@/lib/discovery";
-import { getListingPrimaryImage, getListingImageAlt } from "@/lib/listings";
+import { getListingPrimaryImage, getListingImageAlt, getListingTypeEmoji } from "@/lib/listings";
 import { ease } from "./constants";
 
 const STAY_TYPES = [
@@ -129,8 +129,12 @@ export function QuickStaysSection() {
                     <Card className="group relative overflow-hidden border-border/60 bg-card/95 p-0 h-full transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_30px_80px_-40px_hsl(150_30%_10%/0.5)]">
                       <Link to={to} className="absolute inset-0 z-10" aria-label={`View ${s.title}`} />
                       <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-secondary/60 to-accent/10">
-                        {img && (
+                        {img ? (
                           <img src={img} alt={getListingImageAlt(s)} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform [transition-duration:1400ms] ease-out group-hover:scale-[1.08]" />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-6xl opacity-20 select-none">{getListingTypeEmoji(s.type)}</span>
+                          </div>
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-foreground/45 via-transparent to-transparent" />
                         <Badge variant="secondary" className="absolute top-3 left-3 text-[10px]">{kind}</Badge>

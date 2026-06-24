@@ -61,10 +61,11 @@ export function getListingFallbackImage(listing: { type?: string }): string {
 }
 
 /**
- * Resolves primary listing image using the strict priority:
- * 1. Real listing.images image if valid
- * 2. Mapped demo image by normalized title/slug
- * 3. Category/type fallback from /demo-listings
+ * Resolves the primary listing image.
+ *
+ * Only the host's real uploaded photo is used. When a listing has no real
+ * image we return null so the UI can show a "no photo" placeholder (matching
+ * the listing detail page) instead of a misleading demo/stock image.
  */
 export function getListingPrimaryImage(listing: {
   title: string;
@@ -75,11 +76,21 @@ export function getListingPrimaryImage(listing: {
   if (listing.images && listing.images.length > 0 && listing.images[0]) {
     return listing.images[0];
   }
-  const demoImg = getDemoListingImage(listing);
-  if (demoImg) {
-    return demoImg;
-  }
-  return getListingFallbackImage(listing);
+  // Demo-image fallback intentionally disabled — do not substitute stock/demo
+  // photos for listings without real images. Show the empty-state placeholder.
+  // const demoImg = getDemoListingImage(listing);
+  // if (demoImg) {
+  //   return demoImg;
+  // }
+  // return getListingFallbackImage(listing);
+  return null;
+}
+
+/** Emoji placeholder for a listing with no real photo, keyed by type. */
+export function getListingTypeEmoji(type?: string): string {
+  if (type === "villa") return "🏡";
+  if (type === "glamping") return "⛺";
+  return "🏠";
 }
 
 /**
