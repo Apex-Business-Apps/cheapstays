@@ -2,14 +2,18 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
+  BadgeCheck,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Handshake,
+  Home,
   Loader2,
   ShieldCheck,
   TrendingUp,
   Upload,
+  User,
+  UserPlus,
   Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,6 +48,33 @@ const BENEFITS = [
   { icon: ShieldCheck, title: "Verified & protected", body: "KYC-verified guests, secure PayMongo payments, and clear payout schedules." },
   { icon: Handshake, title: "Dedicated onboarding", body: "A real human helps you list, price, and launch your first property fast." },
 ] as const;
+
+// Mirrors the real onboarding: KYC application → admin review → Host tools →
+// publish gate → bookings & payouts (payout releases 1 day after check-in).
+const HOW_IT_WORKS = [
+  { icon: UserPlus, title: "Create your free account", body: "Sign up with your email in a minute — your email is confirmed through your account." },
+  { icon: ShieldCheck, title: "Apply & verify (KYC)", body: "Submit your contact details, property info, and a government ID + selfie so we can verify you." },
+  { icon: BadgeCheck, title: "Get approved", body: "Our team reviews your application within 24–48 hours and emails you the decision." },
+  { icon: Home, title: "List your property", body: "In Host tools, add photos, pricing, availability, house rules, and check-in instructions, then publish." },
+  { icon: Wallet, title: "Get booked & paid", body: "Accept bookings and receive owner-direct payouts via PayMongo, released 1 day after check-in." },
+] as const;
+
+const HOST_REQUIREMENTS = [
+  "18+ and the legal owner or an authorised representative of the property",
+  "Your full legal name and a reachable contact number",
+  "A valid government-issued ID (passport, driver's license, PhilSys, UMID, etc.)",
+  "A selfie holding your ID for identity verification",
+  "Agreement to the Host Terms and Privacy Policy",
+];
+
+const PROPERTY_REQUIREMENTS = [
+  "A real, bookable property with a clear city and province",
+  "At least one photo (you can add up to 10)",
+  "An honest description, guest capacity, and pricing",
+  "Availability declared at least 3 months ahead",
+  "House rules and check-in / stay instructions",
+  "Minimum and maximum night limits set",
+];
 
 function FileDropzone({
   label, hint, accepted, onFile, file, uploading,
@@ -473,6 +504,68 @@ export function BecomePartner() {
           >
             <PartnerApplication />
           </motion.div>
+        </div>
+
+        {/* ── How it works ── */}
+        <div className="mt-20">
+          <div className="max-w-xl">
+            <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">How it works</Badge>
+            <h3 className="text-2xl md:text-3xl font-semibold tracking-tight">From sign-up to your first booking</h3>
+            <p className="mt-3 text-muted-foreground">A quick, guided onboarding — most hosts are live within a few days.</p>
+          </div>
+          <ol className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+            {HOW_IT_WORKS.map((s, i) => (
+              <li key={s.title} className="rounded-2xl border border-border/60 bg-card/80 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-9 w-9 rounded-xl bg-secondary/60 ring-1 ring-border/60 grid place-items-center">
+                    <s.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="text-xs font-semibold text-muted-foreground">Step {i + 1}</span>
+                </div>
+                <h4 className="text-sm font-medium tracking-tight">{s.title}</h4>
+                <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{s.body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        {/* ── Requirements ── */}
+        <div className="mt-20">
+          <div className="max-w-xl">
+            <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">Requirements</Badge>
+            <h3 className="text-2xl md:text-3xl font-semibold tracking-tight">What you'll need</h3>
+            <p className="mt-3 text-muted-foreground">A few essentials so we can keep CheapStays safe and trustworthy for guests.</p>
+          </div>
+          <div className="mt-8 grid gap-6 md:grid-cols-2">
+            <Card className="p-6 bg-card/80 border-border/60">
+              <div className="flex items-center gap-2 mb-4">
+                <User className="h-5 w-5 text-primary" />
+                <h4 className="font-medium">Host requirements</h4>
+              </div>
+              <ul className="space-y-2.5">
+                {HOST_REQUIREMENTS.map((r) => (
+                  <li key={r} className="flex items-start gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <span className="text-muted-foreground">{r}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+            <Card className="p-6 bg-card/80 border-border/60">
+              <div className="flex items-center gap-2 mb-4">
+                <Home className="h-5 w-5 text-primary" />
+                <h4 className="font-medium">Property requirements</h4>
+              </div>
+              <ul className="space-y-2.5">
+                {PROPERTY_REQUIREMENTS.map((r) => (
+                  <li key={r} className="flex items-start gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <span className="text-muted-foreground">{r}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
         </div>
       </section>
     </AtmosphericSection>
