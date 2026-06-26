@@ -2,12 +2,18 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
+  ArrowRight,
+  BookOpen,
   CheckCircle2,
   Clock,
+  FileText,
   LifeBuoy,
   Loader2,
   Mail,
+  RotateCcw,
+  Scale,
   SendHorizonal,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,9 +28,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { AtmosphericSection } from "@/components/AtmosphericSection";
 import { toast } from "@/hooks/use-toast";
 import { ease } from "./constants";
+import { FAQS } from "./faq-data";
+
+type ResourceLink = { to: string; icon: typeof FileText; title: string; body: string };
+
+const BOOKING_CONCERNS: ResourceLink[] = [
+  { to: "/refunds", icon: RotateCcw, title: "Refunds & cancellations", body: "Free cancellation up to 2 days before check-in." },
+  { to: "/renter-rules", icon: BookOpen, title: "Guest booking rules", body: "What's expected when you book and stay." },
+  { to: "/support", icon: LifeBuoy, title: "Report a booking issue", body: "Open a support ticket from your account." },
+];
+
+const POLICIES: ResourceLink[] = [
+  { to: "/terms", icon: FileText, title: "Terms of Service", body: "The rules for using CheapStays." },
+  { to: "/privacy", icon: ShieldCheck, title: "Privacy Policy", body: "How we handle and protect your data." },
+  { to: "/refunds", icon: Scale, title: "Cancellation & refund rules", body: "Refund windows and payout timing." },
+];
+
+function ResourceCard({ to, icon: Icon, title, body }: ResourceLink) {
+  return (
+    <Link to={to} className="group block">
+      <Card className="p-4 flex items-center gap-4 border-border/60 bg-card/95 transition-colors hover:border-foreground/20">
+        <div className="h-11 w-11 shrink-0 rounded-xl bg-secondary/60 ring-1 ring-border/60 grid place-items-center">
+          <Icon className="h-5 w-5 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium tracking-tight">{title}</p>
+          <p className="text-sm text-muted-foreground">{body}</p>
+        </div>
+        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5" />
+      </Card>
+    </Link>
+  );
+}
 
 const TOPICS = [
   "Booking help",
@@ -195,6 +239,45 @@ export function CustomerSupport() {
               )}
             </Card>
           </motion.div>
+        </div>
+
+        {/* ── Help Center / FAQs ── */}
+        <div className="mt-20">
+          <div className="max-w-xl">
+            <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">Help Center</Badge>
+            <h3 className="text-2xl md:text-3xl font-semibold tracking-tight">Frequently asked questions</h3>
+            <p className="mt-3 text-muted-foreground">Quick answers and booking guidance for the most common questions.</p>
+          </div>
+          <div className="mt-6 max-w-3xl">
+            <Accordion type="single" collapsible className="w-full">
+              {FAQS.map((f, i) => (
+                <AccordionItem key={f.q} value={`faq-${i}`}>
+                  <AccordionTrigger className="text-left text-sm font-medium">{f.q}</AccordionTrigger>
+                  <AccordionContent className="text-sm text-muted-foreground leading-relaxed">{f.a}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </div>
+
+        {/* ── Booking concerns + Policies ── */}
+        <div className="mt-16 grid gap-10 md:grid-cols-2">
+          <div>
+            <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">Booking concerns</Badge>
+            <h3 className="text-2xl font-semibold tracking-tight">Refunds, cancellations & issues</h3>
+            <p className="mt-2 text-muted-foreground">Sort out a refund, review the rules, or report a problem.</p>
+            <div className="mt-5 space-y-3">
+              {BOOKING_CONCERNS.map((r) => <ResourceCard key={r.title} {...r} />)}
+            </div>
+          </div>
+          <div>
+            <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">Policies</Badge>
+            <h3 className="text-2xl font-semibold tracking-tight">Terms, privacy & rules</h3>
+            <p className="mt-2 text-muted-foreground">The fine print, in plain language.</p>
+            <div className="mt-5 space-y-3">
+              {POLICIES.map((r) => <ResourceCard key={r.title} {...r} />)}
+            </div>
+          </div>
         </div>
       </section>
     </AtmosphericSection>

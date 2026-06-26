@@ -1,5 +1,5 @@
 import { Seo } from "@/components/Seo";
-import { AboutUs } from "@/components/homepage";
+import { AboutUs, Testimonials } from "@/components/homepage";
 
 export default function AboutPage() {
   return (
@@ -10,6 +10,8 @@ export default function AboutPage() {
         path="/about"
       />
       <AboutUs />
+      {/* Reviews — reuses the existing Testimonials section */}
+      <Testimonials />
     </div>
   );
 }
