@@ -61,8 +61,14 @@ Deno.serve(async (req) => {
   }
 
   // resource id = cs_… (checkout session); the captured payment id is nested under payments[].
-  // deno-lint-ignore no-explicit-any
-  const resource: any = (payload as any)?.data?.attributes?.data;
+  type PayMongoResource = {
+    id?: string;
+    attributes?: {
+      payments?: Array<{ id?: string }>;
+      payment_id?: string;
+    };
+  };
+  const resource = (payload as { data?: { attributes?: { data?: PayMongoResource } } })?.data?.attributes?.data;
   const paymentId: string | null = resource?.attributes?.payments?.[0]?.id ?? resource?.attributes?.payment_id ?? resource?.id ?? null;
 
   // Resolve booking — prefer metadata id, fall back to the stored checkout-session id.
