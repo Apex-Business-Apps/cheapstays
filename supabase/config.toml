@@ -11,3 +11,8 @@ verify_jwt = false
 
 [functions.membership-webhook]
 verify_jwt = false
+
+# Public guest checkout — book without an account. Auth is intentionally not
+# required; the function creates/attaches an account server-side.
+[functions.guest-book-listing]
+verify_jwt = false

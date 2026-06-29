@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
@@ -79,10 +80,26 @@ const AMENITY_LABELS: Record<string, string> = {
 
 export default function ListingDetail() {
   const { id, slug } = useParams<{ id?: string; slug?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [houseRules, setHouseRules] = useState<string | null>(null);
+
+  // Surface the outcome when a guest returns from a cancelled/failed PayMongo
+  // checkout, then clear the param so it doesn't re-fire on refresh.
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (payment === "cancelled" || payment === "failed") {
+      toast({
+        title: payment === "failed" ? "Payment failed" : "Payment cancelled",
+        description: "You weren't charged. Your selection is still here — you can try booking again.",
+        variant: "destructive",
+      });
+      searchParams.delete("payment");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     const lookupKey = slug ?? id;

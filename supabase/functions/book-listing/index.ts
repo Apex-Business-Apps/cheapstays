@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       .from("listings")
       .select(
         "id, title, host_id, nightly_php, max_guests, min_nights, max_nights, " +
-        "short_term_enabled, long_term_enabled, status, visibility, " +
+        "short_term_enabled, long_term_enabled, status, " +
         "stay_availability_type, booking_mode, hourly_php, price_3h, price_6h, price_12h"
       )
       .eq("id", listing_id)
@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
       payment_status: "unpaid",
       stay_type,
       booking_flow: bookingFlow,
-      flow_state: bookingFlow === "instant_book" ? "awaiting_payment" : "awaiting_host_approval",
+      flow_state: bookingFlow === "instant_book" ? "payment_pending" : "requested",
     };
     
     if (stay_type === "hourly") {
@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
 
     if (insertError) {
       console.error("Booking insert error:", insertError);
-      return json({ error: "Failed to create booking" }, 500);
+      return json({ error: "Failed to create booking", detail: insertError.message }, 500);
     }
 
     return json({

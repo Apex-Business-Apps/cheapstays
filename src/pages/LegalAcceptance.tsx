@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Seo } from "@/components/Seo";
 import { LegalScrollGate } from "@/components/LegalScrollGate";
@@ -23,23 +23,32 @@ type DocId = "terms" | "privacy";
 
 export default function LegalAcceptance() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, consentReady, consentRequired, refreshConsent } = useAuth();
   const [accepted, setAccepted] = useState<Set<DocId>>(new Set());
   const [loadingExisting, setLoadingExisting] = useState(true);
 
-  // Guard: not signed in → bounce to sign-in.
+  // Where to send the user once consent is complete — only internal paths.
+  const redirectParam = searchParams.get("redirect");
+  const safeRedirect =
+    redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")
+      ? redirectParam
+      : "/";
+
+  // Guard: not signed in → bounce to sign-in, preserving the destination.
   useEffect(() => {
     if (consentReady && !user) {
-      navigate("/auth?mode=signin", { replace: true });
+      const q = redirectParam ? `&redirect=${encodeURIComponent(safeRedirect)}` : "";
+      navigate(`/auth?mode=signin${q}`, { replace: true });
     }
-  }, [consentReady, user, navigate]);
+  }, [consentReady, user, navigate, redirectParam, safeRedirect]);
 
-  // Guard: consent already complete → bounce home.
+  // Guard: consent already complete → return to intended destination.
   useEffect(() => {
     if (consentReady && user && !consentRequired && !loadingExisting) {
-      navigate("/", { replace: true });
+      navigate(safeRedirect, { replace: true });
     }
-  }, [consentReady, user, consentRequired, loadingExisting, navigate]);
+  }, [consentReady, user, consentRequired, loadingExisting, navigate, safeRedirect]);
 
   // Detect which documents (if any) the user has already accepted in this
   // context, so we render only the missing ones.
@@ -94,7 +103,7 @@ export default function LegalAcceptance() {
       (doc === "privacy" && accepted.has("terms"))
     ) {
       toast({ title: "Thanks — you're all set." });
-      navigate("/", { replace: true });
+      navigate(safeRedirect, { replace: true });
     }
   };
 

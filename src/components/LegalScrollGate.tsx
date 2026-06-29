@@ -1,4 +1,4 @@
-import { type ReactNode, type UIEvent, useEffect, useMemo, useState } from "react";
+import { type ReactNode, type UIEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,8 +25,36 @@ export function LegalScrollGate(props: LegalScrollGateProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [canFastAccept, setCanFastAccept] = useState(false);
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
 
   const requiresBottomScroll = useMemo(() => !canFastAccept, [canFastAccept]);
+
+  // When the legal content is short enough that the viewport isn't scrollable,
+  // there's nothing to scroll to, so treat it as already read to the bottom.
+  useLayoutEffect(() => {
+    if (hasReachedBottom) return;
+    const viewport = scrollRootRef.current?.querySelector<HTMLElement>(
+      "[data-radix-scroll-area-viewport]",
+    );
+    if (!viewport) return;
+
+    const checkScrollable = () => {
+      if (viewport.scrollHeight <= viewport.clientHeight + 8) {
+        setHasReachedBottom(true);
+        setScrollCompletedAt((prev) => prev ?? new Date().toISOString());
+        return true;
+      }
+      return false;
+    };
+
+    if (checkScrollable()) return;
+
+    const observer = new ResizeObserver(() => {
+      if (checkScrollable()) observer.disconnect();
+    });
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, [hasReachedBottom, isLoading, props.legalContent]);
 
   useEffect(() => {
     let active = true;
@@ -94,7 +122,7 @@ export function LegalScrollGate(props: LegalScrollGateProps) {
 
   return (
     <div className="space-y-4">
-      <ScrollArea className="h-72 rounded-md border p-4" onScrollCapture={onScroll}>
+      <ScrollArea ref={scrollRootRef} className="h-72 rounded-md border p-4" onScrollCapture={onScroll}>
         {props.legalContent}
       </ScrollArea>
       <div className="flex items-center gap-2">
