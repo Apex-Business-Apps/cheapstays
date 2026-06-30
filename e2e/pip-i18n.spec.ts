@@ -15,19 +15,19 @@ import { test, expect } from "@playwright/test";
 
 const LANG_SAMPLES: Array<{
   code: string;
-  nav: string;       // expected translated nav.search text
+  nav: string;       // expected translated nav.customerSupport text
   greeting: string;  // substring expected in Pip greeting
   q1: string;        // first quick-prompt chip substring
 }> = [
-  { code: "en",  nav: "Search",      greeting: "I'm Pip",           q1: "Palawan" },
-  { code: "fil", nav: "Maghanap",    greeting: "Ako si Pip",        q1: "Palawan" },
-  { code: "zh",  nav: "搜索",        greeting: "我是 Pip",           q1: "巴拉望" },
-  { code: "ms",  nav: "Cari",        greeting: "Saya Pip",          q1: "Palawan" },
-  { code: "id",  nav: "Cari",        greeting: "Saya Pip",          q1: "Palawan" },
-  { code: "ko",  nav: "검색",        greeting: "저는 Pip",           q1: "팔라완" },
-  { code: "vi",  nav: "Tìm kiếm",   greeting: "Tôi là Pip",        q1: "Palawan" },
-  { code: "ja",  nav: "検索",        greeting: "私はPip",            q1: "パラワン" },
-  { code: "th",  nav: "ค้นหา",      greeting: "ฉันชื่อ Pip",       q1: "ปาลาวัน" },
+  { code: "en",  nav: "Customer Support",     greeting: "I'm Pip",           q1: "Palawan" },
+  { code: "fil", nav: "Suporta sa Customer",  greeting: "Ako si Pip",        q1: "Palawan" },
+  { code: "zh",  nav: "客户支持",              greeting: "我是 Pip",           q1: "巴拉望" },
+  { code: "ms",  nav: "Sokongan Pelanggan",   greeting: "Saya Pip",          q1: "Palawan" },
+  { code: "id",  nav: "Dukungan Pelanggan",   greeting: "Saya Pip",          q1: "Palawan" },
+  { code: "ko",  nav: "고객 지원",             greeting: "저는 Pip",           q1: "팔라완" },
+  { code: "vi",  nav: "Hỗ trợ khách hàng",    greeting: "Tôi là Pip",        q1: "Palawan" },
+  { code: "ja",  nav: "カスタマーサポート",     greeting: "私はPip",            q1: "パラワン" },
+  { code: "th",  nav: "ฝ่ายสนับสนุนลูกค้า",   greeting: "ฉันชื่อ Pip",       q1: "ปาลาวัน" },
 ];
 
 test.describe("Pip i18n — locale rendering", () => {
@@ -43,10 +43,10 @@ test.describe("Pip i18n — locale rendering", () => {
       );
       await page.reload();
 
-      // 1. Nav search link is translated (may be hidden on mobile/tablet behind hamburger —
+      // 1. A nav link is translated (may be hidden on mobile/tablet behind hamburger —
       //    we only assert the translated text exists in the nav DOM, not that it's visible)
-      const navSearch = page.locator("nav a, nav button").filter({ hasText: lang.nav }).first();
-      await expect(navSearch).toHaveCount(1, { timeout: 8000 });
+      const navLink = page.locator("nav a, nav button").filter({ hasText: lang.nav }).first();
+      await expect(navLink).toHaveCount(1, { timeout: 8000 });
 
       // 2. Open Pip chat widget
       const pipTrigger = page.locator("button[aria-label]").filter({ hasText: "" }).last();

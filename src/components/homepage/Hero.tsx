@@ -34,22 +34,22 @@ export function Hero() {
               {t("hero.badge")}
             </Badge>
             <h1 className="text-5xl md:text-6xl xl:text-7xl font-semibold tracking-tight leading-[1.02]">
-              Short or Long.<br />
-              <span className="text-primary">Stay Cheap.</span>
+              {t("hero.headlineA")}<br />
+              <span className="text-primary">{t("hero.headlineB")}</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground max-w-xl">
-              Smart travelers book short stays instantly or request long stays with owner-direct clarity.
+              {t("hero.lead")}
             </p>
             <form onSubmit={handleSearch} className="mt-8 flex gap-2 max-w-xl">
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="2 nights in Quezon City, budget ₱2,000, need WiFi…"
-                aria-label="Search stays"
+                placeholder={t("hero.searchPlaceholder")}
+                aria-label={t("hero.searchAria")}
                 className="flex-1 h-12 text-base bg-background/90 backdrop-blur"
               />
               <Button type="submit" size="lg" className="h-12 px-6">
-                <Search className="h-4 w-4 mr-1.5" /> Search
+                <Search className="h-4 w-4 mr-1.5" /> {t("nav.search")}
               </Button>
             </form>
           </motion.div>

@@ -1,5 +1,12 @@
 {
   "nav": {
+    "home": "홈",
+    "typesOfStays": "숙박 유형",
+    "becomePartner": "파트너 되기",
+    "hostDashboard": "호스트 대시보드",
+    "customerSupport": "고객 지원",
+    "aboutUs": "회사 소개",
+    "myBookings": "내 예약",
     "search": "검색",
     "membership": "멤버십",
     "host": "호스트 등록",
@@ -8,6 +15,11 @@
     "signOut": "로그아웃"
   },
   "hero": {
+    "headlineA": "짧게 또는 길게.",
+    "headlineB": "저렴하게 머무세요.",
+    "lead": "스마트한 여행자는 단기 숙박을 즉시 예약하거나 호스트 직거래의 투명함으로 장기 숙박을 신청합니다.",
+    "searchPlaceholder": "케손시티 2박, 예산 ₱2,000, WiFi 필요…",
+    "searchAria": "숙소 검색",
     "badge": "호스트 직접 예약 · 수수료 없음",
     "h1Line1": "저렴하게 찾아요.",
     "h1Line2": "스마트하게 머물러요.",

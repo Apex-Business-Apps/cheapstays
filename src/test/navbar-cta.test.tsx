@@ -56,11 +56,12 @@ describe("Navbar CTAs", () => {
   });
 
 
+  // The mocked useTranslation returns the i18n key, so nav links render their key.
   it("renders exactly one Host Dashboard nav link for hosts when menu is closed", () => {
     mockAuth.user = { id: "u2", email: "host@test.com" };
     mockAuth.roles = ["host"];
     render(<MemoryRouter><Navbar /></MemoryRouter>);
-    const hostLinks = screen.getAllByRole("link", { name: "Host Dashboard" });
+    const hostLinks = screen.getAllByRole("link", { name: "nav.hostDashboard" });
     expect(hostLinks).toHaveLength(1);
     expect(hostLinks[0]).toHaveAttribute("href", "/host");
   });
@@ -69,10 +70,10 @@ describe("Navbar CTAs", () => {
     mockAuth.user = { id: "u3", email: "member@test.com" };
     mockAuth.roles = ["user"];
     render(<MemoryRouter><Navbar /></MemoryRouter>);
-    const partnerLinks = screen.getAllByRole("link", { name: "Become a Partner" });
+    const partnerLinks = screen.getAllByRole("link", { name: "nav.becomePartner" });
     expect(partnerLinks).toHaveLength(1);
     expect(partnerLinks[0]).toHaveAttribute("href", "/become-a-partner");
-    expect(screen.queryByRole("link", { name: "Host Dashboard" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "nav.hostDashboard" })).not.toBeInTheDocument();
   });
 
   it("does not mount NotificationsModal on desktop", () => {

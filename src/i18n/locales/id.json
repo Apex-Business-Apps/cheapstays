@@ -1,5 +1,12 @@
 {
   "nav": {
+    "home": "Beranda",
+    "typesOfStays": "Jenis Menginap",
+    "becomePartner": "Jadi Mitra",
+    "hostDashboard": "Dasbor Tuan Rumah",
+    "customerSupport": "Dukungan Pelanggan",
+    "aboutUs": "Tentang Kami",
+    "myBookings": "Pesanan Saya",
     "search": "Cari",
     "membership": "Keanggotaan",
     "host": "Jadi Tuan Rumah",
@@ -8,6 +15,11 @@
     "signOut": "Keluar"
   },
   "hero": {
+    "headlineA": "Pendek atau Panjang.",
+    "headlineB": "Menginap Hemat.",
+    "lead": "Pelancong cerdas memesan menginap singkat secara instan atau mengajukan menginap panjang dengan kejelasan langsung dari pemilik.",
+    "searchPlaceholder": "2 malam di Quezon City, anggaran ₱2,000, butuh WiFi…",
+    "searchAria": "Cari penginapan",
     "badge": "LANGSUNG KE TUAN RUMAH · TANPA MARKUP",
     "h1Line1": "Temukan yang murah.",
     "h1Line2": "Menginap dengan cerdas.",

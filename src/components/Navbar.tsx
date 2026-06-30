@@ -26,16 +26,16 @@ export function Navbar() {
 
   // /notifications is desktop-only; mobile/tablet use the NotificationsModal bell icon
   const mobileLinks = [
-    { to: "/",                  label: "Homepage" },
-    { to: "/types-of-stays",    label: "Types of Stays" },
+    { to: "/",                  label: t("nav.home") },
+    { to: "/types-of-stays",    label: t("nav.typesOfStays") },
     // Hosts get a direct link to their dashboard; everyone else sees the
     // partner-onboarding entry point.
     isHost(roles)
-      ? { to: "/host",             label: "Host Dashboard" }
-      : { to: "/become-a-partner", label: "Become a Partner" },
-    { to: "/customer-support",  label: "Customer Support" },
-    { to: "/about",             label: "About Us" },
-    ...(user ? [{ to: "/my-bookings", label: "My Bookings" }] : []),
+      ? { to: "/host",             label: t("nav.hostDashboard") }
+      : { to: "/become-a-partner", label: t("nav.becomePartner") },
+    { to: "/customer-support",  label: t("nav.customerSupport") },
+    { to: "/about",             label: t("nav.aboutUs") },
+    ...(user ? [{ to: "/my-bookings", label: t("nav.myBookings") }] : []),
   ];
   const desktopLinks = [
     ...mobileLinks,

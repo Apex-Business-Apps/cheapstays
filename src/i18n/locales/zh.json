@@ -1,5 +1,12 @@
 {
   "nav": {
+    "home": "首页",
+    "typesOfStays": "住宿类型",
+    "becomePartner": "成为合作伙伴",
+    "hostDashboard": "房东面板",
+    "customerSupport": "客户支持",
+    "aboutUs": "关于我们",
+    "myBookings": "我的预订",
     "search": "搜索",
     "membership": "会员",
     "host": "房东入驻",
@@ -8,6 +15,11 @@
     "signOut": "退出登录"
   },
   "hero": {
+    "headlineA": "短租或长租。",
+    "headlineB": "实惠入住。",
+    "lead": "聪明的旅客即时预订短租，或以房东直连的清晰方式申请长租。",
+    "searchPlaceholder": "在奎松市住2晚，预算₱2,000，需要WiFi…",
+    "searchAria": "搜索住宿",
     "badge": "房东直接定价 · 零加价",
     "h1Line1": "找到便宜的。",
     "h1Line2": "住得聪明。",
