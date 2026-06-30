@@ -26,15 +26,19 @@ export function Navbar() {
 
   // /notifications is desktop-only; mobile/tablet use the NotificationsModal bell icon
   const mobileLinks = [
-    { to: "/search",     label: t("nav.search") },
-    { to: "/membership", label: t("nav.membership") },
-    { to: "/host",       label: t("nav.host") },
-    { to: "/support",    label: t("nav.support") },
-    ...(user ? [{ to: "/my-bookings", label: "My Bookings" }] : []),
+    { to: "/",                  label: t("nav.home") },
+    { to: "/types-of-stays",    label: t("nav.typesOfStays") },
+    // Hosts get a direct link to their dashboard; everyone else sees the
+    // partner-onboarding entry point.
+    isHost(roles)
+      ? { to: "/host",             label: t("nav.hostDashboard") }
+      : { to: "/become-a-partner", label: t("nav.becomePartner") },
+    { to: "/customer-support",  label: t("nav.customerSupport") },
+    { to: "/about",             label: t("nav.aboutUs") },
+    ...(user ? [{ to: "/my-bookings", label: t("nav.myBookings") }] : []),
   ];
   const desktopLinks = [
     ...mobileLinks,
-    { to: "/notifications", label: "Notifications" },
   ];
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -69,7 +73,7 @@ export function Navbar() {
         {/* Desktop nav links */}
         <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
           {desktopLinks.map((l) => (
-            <NavLink key={l.to} to={l.to} className={navLinkClass}>
+            <NavLink key={l.to} to={l.to} end={l.to === "/"} className={navLinkClass}>
               {l.label}
             </NavLink>
           ))}
@@ -136,6 +140,7 @@ export function Navbar() {
               <li key={l.to}>
                 <NavLink
                   to={l.to}
+                  end={l.to === "/"}
                   className={({ isActive }) =>
                     `block rounded-md px-3 py-3 text-sm font-medium transition-colors min-h-[44px] flex items-center ${
                       isActive

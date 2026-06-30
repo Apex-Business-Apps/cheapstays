@@ -14,6 +14,13 @@ const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Search = lazy(() => import("./pages/Search"));
+const PopularCities = lazy(() => import("./pages/PopularCities"));
+const FeaturedStays = lazy(() => import("./pages/FeaturedStays"));
+const QuickStayVouchers = lazy(() => import("./pages/QuickStayVouchers"));
+const TypesOfStays = lazy(() => import("./pages/TypesOfStays"));
+const BecomePartnerPage = lazy(() => import("./pages/BecomePartnerPage"));
+const CustomerSupportPage = lazy(() => import("./pages/CustomerSupportPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
 const Membership = lazy(() => import("./pages/Membership"));
 const Host = lazy(() => import("./pages/Host"));
 const HostApply = lazy(() => import("./pages/HostApply"));
@@ -49,6 +56,13 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/search" element={<Search />} />
+                  <Route path="/popular-cities" element={<PopularCities />} />
+                  <Route path="/featured-stays" element={<FeaturedStays />} />
+                  <Route path="/vouchers" element={<QuickStayVouchers />} />
+                  <Route path="/types-of-stays" element={<TypesOfStays />} />
+                  <Route path="/become-a-partner" element={<BecomePartnerPage />} />
+                  <Route path="/customer-support" element={<CustomerSupportPage />} />
+                  <Route path="/about" element={<AboutPage />} />
                   <Route path="/membership" element={<Membership />} />
                   <Route path="/host" element={<Host />} />
                   <Route path="/host/apply" element={<HostApply />} />

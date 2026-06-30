@@ -1,14 +1,20 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
-import { Loader2, ArrowLeft, BedDouble, Bath, Users, CalendarDays, Zap, Star, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowLeft, BedDouble, Bath, Users, CalendarDays, Zap, Star, CheckCircle2, ScrollText } from "lucide-react";
 import { ImageGallery } from "@/components/ImageGallery";
 import { BookingPanel } from "@/components/BookingPanel";
 import { ReviewList } from "@/components/ReviewList";
 import { GuestRatingBadge } from "@/components/GuestRatingBadge";
+
+// listing_house_rules is a Phase 4 table not yet present in the generated
+// Supabase types; route this read through an untyped alias.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sb = supabase as any;
 
 type Listing = {
   id: string;
@@ -74,9 +80,26 @@ const AMENITY_LABELS: Record<string, string> = {
 
 export default function ListingDetail() {
   const { id, slug } = useParams<{ id?: string; slug?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [houseRules, setHouseRules] = useState<string | null>(null);
+
+  // Surface the outcome when a guest returns from a cancelled/failed PayMongo
+  // checkout, then clear the param so it doesn't re-fire on refresh.
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (payment === "cancelled" || payment === "failed") {
+      toast({
+        title: payment === "failed" ? "Payment failed" : "Payment cancelled",
+        description: "You weren't charged. Your selection is still here — you can try booking again.",
+        variant: "destructive",
+      });
+      searchParams.delete("payment");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     const lookupKey = slug ?? id;
@@ -94,6 +117,22 @@ export default function ListingDetail() {
         setLoading(false);
       });
   }, [id, slug]);
+
+  // House rules are stored separately (listing_house_rules) and are public-read.
+  useEffect(() => {
+    if (!listing?.id) return;
+    let cancelled = false;
+    sb.from("listing_house_rules")
+      .select("rules_json")
+      .eq("listing_id", listing.id)
+      .maybeSingle()
+      .then(({ data }: { data: { rules_json?: { text?: string } } | null }) => {
+        if (cancelled) return;
+        const text = data?.rules_json?.text?.trim();
+        setHouseRules(text ? text : null);
+      });
+    return () => { cancelled = true; };
+  }, [listing?.id]);
 
   if (loading) {
     return (
@@ -244,6 +283,37 @@ export default function ListingDetail() {
                   This is an owner-direct listing — you deal with the host directly, no middleman fees.
                 </p>
               )}
+            </div>
+
+            {/* ── Policies ── */}
+            <div className="mb-8">
+              <h2 className="text-lg font-medium mb-3 flex items-center gap-2">
+                <ScrollText className="h-5 w-5 text-muted-foreground" /> Policies
+              </h2>
+              <div className="rounded-xl border border-border/60 divide-y divide-border/60">
+                {houseRules && (
+                  <div className="p-5">
+                    <p className="font-medium text-sm mb-1">House rules</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{houseRules}</p>
+                  </div>
+                )}
+                <div className="p-5">
+                  <p className="font-medium text-sm mb-1">Cancellation policy</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Free cancellation up to 2 days before check-in. Within 2 days of check-in the
+                    booking is non-refundable. Host payouts are released 1 day after check-in.
+                  </p>
+                </div>
+                {listing.booking_mode === "voucher" && (
+                  <div className="p-5">
+                    <p className="font-medium text-sm mb-1">Voucher stay</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      This is an open-date voucher. Buy now and lock in your dates with the host
+                      later, subject to availability.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {listing.video_url && (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { format, differenceInCalendarDays, eachDayOfInterval, isWithinInterval, parseISO, addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
@@ -7,6 +7,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +50,9 @@ type Listing = {
 };
 
 type BookedInterval = { start: Date; end: Date };
+// A booked hourly slot, expressed as a half-open hour range [startHour, endHour)
+// on a specific calendar date (yyyy-MM-dd).
+type HourlyBusy = { date: string; startHour: number; endHour: number };
 
 type Props = { listing: Listing };
 
@@ -72,24 +78,68 @@ const PAYMENT_METHODS: { id: PayMethod; label: string; Icon: React.ElementType; 
   { id: "card", label: "Credit / Debit card", Icon: CreditCard, description: "Visa, Mastercard, JCB" },
 ];
 
+// supabase-js surfaces edge-function failures as FunctionsHttpError whose
+// `.message` is the generic "Edge Function returned a non-2xx status code".
+// The real error body lives in `error.context` (a Response). Unwrap it so the
+// user sees the actual reason (e.g. "You cannot book your own listing").
+async function fnErrorMessage(
+  error: unknown,
+  data: { error?: unknown; message?: string; detail?: string } | null,
+  fallback: string,
+): Promise<string> {
+  if (data?.message) return data.message;
+  if (typeof data?.error === "string") return data.detail ? `${data.error}: ${data.detail}` : data.error;
+  const ctx = (error as { context?: Response } | null)?.context;
+  if (ctx && typeof ctx.json === "function") {
+    try {
+      const body = await ctx.json();
+      if (typeof body?.error === "string") return body?.detail ? `${body.error}: ${body.detail}` : body.error;
+      if (typeof body?.message === "string") return body.message;
+    } catch { /* response body wasn't JSON — fall through */ }
+  }
+  return (error as Error | null)?.message ?? fallback;
+}
+
 export function BookingPanel({ listing }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const defaultMode = listing.booking_mode === "voucher"
     ? "voucher"
     : (listing.stay_availability_type === "hourly" ? "hourly" : "overnight");
 
-  const [stayMode, setStayMode] = useState<"overnight" | "hourly" | "voucher">(defaultMode);
-  
-  const [range, setRange] = useState<DateRange | undefined>();
-  const [hourlyDate, setHourlyDate] = useState<Date | undefined>();
-  const [hourlyBlock, setHourlyBlock] = useState<"base" | "3h" | "6h" | "12h">("base");
-  const [arrivalTime, setArrivalTime] = useState<string>("14:00");
+  // Restore any selection a guest made before being sent to sign in, so they
+  // land back on this listing exactly where they left off (see goToAuth).
+  const parseDateParam = (key: string): Date | undefined => {
+    const v = searchParams.get(key);
+    if (!v) return undefined;
+    try { return parseISO(v); } catch { return undefined; }
+  };
+  const paramMode = searchParams.get("mode");
+  const initialMode: "overnight" | "hourly" | "voucher" =
+    paramMode === "overnight" || paramMode === "hourly" || paramMode === "voucher"
+      ? paramMode
+      : defaultMode;
+  const paramBlock = searchParams.get("block");
+  const initialBlock: "base" | "3h" | "6h" | "12h" =
+    paramBlock === "3h" || paramBlock === "6h" || paramBlock === "12h" ? paramBlock : "base";
+  const ci = parseDateParam("check_in");
+  const co = parseDateParam("check_out");
 
-  const [guests, setGuests] = useState(1);
+  const [stayMode, setStayMode] = useState<"overnight" | "hourly" | "voucher">(initialMode);
+
+  const [range, setRange] = useState<DateRange | undefined>(
+    ci && co ? { from: ci, to: co } : undefined,
+  );
+  const [hourlyDate, setHourlyDate] = useState<Date | undefined>(initialMode === "hourly" ? ci : undefined);
+  const [hourlyBlock, setHourlyBlock] = useState<"base" | "3h" | "6h" | "12h">(initialBlock);
+  const [arrivalTime, setArrivalTime] = useState<string>(searchParams.get("arrival") ?? "14:00");
+
+  const [guests, setGuests] = useState(Math.max(1, Number(searchParams.get("guests")) || 1));
   const [message, setMessage] = useState("");
   const [bookedDates, setBookedDates] = useState<BookedInterval[]>([]);
+  const [hourlyBusy, setHourlyBusy] = useState<HourlyBusy[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<Step>("form");
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -100,20 +150,54 @@ export function BookingPanel({ listing }: Props) {
   const [showHouseRulesGate, setShowHouseRulesGate] = useState(false);
   const [houseRules, setHouseRules] = useState<HouseRulesRow | null>(null);
 
+  // Guest checkout (book without an account)
+  const [showGuestDialog, setShowGuestDialog] = useState(false);
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  const [guestAgree, setGuestAgree] = useState(false);
+  const [guestSubmitting, setGuestSubmitting] = useState(false);
+
+  // Send a guest to sign in while preserving the listing path + their current
+  // selection, so after auth (and first-time consent) they return here ready to
+  // book in one click.
+  function goToAuth() {
+    const params = new URLSearchParams();
+    params.set("mode", stayMode);
+    params.set("guests", String(guests));
+    if (stayMode === "overnight" && range?.from && range?.to) {
+      params.set("check_in", format(range.from, "yyyy-MM-dd"));
+      params.set("check_out", format(range.to, "yyyy-MM-dd"));
+    } else if (stayMode === "hourly" && hourlyDate) {
+      params.set("check_in", format(hourlyDate, "yyyy-MM-dd"));
+      params.set("block", hourlyBlock);
+      params.set("arrival", arrivalTime);
+    }
+    const redirect = `${window.location.pathname}?${params.toString()}`;
+    navigate(`/auth?redirect=${encodeURIComponent(redirect)}`);
+  }
+
   useEffect(() => {
-    supabase
-      .from("bookings")
-      .select("check_in,check_out")
-      .eq("listing_id", listing.id)
-      .in("status", ["confirmed", "pending"])
-      .then(({ data }) => {
+    // bookings RLS hides other users' rows, so read availability through a
+    // SECURITY DEFINER RPC that returns only booked time ranges (no PII).
+    sb.rpc("get_listing_booked_slots", { p_listing_id: listing.id })
+      .then(({ data }: { data: Array<{ check_in: string; check_out: string; stay_type: string | null; arrival_time: string | null; duration_hours: number | null }> | null }) => {
         if (!data) return;
-        setBookedDates(
-          data.map((b) => ({
-            start: parseISO(b.check_in),
-            end: parseISO(b.check_out),
-          }))
-        );
+        const overnight: BookedInterval[] = [];
+        const hourly: HourlyBusy[] = [];
+        for (const b of data) {
+          if (b.stay_type === "hourly" && b.arrival_time && b.duration_hours) {
+            const startHour = parseInt(String(b.arrival_time).slice(0, 2), 10);
+            if (!Number.isNaN(startHour)) {
+              hourly.push({ date: b.check_in, startHour, endHour: startHour + Number(b.duration_hours) });
+            }
+          } else {
+            // Overnight (and anything non-hourly) blocks whole days.
+            overnight.push({ start: parseISO(b.check_in), end: parseISO(b.check_out) });
+          }
+        }
+        setBookedDates(overnight);
+        setHourlyBusy(hourly);
       });
   }, [listing.id]);
 
@@ -135,6 +219,23 @@ export function BookingPanel({ listing }: Props) {
 
   function hasBookedDayInRange(from: Date, to: Date) {
     return eachDayOfInterval({ start: from, end: addDays(to, -1) }).some(isDateBooked);
+  }
+
+  // For hourly stays: does starting at `hour` (for the currently selected
+  // duration block) collide with an already-booked slot on the selected date?
+  function arrivalOverlaps(hour: number): boolean {
+    if (!hourlyDate) return false;
+    const dateStr = format(hourlyDate, "yyyy-MM-dd");
+    const dur = hourlyBlock === "3h" ? 3 : hourlyBlock === "6h" ? 6 : hourlyBlock === "12h" ? 12 : 1;
+    const reqEnd = hour + dur;
+    return hourlyBusy.some((b) => b.date === dateStr && hour < b.endHour && reqEnd > b.startHour);
+  }
+
+  // Disable arrival hours already in the past when booking for today.
+  function arrivalInPast(hour: number): boolean {
+    if (!hourlyDate) return false;
+    const now = new Date();
+    return format(hourlyDate, "yyyy-MM-dd") === format(now, "yyyy-MM-dd") && hour <= now.getHours();
   }
 
   // Derived values based on mode
@@ -185,14 +286,20 @@ export function BookingPanel({ listing }: Props) {
 
     canBook = !!(range?.from && range?.to && nights >= listing.min_nights && !rangeInvalid && !tooLong && !stayLengthBlocked && guests >= 1 && guests <= listing.max_guests);
   } else if (stayMode === "hourly") {
-    rangeInvalid = !!(hourlyDate && isDateBooked(hourlyDate));
+    const arrivalHour = parseInt(arrivalTime.slice(0, 2), 10);
+    const arrivalBlocked = !Number.isNaN(arrivalHour) && (arrivalOverlaps(arrivalHour) || arrivalInPast(arrivalHour));
+    rangeInvalid = !!((hourlyDate && isDateBooked(hourlyDate)) || arrivalBlocked);
     canBook = !!(hourlyDate && arrivalTime && !rangeInvalid && guests >= 1 && guests <= listing.max_guests);
   } else if (stayMode === "voucher") {
     canBook = !!(guests >= 1 && guests <= listing.max_guests);
   }
 
+  // Guest checkout covers instant-book stays only — vouchers and long-term
+  // requests still need an account, so guests are sent to sign in for those.
+  const guestEligible = stayMode !== "voucher" && !isLongTermStay;
+
   async function book() {
-    if (!user) { navigate("/auth"); return; }
+    if (!user) { goToAuth(); return; }
     if (!canBook) return;
 
     setSubmitting(true);
@@ -206,7 +313,7 @@ export function BookingPanel({ listing }: Props) {
           },
         });
         if (error || data?.error) {
-          throw new Error(data?.message ?? data?.error ?? error?.message ?? "Purchase failed");
+          throw new Error(await fnErrorMessage(error, data, "Purchase failed"));
         }
         setBookingId(data.voucher_id);
         setStep("pay");
@@ -233,7 +340,7 @@ export function BookingPanel({ listing }: Props) {
         });
         
         if (error || data?.error) {
-          throw new Error(data?.message ?? data?.error ?? error?.message ?? "Booking failed");
+          throw new Error(await fnErrorMessage(error, data, "Booking failed"));
         }
         setBookingId(data.booking_id);
         
@@ -260,7 +367,7 @@ export function BookingPanel({ listing }: Props) {
         body: { [payloadKey]: bookingId, payment_method: payMethod },
       });
       if (error || data?.error) {
-        throw new Error(data?.message ?? data?.error ?? error?.message ?? "Payment failed");
+        throw new Error(await fnErrorMessage(error, data, "Payment failed"));
       }
       if (data?.checkout_url) {
         window.location.href = data.checkout_url as string;
@@ -280,6 +387,52 @@ export function BookingPanel({ listing }: Props) {
       }
     } finally {
       setPaying(false);
+    }
+  }
+
+  // One-shot guest checkout: book + create/attach account + open payment, no
+  // sign-in required. Vouchers and long-term requests still require an account.
+  async function guestBook() {
+    if (!guestName.trim() || !guestEmail.trim() || !guestAgree) return;
+    setGuestSubmitting(true);
+    try {
+      const payload: Record<string, unknown> = {
+        listing_id: listing.id,
+        guests,
+        guest_message: message.trim() || undefined,
+        payment_method: payMethod,
+        contact: {
+          full_name: guestName.trim(),
+          email: guestEmail.trim(),
+          phone: guestPhone.trim() || undefined,
+        },
+      };
+      if (stayMode === "overnight") {
+        payload.check_in = format(range!.from!, "yyyy-MM-dd");
+        payload.check_out = format(range!.to!, "yyyy-MM-dd");
+      } else {
+        payload.check_in = format(hourlyDate!, "yyyy-MM-dd");
+        payload.check_out = format(addDays(hourlyDate!, 1), "yyyy-MM-dd");
+        payload.stay_type = "hourly";
+        payload.arrival_time = arrivalTime;
+        payload.duration_hours = durationHours;
+      }
+
+      const { data, error } = await supabase.functions.invoke("guest-book-listing", {
+        body: payload,
+      });
+      if (error || data?.error) {
+        throw new Error(await fnErrorMessage(error, data, "Booking failed"));
+      }
+      if (data?.checkout_url) {
+        window.location.href = data.checkout_url as string;
+        return;
+      }
+      throw new Error("Payment provider did not return a checkout URL");
+    } catch (err) {
+      toast({ title: "Booking failed", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setGuestSubmitting(false);
     }
   }
 
@@ -484,11 +637,16 @@ export function BookingPanel({ listing }: Props) {
                   <SelectValue placeholder="Arrival" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: 24 }).map((_, i) => (
-                    <SelectItem key={i} value={`${i.toString().padStart(2, '0')}:00`}>
-                      {`${i.toString().padStart(2, '0')}:00`}
-                    </SelectItem>
-                  ))}
+                  {Array.from({ length: 24 }).map((_, i) => {
+                    const booked = arrivalOverlaps(i);
+                    const past = arrivalInPast(i);
+                    const label = `${i.toString().padStart(2, '0')}:00`;
+                    return (
+                      <SelectItem key={i} value={label} disabled={booked || past}>
+                        {label}{booked ? " · booked" : past ? " · past" : ""}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -547,7 +705,7 @@ export function BookingPanel({ listing }: Props) {
         {rangeInvalid && (
           <p className="text-xs text-destructive">
             {stayMode === "hourly" 
-              ? "That date is already booked."
+              ? "That time slot is unavailable — please pick another time or duration."
               : "Those dates include nights that are already booked. Please choose different dates."}
           </p>
         )}
@@ -599,13 +757,19 @@ export function BookingPanel({ listing }: Props) {
         <Button
           className="w-full"
           disabled={!canBook || submitting}
-          onClick={user ? () => setShowLegalGate(true) : () => navigate("/auth")}
+          onClick={
+            user
+              ? () => setShowLegalGate(true)
+              : guestEligible
+                ? () => setShowGuestDialog(true)
+                : () => goToAuth()
+          }
           aria-label={stayMode === "voucher" ? "Buy Voucher" : isShortTermStay ? "Book now" : "Request to book"}
         >
           {submitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : !user ? (
-            "Sign in to book"
+            guestEligible ? "Book as guest" : "Sign in to book"
           ) : stayMode === "voucher" ? (
             "Buy Voucher"
           ) : stayMode === "hourly" ? (
@@ -616,6 +780,16 @@ export function BookingPanel({ listing }: Props) {
             "Book now"
           )}
         </Button>
+
+        {!user && guestEligible && (
+          <button
+            type="button"
+            onClick={goToAuth}
+            className="w-full text-xs text-center text-muted-foreground underline-offset-2 hover:underline"
+          >
+            Have an account? Sign in instead
+          </button>
+        )}
 
         {canBook && stayMode !== "voucher" && (
           <p className="text-xs text-center text-muted-foreground">
@@ -688,6 +862,94 @@ export function BookingPanel({ listing }: Props) {
                 await book();
               }}
             />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {!user && guestEligible && (
+        <Dialog open={showGuestDialog} onOpenChange={setShowGuestDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Book as guest</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground -mt-2">
+              We'll email your booking details and create an account so you can manage it —
+              no password required.
+            </p>
+
+            <div className="space-y-3 mt-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="guest-name">Full name</Label>
+                <Input
+                  id="guest-name"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="Juan Dela Cruz"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="guest-email">Email</Label>
+                <Input
+                  id="guest-email"
+                  type="email"
+                  value={guestEmail}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  placeholder="you@example.com"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="guest-phone">Phone (optional)</Label>
+                <Input
+                  id="guest-phone"
+                  value={guestPhone}
+                  onChange={(e) => setGuestPhone(e.target.value)}
+                  placeholder="09xx xxx xxxx"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2 mt-1">
+              <p className="text-xs font-medium text-muted-foreground">Payment method</p>
+              {PAYMENT_METHODS.map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setPayMethod(id)}
+                  className={`w-full flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                    payMethod === id ? "border-primary bg-primary/5" : "border-border/60 hover:border-primary/40"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="text-sm font-medium">{label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-start gap-2 mt-1">
+              <Checkbox
+                id="guest-agree"
+                checked={guestAgree}
+                onCheckedChange={(v) => setGuestAgree(v === true)}
+                className="mt-0.5"
+              />
+              <Label htmlFor="guest-agree" className="text-xs font-normal leading-relaxed text-muted-foreground">
+                I agree to the{" "}
+                <Link to="/renter-rules" target="_blank" className="underline">Renter Rules</Link>
+                {houseRules ? <> and the host's house rules</> : null} and the{" "}
+                <Link to="/refunds" target="_blank" className="underline">cancellation policy</Link>.
+              </Label>
+            </div>
+
+            <Button
+              className="w-full mt-2"
+              disabled={!guestName.trim() || !guestEmail.trim() || !guestAgree || guestSubmitting}
+              onClick={guestBook}
+            >
+              {guestSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continue to payment"}
+            </Button>
+            <p className="text-xs text-center text-muted-foreground">
+              You'll be redirected to complete payment securely.
+            </p>
           </DialogContent>
         </Dialog>
       )}

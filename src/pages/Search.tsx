@@ -88,6 +88,18 @@ const TYPE_LABELS: Record<string, string> = {
   glamping: "Glamping",
 };
 
+const STAY_CATEGORY_LABELS: Record<string, string> = {
+  quick_stay: "Quick stays",
+  hourly_stay: "Hourly stays",
+  overnight_stay: "Overnight stays",
+  hostel: "Hostels",
+  private_pool: "Private pool stays",
+  condo: "Condos",
+  apartment: "Apartments",
+  hotel_room: "Hotel rooms",
+  motel_room: "Motel rooms",
+};
+
 const AMENITY_ICONS: Record<string, string> = {
   wifi: "WiFi", aircon: "A/C", kitchen: "Kitchen", pool: "Pool",
   private_pool: "Pool", parking: "Parking", breakfast_included: "Breakfast",
@@ -246,6 +258,8 @@ export default function Search() {
   const memberUser = isMember(roles);
   const [searchParams] = useSearchParams();
   const initialQ = searchParams.get("q") ?? "";
+  const categoryParam = searchParams.get("category");
+  const availabilityParam = searchParams.get("availability");
   const [query, setQuery] = useState(initialQ);
   const [results, setResults] = useState<Listing[]>([]);
   const [summary, setSummary] = useState("");
@@ -309,12 +323,14 @@ export default function Search() {
     setBrowseLoading(true);
     (async () => {
       try {
-        const { data } = await sb
+        let q = sb
           .from("listings")
           .select("id, slug, host_id, title, city, province, type, bedrooms, bathrooms, max_guests, nightly_php, min_nights, amenities, images, is_owner_direct, short_term_enabled, long_term_enabled, avg_rating, review_count")
-          .eq("status", "active")
-          .order("created_at", { ascending: false })
-          .limit(12);
+          .eq("status", "active");
+        if (categoryParam) q = q.eq("stay_category", categoryParam);
+        if (availabilityParam === "hourly") q = q.in("stay_availability_type", ["hourly", "both"]);
+        else if (availabilityParam) q = q.eq("stay_availability_type", availabilityParam);
+        const { data } = await q.order("created_at", { ascending: false }).limit(24);
         if (!cancelled) {
           const listings = ((data ?? []) as Record<string, unknown>[]).map((l) => ({ ...l, why_its_a_deal: "", score: 0 })) as Listing[];
           setBrowseListings(listings);
@@ -327,7 +343,7 @@ export default function Search() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [categoryParam, availabilityParam]);
 
   async function run(e: React.FormEvent, overrideQuery?: string) {
     e.preventDefault();
@@ -414,6 +430,12 @@ export default function Search() {
   }, [results, filters, sort]);
 
   const numFilters = activeFilterCount(filters);
+
+  const browseHeading = availabilityParam === "hourly"
+    ? "Hourly & quick stays"
+    : categoryParam
+    ? (STAY_CATEGORY_LABELS[categoryParam] ?? "Stays")
+    : "Browse latest stays";
 
   return (
     <div>
@@ -650,7 +672,7 @@ export default function Search() {
 
         {!loading && !searched && browseLoading && (
           <div className="mt-10">
-            <h2 className="text-lg font-medium mb-4">Browse latest stays</h2>
+            <h2 className="text-lg font-medium mb-4">{browseHeading}</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3, 4, 5, 6].map((n) => <CardSkeleton key={n} />)}
             </div>
@@ -665,10 +687,20 @@ export default function Search() {
 
         {!loading && !searched && browseListings.length > 0 && (
           <div className="mt-10">
-            <h2 className="text-lg font-medium mb-4">Browse latest stays</h2>
+            <h2 className="text-lg font-medium mb-4">{browseHeading}</h2>
             <div className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-3")}>
               {browseListings.map((r) => <ListingCard key={r.id} listing={r} guestRating={hostRatings.get(r.host_id)} />)}
             </div>
+          </div>
+        )}
+
+        {!loading && !searched && !browseLoading && !browseError && browseListings.length === 0 && (categoryParam || availabilityParam) && (
+          <div className="mt-12 text-center text-muted-foreground">
+            <p className="text-lg">No {browseHeading.toLowerCase()} available yet.</p>
+            <p className="text-sm mt-1">Check back soon — hosts are adding new stays regularly.</p>
+            <Button variant="outline" size="sm" className="mt-4" asChild>
+              <Link to="/search">Browse all stays</Link>
+            </Button>
           </div>
         )}
       </div>

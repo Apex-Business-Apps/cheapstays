@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -19,15 +19,22 @@ type Props = {
   value: string[];
   onChange: (urls: string[]) => void;
   maxFiles?: number;
+  onUploadingChange?: (uploading: boolean) => void;
 };
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
-export function ImageUploader({ userId, listingId, value, onChange, maxFiles = 10 }: Props) {
+export function ImageUploader({ userId, listingId, value, onChange, maxFiles = 10, onUploadingChange }: Props) {
   const [pending, setPending] = useState<UploadItem[]>([]);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Surface in-flight uploads so parents can block "Save"/"Publish" until the
+  // photo URLs actually exist — otherwise an empty images array gets saved.
+  useEffect(() => {
+    onUploadingChange?.(pending.some((p) => !p.url && !p.error));
+  }, [pending, onUploadingChange]);
 
   const upload = useCallback(
     async (files: FileList | null) => {

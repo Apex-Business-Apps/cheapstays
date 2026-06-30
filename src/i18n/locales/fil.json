@@ -1,5 +1,12 @@
 {
   "nav": {
+    "home": "Home",
+    "typesOfStays": "Mga Uri ng Stay",
+    "becomePartner": "Maging Partner",
+    "hostDashboard": "Host Dashboard",
+    "customerSupport": "Suporta sa Customer",
+    "aboutUs": "Tungkol sa Amin",
+    "myBookings": "Aking mga Booking",
     "search": "Maghanap",
     "membership": "Membership",
     "host": "Maging Host",
@@ -8,6 +15,11 @@
     "signOut": "Mag-sign out"
   },
   "hero": {
+    "headlineA": "Maikli o Mahaba.",
+    "headlineB": "Manatiling Mura.",
+    "lead": "Nagbo-book agad ang mga matalinong manlalakbay ng maiikling stay o humihiling ng mahabang stay nang may owner-direct na linaw.",
+    "searchPlaceholder": "2 gabi sa Quezon City, budget ₱2,000, kailangan ng WiFi…",
+    "searchAria": "Maghanap ng stay",
     "badge": "DIREKTA SA HOST · WALANG MARKUP",
     "h1Line1": "Mahanap nang mura.",
     "h1Line2": "Mag-stay nang matalino.",

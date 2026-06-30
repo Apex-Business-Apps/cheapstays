@@ -1,5 +1,12 @@
 {
   "nav": {
+    "home": "ホーム",
+    "typesOfStays": "宿泊タイプ",
+    "becomePartner": "パートナーになる",
+    "hostDashboard": "ホストダッシュボード",
+    "customerSupport": "カスタマーサポート",
+    "aboutUs": "私たちについて",
+    "myBookings": "予約一覧",
     "search": "検索",
     "membership": "メンバーシップ",
     "host": "ホスト登録",
@@ -8,6 +15,11 @@
     "signOut": "ログアウト"
   },
   "hero": {
+    "headlineA": "短期も長期も。",
+    "headlineB": "お得に滞在。",
+    "lead": "賢い旅行者は短期滞在をすぐに予約し、オーナー直接の明確さで長期滞在をリクエストします。",
+    "searchPlaceholder": "ケソン市で2泊、予算₱2,000、WiFi必須…",
+    "searchAria": "宿泊を検索",
     "badge": "ホスト直接予約 · 手数料なし",
     "h1Line1": "安く見つける。",
     "h1Line2": "賢く泊まる。",

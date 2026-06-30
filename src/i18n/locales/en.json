@@ -1,5 +1,12 @@
 {
   "nav": {
+    "home": "Homepage",
+    "typesOfStays": "Types of Stays",
+    "becomePartner": "Become a Partner",
+    "hostDashboard": "Host Dashboard",
+    "customerSupport": "Customer Support",
+    "aboutUs": "About Us",
+    "myBookings": "My Bookings",
     "search": "Search",
     "membership": "Membership",
     "host": "Host",
@@ -8,6 +15,11 @@
     "signOut": "Sign out"
   },
   "hero": {
+    "headlineA": "Short or Long.",
+    "headlineB": "Stay Cheap.",
+    "lead": "Smart travelers book short stays instantly or request long stays with owner-direct clarity.",
+    "searchPlaceholder": "2 nights in Quezon City, budget ₱2,000, need WiFi…",
+    "searchAria": "Search stays",
     "badge": "OWNER-DIRECT STAYS · ZERO MARKUP",
     "h1Line1": "Find it cheap.",
     "h1Line2": "Stay smart.",

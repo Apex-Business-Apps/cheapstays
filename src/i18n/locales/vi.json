@@ -1,5 +1,12 @@
 {
   "nav": {
+    "home": "Trang chủ",
+    "typesOfStays": "Loại lưu trú",
+    "becomePartner": "Trở thành đối tác",
+    "hostDashboard": "Bảng điều khiển chủ nhà",
+    "customerSupport": "Hỗ trợ khách hàng",
+    "aboutUs": "Về chúng tôi",
+    "myBookings": "Đặt phòng của tôi",
     "search": "Tìm kiếm",
     "membership": "Thành viên",
     "host": "Cho thuê",
@@ -8,6 +15,11 @@
     "signOut": "Đăng xuất"
   },
   "hero": {
+    "headlineA": "Ngắn hay Dài.",
+    "headlineB": "Lưu trú tiết kiệm.",
+    "lead": "Du khách thông minh đặt phòng ngắn ngày ngay lập tức hoặc yêu cầu lưu trú dài ngày với sự minh bạch trực tiếp từ chủ nhà.",
+    "searchPlaceholder": "2 đêm ở Quezon City, ngân sách ₱2,000, cần WiFi…",
+    "searchAria": "Tìm kiếm chỗ ở",
     "badge": "ĐẶT TRỰC TIẾP · KHÔNG PHỤ PHÍ",
     "h1Line1": "Tìm giá rẻ.",
     "h1Line2": "Ở thông minh.",

@@ -24,17 +24,27 @@ export default function Auth() {
   const navigate = useNavigate();
   const { user, consentReady, consentRequired } = useAuth();
 
+  // Only allow internal, same-origin paths to avoid open-redirect abuse.
+  const redirectParam = searchParams.get("redirect");
+  const safeRedirect =
+    redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")
+      ? redirectParam
+      : "/";
+
   useEffect(() => {
     if (!user) return;
     // Wait for consent state to settle before redirecting, otherwise we may
-    // send a user to "/" only to bounce them through the gate one render later.
+    // send a user to the destination only to bounce them through the gate one
+    // render later.
     if (!consentReady) return;
     if (consentRequired) {
-      navigate("/legal/accept", { replace: true });
+      // Carry the destination through the consent gate so first-time accounts
+      // still land back where they started (e.g. the listing they were booking).
+      navigate(`/legal/accept?redirect=${encodeURIComponent(safeRedirect)}`, { replace: true });
     } else {
-      navigate("/", { replace: true });
+      navigate(safeRedirect, { replace: true });
     }
-  }, [user, consentReady, consentRequired, navigate]);
+  }, [user, consentReady, consentRequired, navigate, safeRedirect]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,7 +54,7 @@ export default function Auth() {
         if (!acceptTerms || !acceptPrivacy) throw new Error("You must accept Terms and Privacy to continue.");
         const { data, error } = await supabase.auth.signUp({
           email, password,
-          options: { emailRedirectTo: `${window.location.origin}/` },
+          options: { emailRedirectTo: `${window.location.origin}${safeRedirect}` },
         });
         if (error) throw error;
         if (data.user?.id) {
@@ -67,7 +77,7 @@ export default function Auth() {
     try {
       await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}/` },
+        options: { redirectTo: `${window.location.origin}${safeRedirect}` },
       });
     } finally {
       setOauthLoading(false);
