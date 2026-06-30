@@ -56,13 +56,23 @@ describe("Navbar CTAs", () => {
   });
 
 
-  it("renders exactly one Host nav link in header when menu is closed", () => {
-    mockAuth.user = { id: "u2", email: "member@test.com" };
-    mockAuth.roles = ["user"];
+  it("renders exactly one Host Dashboard nav link for hosts when menu is closed", () => {
+    mockAuth.user = { id: "u2", email: "host@test.com" };
+    mockAuth.roles = ["host"];
     render(<MemoryRouter><Navbar /></MemoryRouter>);
-    const hostLinks = screen.getAllByRole("link", { name: "nav.host" });
+    const hostLinks = screen.getAllByRole("link", { name: "Host Dashboard" });
     expect(hostLinks).toHaveLength(1);
     expect(hostLinks[0]).toHaveAttribute("href", "/host");
+  });
+
+  it("shows non-hosts a Become a Partner link instead of a Host dashboard link", () => {
+    mockAuth.user = { id: "u3", email: "member@test.com" };
+    mockAuth.roles = ["user"];
+    render(<MemoryRouter><Navbar /></MemoryRouter>);
+    const partnerLinks = screen.getAllByRole("link", { name: "Become a Partner" });
+    expect(partnerLinks).toHaveLength(1);
+    expect(partnerLinks[0]).toHaveAttribute("href", "/become-a-partner");
+    expect(screen.queryByRole("link", { name: "Host Dashboard" })).not.toBeInTheDocument();
   });
 
   it("does not mount NotificationsModal on desktop", () => {

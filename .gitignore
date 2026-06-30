@@ -14,10 +14,10 @@ dist
 dist-ssr
 *.local
 
-# Environment secrets — never commit real .env (keep the example)
-.env
-.env.*
-!.env.example
+# Local env overrides with secrets — never commit these.
+# (.env itself is tracked but must contain ONLY public VITE_* values.)
+.env.local
+.env.*.local
 
 # Editor directories and files
 .vscode/*
