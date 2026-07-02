@@ -26,14 +26,6 @@ import { BlackoutDateEditor } from "@/components/BlackoutDateEditor";
 import { LongTermRequestsInbox } from "@/components/LongTermRequestsInbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
-const LISTING_TYPES = [
-  { value: "entire_place", label: "Entire place" },
-  { value: "private_room", label: "Private room" },
-  { value: "shared_room", label: "Shared room" },
-  { value: "villa", label: "Villa" },
-  { value: "glamping", label: "Glamping" },
-];
-
 const STAY_CATEGORIES = [
   { value: "quick_stay", label: "Quick Stay" },
   { value: "hourly_stay", label: "Hourly Stay" },

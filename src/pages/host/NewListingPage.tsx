@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { aiDescribeSchema } from "@/lib/schemas";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import type { Database } from "@/integrations/supabase/types";
 
 const STAY_CATEGORIES = [
   { value: "quick_stay",    label: "Quick Stay" },
@@ -28,6 +29,14 @@ const STAY_CATEGORIES = [
   { value: "apartment",     label: "Apartment" },
   { value: "hotel_room",    label: "Hotel Room" },
   { value: "motel_room",    label: "Motel Room" },
+];
+
+const LISTING_TYPES = [
+  { value: "entire_place", label: "Entire place" },
+  { value: "private_room", label: "Private room" },
+  { value: "shared_room",  label: "Shared room" },
+  { value: "villa",        label: "Villa" },
+  { value: "glamping",     label: "Glamping" },
 ];
 
 const AMENITY_OPTIONS = [
@@ -52,7 +61,7 @@ const AMENITY_LABELS: Record<string, string> = {
   board_rack:"Board rack",electric_blankets:"Electric blankets",
 };
 
-function inferLegacyType(cat: string) {
+function inferLegacyType(cat: string): Database["public"]["Enums"]["listing_type"] {
   switch (cat) {
     case "hostel":      return "shared_room";
     case "hotel_room":
@@ -72,7 +81,7 @@ function slugify(title: string, id: string) {
 }
 
 export default function NewListingPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   const [listingId, setListingId] = useState(() => crypto.randomUUID());
@@ -98,6 +107,7 @@ export default function NewListingPage() {
   const [publishGateOpen, setPublishGateOpen] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
 
+  if (loading) return null;
   if (!user) return null;
 
   async function generateDescription() {
@@ -137,7 +147,7 @@ export default function NewListingPage() {
       const { error } = await supabase.from("listings").upsert({
         id: listingId, slug, host_id: user!.id,
         title: title.trim(), description: form.description.trim(),
-        type: inferLegacyType(form.stay_category) as never,
+        type: inferLegacyType(form.stay_category),
         stay_availability_type: form.stay_availability_type,
         stay_category: form.stay_category, booking_mode: form.booking_mode,
         city: form.city.trim(), province: form.province.trim(),
