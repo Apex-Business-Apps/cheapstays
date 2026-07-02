@@ -59,7 +59,7 @@ export function DashboardLayout({ requiredRole }: Props) {
             <NotificationsModal />
             <LanguageSwitcher />
             <ThemeToggle />
-            <Button size="sm" variant="ghost" onClick={signOut} className="hidden sm:flex">
+            <Button size="sm" variant="ghost" onClick={signOut} className="hidden sm:flex min-h-[44px] min-w-[44px]">
               Sign out
             </Button>
           </div>
