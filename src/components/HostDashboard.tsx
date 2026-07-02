@@ -4,13 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 type CalendarState = "pending_payment" | "confirmed" | "cancelled" | "checkout_pending_review" | "dispute_hold" | "pending";
 type DashboardEvent = { id: string; listing: string; start: string; end: string; status: CalendarState; amount: number; payout: string };
 
-type Props = { hostId: string; onTabChange: (tab: string) => void };
+type Props = { hostId: string };
 
 const statusStyle: Record<CalendarState, string> = {
   pending: "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300",
@@ -46,7 +46,8 @@ const VERIFICATION_CONFIG: Record<string, { label: string; variant: "default" | 
   rejected:   { label: "Needs attention",   variant: "destructive", icon: AlertCircle },
 };
 
-export function HostDashboard({ hostId, onTabChange }: Props) {
+export function HostDashboard({ hostId }: Props) {
+  const navigate = useNavigate();
   const [events, setEvents] = useState<DashboardEvent[]>([]);
   const [selected, setSelected] = useState<DashboardEvent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -137,21 +138,21 @@ export function HostDashboard({ hostId, onTabChange }: Props) {
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Active listings</p>
           <p className="text-2xl font-semibold mt-1">{listingCount}</p>
-          <Button size="sm" variant="outline" className="mt-3" onClick={() => onTabChange("my")}>
+          <Button size="sm" variant="outline" className="mt-3" onClick={() => navigate("/host/listings")}>
             Manage listings
           </Button>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Pending bookings</p>
           <p className="text-2xl font-semibold mt-1">{pendingCount}</p>
-          <Button size="sm" variant="outline" className="mt-3" onClick={() => onTabChange("bookings")}>
+          <Button size="sm" variant="outline" className="mt-3" onClick={() => navigate("/host/bookings")}>
             Review requests
           </Button>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-muted-foreground">Confirmed stays</p>
           <p className="text-2xl font-semibold mt-1">{confirmedCount}</p>
-          <Button size="sm" variant="outline" className="mt-3" onClick={() => onTabChange("bookings")}>
+          <Button size="sm" variant="outline" className="mt-3" onClick={() => navigate("/host/bookings")}>
             View bookings
           </Button>
         </Card>
@@ -161,7 +162,7 @@ export function HostDashboard({ hostId, onTabChange }: Props) {
       <Card className="p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold">Recent bookings</h3>
-          <Button size="sm" variant="ghost" onClick={() => onTabChange("bookings")} className="text-xs text-muted-foreground">
+          <Button size="sm" variant="ghost" onClick={() => navigate("/host/bookings")} className="text-xs text-muted-foreground">
             View all →
           </Button>
         </div>
@@ -212,7 +213,7 @@ export function HostDashboard({ hostId, onTabChange }: Props) {
             </p>
             <p className="text-sm">Total: ₱{selected.amount.toLocaleString()}</p>
             <p className="text-sm text-muted-foreground">Payout: {selected.payout}</p>
-            <Button size="sm" variant="outline" className="mt-3" onClick={() => onTabChange("bookings")}>
+            <Button size="sm" variant="outline" className="mt-3" onClick={() => navigate("/host/bookings")}>
               Manage this booking →
             </Button>
           </Card>
