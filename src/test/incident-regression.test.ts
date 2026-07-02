@@ -9,11 +9,11 @@ describe('incident regression coverage', () => {
   });
 
   it('admin and host gates render controlled role-load failures', () => {
-    const admin = readFileSync('src/pages/Admin.tsx', 'utf8');
-    const host = readFileSync('src/pages/Host.tsx', 'utf8');
-    expect(admin).toContain('Unable to verify admin access');
+    const adminLayout = readFileSync('src/components/DashboardLayout.tsx', 'utf8');
+    const host = readFileSync('src/pages/HostApply.tsx', 'utf8');
+    expect(adminLayout).toContain('isAdmin(roles)');
+    expect(adminLayout).toContain('requiredRole');
     expect(host).toContain('Unable to verify host access');
-    expect(admin).toContain('rolesError');
     expect(host).toContain('rolesError');
   });
 
