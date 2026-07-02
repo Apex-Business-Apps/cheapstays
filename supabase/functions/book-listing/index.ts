@@ -187,6 +187,11 @@ Deno.serve(async (req) => {
       }
     }
 
+    // DB constraint expects "short_term"/"long_term"/"hourly" — map "overnight" to the correct DB value
+    const dbStayType = stay_type === "overnight"
+      ? (isLongTermStay ? "long_term" : "short_term")
+      : stay_type;
+
     const payload: Record<string, string | number | boolean | null | undefined> = {
       listing_id,
       guest_id: user.id,
@@ -199,7 +204,7 @@ Deno.serve(async (req) => {
       total_php: totalPhp,
       status: "pending",
       payment_status: "unpaid",
-      stay_type,
+      stay_type: dbStayType,
       booking_flow: bookingFlow,
       flow_state: bookingFlow === "instant_book" ? "payment_pending" : "requested",
     };
