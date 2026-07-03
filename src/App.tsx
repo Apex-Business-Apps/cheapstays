@@ -1,11 +1,11 @@
-import { Suspense, lazy, type ReactNode } from "react";
+import { Suspense, lazy, useState, useEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { isAdmin, isHost } from "@/lib/rbac";
+import { fetchRoles, isAdmin, isHost, type AppRole } from "@/lib/rbac";
 import { PublicLayout } from "@/components/PublicLayout";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ConsentGate } from "@/components/ConsentGate";
@@ -75,9 +75,15 @@ function HostIndexRedirect() {
 }
 
 function PostLoginRedirect() {
-  const { user, roles, loading } = useAuth();
-  if (loading) return null;
-  if (!user) return <Navigate to="/auth" replace />;
+  const { user, loading } = useAuth();
+  const [roles, setRoles] = useState<AppRole[] | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    void fetchRoles(user.id).then((r) => setRoles(r.roles));
+  }, [user?.id]);
+
+  if (loading || !user || roles === null) return null;
   if (isAdmin(roles)) return <Navigate to="/admin/overview" replace />;
   if (isHost(roles)) return <Navigate to="/host/dashboard" replace />;
   return <Navigate to="/" replace />;
