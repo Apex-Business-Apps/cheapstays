@@ -111,8 +111,7 @@ test.describe('product reality booking ops', () => {
 
   test('host calendar supports real date actions', async ({ page }) => {
     await bootstrapDeterministicSeed(page, 'host');
-    await page.goto('/host');
-    await page.getByRole('tab', { name: 'Calendar' }).click();
+    await page.goto('/host/calendar');
     await expect(page.getByText('Loading calendar…').or(page.getByText('Hover a day for a summary'))).toBeVisible();
   });
 
