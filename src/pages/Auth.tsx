@@ -29,7 +29,7 @@ export default function Auth() {
   const safeRedirect =
     redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")
       ? redirectParam
-      : "/";
+      : "/post-login";
 
   useEffect(() => {
     if (!user) return;

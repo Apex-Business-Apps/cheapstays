@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import Admin from "@/pages/Admin";
+import ApplicationsPage from "@/pages/admin/ApplicationsPage";
 
 const submitDecisionMock = vi.fn();
 const toastSuccess = vi.fn();
@@ -31,20 +31,19 @@ vi.mock("@/features/admin/HostApplicationReview", () => ({
 }));
 
 function tableResponse(data: unknown[] = []) {
+  const chain: Record<string, unknown> = {};
+  const terminal = async () => ({ data, error: null });
+  chain.order = () => ({ limit: terminal });
+  chain.limit = terminal;
+  chain.eq = () => chain;
   return {
-    select: () => ({
-      order: () => ({ limit: async () => ({ data, error: null }) }),
-      limit: async () => ({ data, error: null }),
-    }),
+    select: () => chain,
   };
 }
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: (table: string) => {
-      if (table === "user_roles") return { select: () => ({ order: () => ({ data: [], error: null }) }) };
-      return tableResponse([]);
-    },
+    from: (_table: string) => tableResponse([]),
   },
 }));
 
@@ -55,9 +54,10 @@ describe("Admin host approval messaging", () => {
 
   it("shows success only after approve decision resolves", async () => {
     submitDecisionMock.mockResolvedValueOnce(undefined);
-    render(<MemoryRouter><Admin /></MemoryRouter>);
+    render(<MemoryRouter><ApplicationsPage /></MemoryRouter>);
 
-    fireEvent.click(screen.getByRole("button", { name: "approve" }));
+    const approveBtn = await screen.findByRole("button", { name: "approve" });
+    fireEvent.click(approveBtn);
 
     await waitFor(() => expect(submitDecisionMock).toHaveBeenCalled());
     await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith("Application approved and host status confirmed."));
@@ -66,9 +66,10 @@ describe("Admin host approval messaging", () => {
 
   it("shows error and no success when approve decision fails", async () => {
     submitDecisionMock.mockRejectedValueOnce(new Error("authority unavailable"));
-    render(<MemoryRouter><Admin /></MemoryRouter>);
+    render(<MemoryRouter><ApplicationsPage /></MemoryRouter>);
 
-    fireEvent.click(screen.getByRole("button", { name: "approve" }));
+    const approveBtn = await screen.findByRole("button", { name: "approve" });
+    fireEvent.click(approveBtn);
 
     await waitFor(() => expect(toastError).toHaveBeenCalledWith("Failed: authority unavailable"));
     expect(toastSuccess).not.toHaveBeenCalled();

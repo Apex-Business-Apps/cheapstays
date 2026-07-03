@@ -48,24 +48,23 @@ vi.mock("@/integrations/supabase/client", () => ({
 
 describe("HostDashboard", () => {
   it("renders status legend labels", async () => {
-    render(<MemoryRouter><HostDashboard hostId="host-1" onTabChange={vi.fn()} /></MemoryRouter>);
+    render(<MemoryRouter><HostDashboard hostId="host-1" /></MemoryRouter>);
     await waitFor(() => expect(screen.getAllByText(/confirmed/i).length).toBeGreaterThan(0));
     expect(screen.getAllByText(/pending payment/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/checkout pending review/i).length).toBeGreaterThan(0);
   });
 
   it("shows booking details when an event is clicked", async () => {
-    render(<MemoryRouter><HostDashboard hostId="host-1" onTabChange={vi.fn()} /></MemoryRouter>);
+    render(<MemoryRouter><HostDashboard hostId="host-1" /></MemoryRouter>);
     await waitFor(() => expect(screen.getByRole("button", { name: /beach hut/i })).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: /beach hut/i }));
     expect(screen.getByTestId("booking-details")).toHaveTextContent(/₱9,800/);
   });
 
-  it("calls onTabChange when a stat card button is clicked", async () => {
-    const onTabChange = vi.fn();
-    render(<MemoryRouter><HostDashboard hostId="host-1" onTabChange={onTabChange} /></MemoryRouter>);
+  it("navigates to bookings page when a stat card button is clicked", async () => {
+    render(<MemoryRouter><HostDashboard hostId="host-1" /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText("Review requests")).toBeInTheDocument());
     fireEvent.click(screen.getByText("Review requests"));
-    expect(onTabChange).toHaveBeenCalledWith("bookings");
+    // Navigation is now handled internally via useNavigate — no onTabChange prop
   });
 });
