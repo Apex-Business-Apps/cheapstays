@@ -12,46 +12,26 @@ import {
   ShoppingBag, ClipboardList,
 } from "lucide-react";
 
-const hostSections = [
-  {
-    group: "Overview",
-    items: [
-      { label: "Dashboard",  to: "/host/dashboard", icon: LayoutDashboard },
-      { label: "Calendar",   to: "/host/calendar",  icon: CalendarDays },
-    ],
-  },
-  {
-    group: "Listings",
-    items: [
-      { label: "New Listing", to: "/host/new-listing", icon: PlusCircle },
-      { label: "My Listings", to: "/host/listings",    icon: List },
-    ],
-  },
-  {
-    group: "Bookings & Revenue",
-    items: [
-      { label: "Bookings",           to: "/host/bookings",  icon: BookOpen },
-      { label: "Vouchers",           to: "/host/vouchers",  icon: Ticket },
-      { label: "Wallet",             to: "/host/wallet",    icon: Wallet },
-      { label: "Long-term Requests", to: "/host/requests",  icon: Clock },
-      { label: "Blackout Dates",     to: "/host/blackouts", icon: Ban },
-    ],
-  },
+const adminItems = [
+  { label: "Overview",        to: "/admin/overview",      icon: LayoutDashboard },
+  { label: "Bookings",        to: "/admin/bookings",      icon: BookOpen },
+  { label: "Applications",    to: "/admin/applications",  icon: ClipboardList },
+  { label: "Support Tickets", to: "/admin/tickets",       icon: Headphones },
+  { label: "Users",           to: "/admin/users",         icon: Users },
+  { label: "Audit Log",       to: "/admin/audit",         icon: FileText },
+  { label: "Disbursements",   to: "/admin/disbursements", icon: DollarSign },
 ];
 
-const adminSections = [
-  {
-    group: "Admin",
-    items: [
-      { label: "Overview",        to: "/admin/overview",      icon: LayoutDashboard },
-      { label: "Bookings",        to: "/admin/bookings",      icon: BookOpen },
-      { label: "Applications",    to: "/admin/applications",  icon: ClipboardList },
-      { label: "Support Tickets", to: "/admin/tickets",       icon: Headphones },
-      { label: "Users",           to: "/admin/users",         icon: Users },
-      { label: "Audit Log",       to: "/admin/audit",         icon: FileText },
-      { label: "Disbursements",   to: "/admin/disbursements", icon: DollarSign },
-    ],
-  },
+const hostItems = [
+  { label: "Dashboard",           to: "/host/dashboard",   icon: LayoutDashboard },
+  { label: "Calendar",            to: "/host/calendar",    icon: CalendarDays },
+  { label: "New Listing",         to: "/host/new-listing", icon: PlusCircle },
+  { label: "My Listings",         to: "/host/listings",    icon: List },
+  { label: "Bookings",            to: "/host/bookings",    icon: BookOpen },
+  { label: "Vouchers",            to: "/host/vouchers",    icon: Ticket },
+  { label: "Wallet",              to: "/host/wallet",      icon: Wallet },
+  { label: "Long-term Requests",  to: "/host/requests",    icon: Clock },
+  { label: "Blackout Dates",      to: "/host/blackouts",   icon: Ban },
 ];
 
 const accountItems = [
@@ -72,11 +52,6 @@ export function AppSidebar() {
   const admin = isAdmin(roles);
   const host = isHost(roles);
 
-  const sections = [
-    ...(admin ? adminSections : []),
-    ...(host  ? hostSections  : []),
-  ];
-
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-4 py-3">
@@ -91,11 +66,11 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {sections.map((section) => (
-          <SidebarGroup key={section.group}>
-            <SidebarGroupLabel>{section.group}</SidebarGroupLabel>
+        {admin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin Tools</SidebarGroupLabel>
             <SidebarMenu>
-              {section.items.map((item) => (
+              {adminItems.map((item) => (
                 <SidebarMenuItem key={item.to}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.to} className={linkClass}>
@@ -107,7 +82,28 @@ export function AppSidebar() {
               ))}
             </SidebarMenu>
           </SidebarGroup>
-        ))}
+        )}
+
+        {host && (
+          <>
+            {admin && <SidebarSeparator />}
+            <SidebarGroup>
+              <SidebarGroupLabel>Host Tools</SidebarGroupLabel>
+              <SidebarMenu>
+                {hostItems.map((item) => (
+                  <SidebarMenuItem key={item.to}>
+                    <SidebarMenuButton asChild>
+                      <NavLink to={item.to} className={linkClass}>
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        <span>{item.label}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          </>
+        )}
 
         <SidebarSeparator />
 

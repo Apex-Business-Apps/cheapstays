@@ -4,7 +4,8 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { isHost } from "@/lib/rbac";
 import { PublicLayout } from "@/components/PublicLayout";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ConsentGate } from "@/components/ConsentGate";
@@ -65,6 +66,14 @@ function RouteAwareErrorBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary resetKeys={[pathname]}>{children}</ErrorBoundary>;
 }
 
+function HostIndexRedirect() {
+  const { user, roles, loading } = useAuth();
+  if (loading) return null;
+  return user && isHost(roles)
+    ? <Navigate to="/host/dashboard" replace />
+    : <Navigate to="/host/apply" replace />;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -89,7 +98,7 @@ const App = () => (
                     <Route path="/customer-support"  element={<CustomerSupportPage />} />
                     <Route path="/about"             element={<AboutPage />} />
                     <Route path="/membership"        element={<Membership />} />
-                    <Route path="/host"              element={<Navigate to="/host/apply" replace />} />
+                    <Route path="/host"              element={<HostIndexRedirect />} />
                     <Route path="/host/apply"        element={<HostApply />} />
                     <Route path="/support"           element={<Support />} />
                     <Route path="/my-bookings"       element={<MyBookings />} />
