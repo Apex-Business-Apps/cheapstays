@@ -5,7 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { isHost } from "@/lib/rbac";
+import { isAdmin, isHost } from "@/lib/rbac";
 import { PublicLayout } from "@/components/PublicLayout";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ConsentGate } from "@/components/ConsentGate";
@@ -74,6 +74,15 @@ function HostIndexRedirect() {
     : <Navigate to="/host/apply" replace />;
 }
 
+function PostLoginRedirect() {
+  const { user, roles, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (isAdmin(roles)) return <Navigate to="/admin/overview" replace />;
+  if (isHost(roles)) return <Navigate to="/host/dashboard" replace />;
+  return <Navigate to="/" replace />;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -98,6 +107,7 @@ const App = () => (
                     <Route path="/customer-support"  element={<CustomerSupportPage />} />
                     <Route path="/about"             element={<AboutPage />} />
                     <Route path="/membership"        element={<Membership />} />
+                    <Route path="/post-login"        element={<PostLoginRedirect />} />
                     <Route path="/host"              element={<HostIndexRedirect />} />
                     <Route path="/host/apply"        element={<HostApply />} />
                     <Route path="/support"           element={<Support />} />
