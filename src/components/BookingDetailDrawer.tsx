@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { AlertCircle, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -110,10 +110,10 @@ export function BookingDetailDrawer({ bookingId, onClose }: Props) {
 function DrawerSkeleton() {
   return (
     <div className="space-y-6">
-      {[80, 120, 100, 80, 60].map((h, i) => (
+      {[1, 2, 3, 4, 5].map((i) => (
         <div key={i} className="space-y-2">
           <Skeleton className="h-3 w-24" />
-          <Skeleton className={`h-${h === 60 ? 4 : h === 80 ? 4 : 5} w-full`} />
+          <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-3/4" />
         </div>
       ))}
@@ -169,7 +169,7 @@ function DrawerContent({ detail }: { detail: BookingDetail }) {
       ]} />
       <Link
         to={`/admin/users?highlight=${detail.guest_id}`}
-        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+        className="inline-flex items-center gap-1 text-xs text-primary hover:underline min-h-[44px]"
       >
         View in Users <ExternalLink className="h-3 w-3" />
       </Link>
@@ -181,7 +181,7 @@ function DrawerContent({ detail }: { detail: BookingDetail }) {
       ]} />
       <Link
         to={`/admin/users?highlight=${detail.host_id}`}
-        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+        className="inline-flex items-center gap-1 text-xs text-primary hover:underline min-h-[44px]"
       >
         View in Users <ExternalLink className="h-3 w-3" />
       </Link>
@@ -231,10 +231,10 @@ function InfoGrid({ rows }: { rows: [string, string][] }) {
   return (
     <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
       {rows.map(([label, value]) => (
-        <>
-          <dt key={`${label}-dt`} className="text-muted-foreground text-xs">{label}</dt>
-          <dd key={`${label}-dd`} className="text-xs font-medium break-all">{value}</dd>
-        </>
+        <Fragment key={label}>
+          <dt className="text-muted-foreground text-xs">{label}</dt>
+          <dd className="text-xs font-medium break-all">{value}</dd>
+        </Fragment>
       ))}
     </dl>
   );
