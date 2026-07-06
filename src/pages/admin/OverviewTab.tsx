@@ -24,18 +24,18 @@ function BookingCalendar({ bookings, onSelectBooking }: CalendarProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => setMonth((m) => subMonths(m, 1))}>
+        <Button variant="ghost" size="sm" className="min-h-[44px]" onClick={() => setMonth((m) => subMonths(m, 1))}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <span className="font-medium text-sm">{format(month, "MMMM yyyy")}</span>
-        <Button variant="ghost" size="sm" onClick={() => setMonth((m) => addMonths(m, 1))}>
+        <Button variant="ghost" size="sm" className="min-h-[44px]" onClick={() => setMonth((m) => addMonths(m, 1))}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
 
       <div className="flex flex-wrap gap-3 text-xs">
         {Object.entries(STATUS_COLORS).map(([status, color]) => (
-          <span key={status} className="flex items-center gap-1.5">
+          <span key={status} className="flex items-center gap-1.5 capitalize">
             <span className={`h-2.5 w-2.5 rounded-full ${color}`} />{status}
           </span>
         ))}
