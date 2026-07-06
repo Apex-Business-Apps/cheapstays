@@ -212,8 +212,8 @@ function DrawerContent({ detail }: { detail: BookingDetail }) {
       {/* Payment */}
       <div className="rounded-xl border border-border bg-card p-4 space-y-2.5">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Payment</p>
-        <IconRow icon={<CreditCard className="h-3.5 w-3.5" />}  label="Method"           value={detail.payment_method ?? "—"} />
-        <IconRow icon={<span className="text-[11px] font-bold text-muted-foreground">₱</span>} label="Status" value={detail.payment_status ?? "—"} />
+        <IconRow icon={<CreditCard className="h-3.5 w-3.5" />}  label="Method"           value={detail.payment_method ?? "—"} valueClassName="capitalize" />
+        <IconRow icon={<span className="text-[11px] font-bold text-muted-foreground">₱</span>} label="Status" value={detail.payment_status ?? "—"} valueClassName={`capitalize${detail.payment_status === "pending" ? " text-amber-500" : ""}`} />
         <IconRow icon={<Receipt className="h-3.5 w-3.5" />}     label="Reference"         value={detail.payment_ref ?? "—"} />
         <IconRow icon={<Calendar className="h-3.5 w-3.5" />}    label="Refundable until"  value={fmtMaybe(detail.refundable_until)} />
         <IconRow icon={<Calendar className="h-3.5 w-3.5" />}    label="Payout release"    value={fmtMaybe(detail.payout_release_on)} />
@@ -282,12 +282,12 @@ function PersonCard({ label, name, userId }: { label: string; name: string; user
   );
 }
 
-function IconRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+function IconRow({ icon, label, value, valueClassName }: { icon: ReactNode; label: string; value: string; valueClassName?: string }) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-muted-foreground shrink-0">{icon}</span>
       <span className="text-xs text-muted-foreground shrink-0">{label}</span>
-      <span className="text-xs font-medium ml-auto text-right break-all">{value}</span>
+      <span className={`text-xs font-medium ml-auto text-right break-all ${valueClassName ?? ""}`}>{value}</span>
     </div>
   );
 }
