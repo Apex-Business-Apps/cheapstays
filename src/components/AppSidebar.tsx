@@ -6,10 +6,11 @@ import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, CalendarDays, PlusCircle, List, BookOpen, Ticket,
   Wallet, Clock, Ban, Users, FileText, DollarSign, Bell, Headphones,
-  ShoppingBag, ClipboardList,
+  ShoppingBag, ClipboardList, LogOut,
 } from "lucide-react";
 
 const adminItems = [
@@ -48,14 +49,15 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 export function AppSidebar() {
-  const { roles } = useAuth();
+  const { roles, signOut } = useAuth();
   const admin = isAdmin(roles);
   const host = isHost(roles);
+  const logoHref = admin ? "/admin/overview" : "/host/dashboard";
 
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-4 py-3">
-        <Link to="/">
+        <Link to={logoHref}>
           <img
             src={`/wordmark.png?v=${__CACHE_BUST__}`}
             alt="CheapStays"
@@ -124,7 +126,16 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-3">
+      <SidebarFooter className="border-t border-sidebar-border p-3 flex flex-col gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={signOut}
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground min-h-[44px]"
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          <span>Sign out</span>
+        </Button>
         <p className="text-[10px] text-muted-foreground px-2">
           © {new Date().getFullYear()} CheapStays
         </p>
