@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { format, parseISO } from "date-fns";
 import { AlertCircle, ArrowRight, Building2, Calendar, CreditCard, ExternalLink, Receipt } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -13,11 +13,12 @@ import type { BookingDetail } from "@/pages/admin/types";
 import { STATUS_COLORS } from "@/pages/admin/types";
 
 const STATUS_STYLES: Record<string, { border: string; bg: string }> = {
-  confirmed: { border: "border-l-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-  pending:   { border: "border-l-amber-400",   bg: "bg-amber-50 dark:bg-amber-950/30" },
-  cancelled: { border: "border-l-red-400",     bg: "bg-red-50 dark:bg-red-950/30" },
-  completed: { border: "border-l-blue-400",    bg: "bg-blue-50 dark:bg-blue-950/30" },
-  no_show:   { border: "border-l-gray-400",    bg: "bg-gray-50 dark:bg-gray-900/30" },
+  confirmed:       { border: "border-l-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+  pending:         { border: "border-l-amber-400",   bg: "bg-amber-50 dark:bg-amber-950/30" },
+  cancelled:       { border: "border-l-red-400",     bg: "bg-red-50 dark:bg-red-950/30" },
+  completed:       { border: "border-l-blue-400",    bg: "bg-blue-50 dark:bg-blue-950/30" },
+  no_show:         { border: "border-l-gray-400",    bg: "bg-gray-50 dark:bg-gray-900/30" },
+  expired:         { border: "border-l-gray-400",    bg: "bg-gray-50 dark:bg-gray-900/30" },
 };
 
 interface Props {
@@ -139,7 +140,8 @@ function initials(name: string) {
 function DrawerContent({ detail }: { detail: BookingDetail }) {
   const fmt = (d: string) => format(parseISO(d), "MMM d, yyyy");
   const fmtMaybe = (d: string | null) => (d ? format(parseISO(d), "MMM d, yyyy") : "—");
-  const style = STATUS_STYLES[detail.status] ?? STATUS_STYLES.no_show;
+  const NEUTRAL_STYLE = { border: "border-l-gray-300", bg: "bg-gray-50 dark:bg-gray-900/30" };
+  const style = STATUS_STYLES[detail.status] ?? NEUTRAL_STYLE;
 
   return (
     <div className="space-y-3">
