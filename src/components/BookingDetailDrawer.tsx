@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { format, parseISO } from "date-fns";
 import { AlertCircle, ArrowRight, Building2, Calendar, CreditCard, ExternalLink, Receipt } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -280,7 +280,7 @@ function PersonCard({ label, name, userId }: { label: string; name: string; user
   );
 }
 
-function IconRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function IconRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-muted-foreground shrink-0">{icon}</span>
