@@ -22,7 +22,7 @@ export function BookingDetailDrawer({ bookingId, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!bookingId) { setDetail(null); return; }
+    if (!bookingId) { setDetail(null); setLoading(false); return; }
     let cancelled = false;
     setLoading(true);
     setError(null);
