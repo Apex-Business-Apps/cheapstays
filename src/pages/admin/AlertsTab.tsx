@@ -73,6 +73,7 @@ export function AlertsTab({
   const [urgentTickets, setUrgentTickets] = useState<UrgentTicket[]>([]);
   const [disbursementIssues, setDisbursementIssues] = useState<DisbursementIssue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -100,10 +101,14 @@ export function AlertsTab({
       setUrgentTickets((ticketRes.data ?? []) as unknown as UrgentTicket[]);
       setDisbursementIssues((disbRes.data ?? []) as unknown as DisbursementIssue[]);
       setLoading(false);
+    }).catch(() => {
+      setError("Failed to load alerts. Please refresh.");
+      setLoading(false);
     });
   }, []);
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (error) return <p className="text-sm text-destructive">{error}</p>;
 
   const allClear =
     pendingBookings.length === 0 &&

@@ -153,6 +153,7 @@ export function OverviewTab({ onSelectBooking }: { onSelectBooking: (id: string)
         .from("host_applications")
         .select("id", { count: "exact", head: true })
         .in("status", ["pending", "manual_review"]),
+      // Revenue attributed by booking-creation date (not check-in date) — intentional for booking-month reporting
       supabase
         .from("bookings")
         .select("total_php")
@@ -170,7 +171,10 @@ export function OverviewTab({ onSelectBooking }: { onSelectBooking: (id: string)
 
   useEffect(() => { load(); }, [load]);
 
-  const activeBookings = bookings.filter((b) => b.status === "confirmed").length;
+  const today = new Date().toISOString().slice(0, 10);
+  const activeBookings = bookings.filter(
+    (b) => b.status === "confirmed" && b.check_out >= today
+  ).length;
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
 

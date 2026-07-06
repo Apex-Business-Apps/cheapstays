@@ -63,10 +63,15 @@ export function TodayActivityTab({
   const [departures, setDepartures] = useState<TodayBooking[]>([]);
   const [vouchers, setVouchers] = useState<TodayVoucher[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const today = format(new Date(), "yyyy-MM-dd");
     const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
+    const todayLocalStart = new Date();
+    todayLocalStart.setHours(0, 0, 0, 0);
+    const tomorrowLocalStart = new Date(todayLocalStart);
+    tomorrowLocalStart.setDate(tomorrowLocalStart.getDate() + 1);
 
     Promise.all([
       supabase
@@ -84,8 +89,8 @@ export function TodayActivityTab({
       supabase
         .from("vouchers")
         .select("id,code,amount_paid,redeemed_at,listings(title)")
-        .gte("redeemed_at", today)
-        .lt("redeemed_at", tomorrow)
+        .gte("redeemed_at", todayLocalStart.toISOString())
+        .lt("redeemed_at", tomorrowLocalStart.toISOString())
         .not("redeemed_at", "is", null)
         .limit(50),
     ]).then(([arrRes, depRes, voucherRes]) => {
@@ -93,10 +98,14 @@ export function TodayActivityTab({
       setDepartures((depRes.data ?? []) as unknown as TodayBooking[]);
       setVouchers((voucherRes.data ?? []) as unknown as TodayVoucher[]);
       setLoading(false);
+    }).catch(() => {
+      setError("Failed to load today's activity. Please refresh.");
+      setLoading(false);
     });
   }, []);
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (error) return <p className="text-sm text-destructive">{error}</p>;
 
   return (
     <div className="space-y-8">
