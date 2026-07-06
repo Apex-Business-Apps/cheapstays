@@ -5,6 +5,7 @@ import {
 } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
@@ -176,7 +177,35 @@ export function OverviewTab({ onSelectBooking }: { onSelectBooking: (id: string)
     (b) => b.status === "confirmed" && b.check_out >= today
   ).length;
 
-  if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="p-4 space-y-2">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-8 w-16" />
+            </Card>
+          ))}
+        </div>
+        <Card className="p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-8 w-8 rounded-md" />
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-8 w-8 rounded-md" />
+          </div>
+          <div className="flex gap-3">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-3 w-16" />)}
+          </div>
+          <div className="grid grid-cols-7 gap-0.5">
+            {Array.from({ length: 35 }).map((_, i) => (
+              <Skeleton key={i} className="h-[52px] rounded" />
+            ))}
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

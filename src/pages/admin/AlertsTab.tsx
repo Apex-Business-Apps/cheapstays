@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PendingBooking {
@@ -107,7 +108,23 @@ export function AlertsTab({
     });
   }, []);
 
-  if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        {Array.from({ length: 3 }).map((_, s) => (
+          <div key={s} className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-4 w-5 rounded-full" />
+            </div>
+            {Array.from({ length: 2 }).map((_, r) => (
+              <Skeleton key={r} className="h-[72px] w-full rounded-xl" />
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
   if (error) return <p className="text-sm text-destructive">{error}</p>;
 
   const allClear =
