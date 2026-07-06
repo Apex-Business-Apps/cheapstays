@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { BookingDetailDrawer } from "@/components/BookingDetailDrawer";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -63,6 +64,7 @@ export function HostCalendar({ hostId }: Props) {
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [blackouts, setBlackouts] = useState<BlackoutRow[]>([]);
   const [openDay, setOpenDay] = useState<DayMeta | null>(null);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -234,19 +236,24 @@ export function HostCalendar({ hostId }: Props) {
               )}
 
               {openDay.bookings.map((b) => (
-                <div key={b.id} className="rounded-md border border-border/60 p-3 text-sm space-y-1">
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => { setOpenDay(null); setSelectedBookingId(b.id); }}
+                  className="w-full rounded-md border border-border/60 p-3 text-sm space-y-1 text-left hover:bg-secondary/40 transition-colors min-h-[44px]"
+                >
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{b.listings?.title ?? "Listing"}</span>
-                    <Badge variant="outline" className="text-[10px]">{b.flow_state}</Badge>
+                    <Badge variant="outline" className="text-[10px] capitalize">{b.status}</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {format(parseISO(b.check_in), "MMM d")} → {format(parseISO(b.check_out), "MMM d")}
                     {" · "} ₱{b.total_php.toLocaleString()}
                   </p>
                   <p className="text-[10px] text-muted-foreground">
-                    Booking {b.id.slice(0,8)}… · status {b.status}
+                    {b.id.slice(0, 8)}… · {b.flow_state}
                   </p>
-                </div>
+                </button>
               ))}
 
               {openDay.blackouts.map((bl) => (
@@ -262,6 +269,11 @@ export function HostCalendar({ hostId }: Props) {
           )}
         </DialogContent>
       </Dialog>
+
+      <BookingDetailDrawer
+        bookingId={selectedBookingId}
+        onClose={() => setSelectedBookingId(null)}
+      />
     </Card>
   );
 }
