@@ -22,7 +22,7 @@ export function Hero() {
   }
 
   return (
-    <AtmosphericSection as="div" variant="beach" parallaxStrength="subtle" className="snap-landing-panel">
+    <AtmosphericSection as="div" variant="beach" parallaxStrength="subtle">
       <section className="container pt-14 pb-20 md:pt-20 md:pb-24">
         <div className="grid gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-14 items-start">
           <motion.div

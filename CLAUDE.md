@@ -569,4 +569,36 @@ Both `approve-host-application` and `approve-host-via-ticket` granted the host r
 
 **Fix:** Added a two-step "Delete listing" → "Confirm delete" flow in `MyListings`. The delete calls `supabase.from("listings").delete().eq("id", id).eq("host_id", userId)` — the double filter (`id` + `host_id`) ensures the RLS policy and an explicit ownership check both pass. Cancelled bookings referencing the deleted listing retain their row; the listing's `host_id` FK is set to cascade or set-null per the schema.
 
-*Last updated by: Claude Code — post-PR #43 hotfixes (2026-05-24)*
+### ❌ Body-level mandatory scroll snapping on the landing page (massive layout shift)
+The homepage once toggled a `snap-landing-active` class on `<body>` that applied
+`scroll-snap-type: y mandatory` plus `min-height: 100svh` on each section panel.
+Two failure modes resulted:
+1. **Scroll-snap containers disable browser scroll anchoring.** The Popular Cities /
+   Featured Stays / Quick Stays sections load data asynchronously (skeleton → cards),
+   so every height change above the viewport shoved all content down/up with no
+   compensation — a massive visible layout shift on every load and re-snap.
+2. **`min-height: 100svh` panels** stretched short sections (a marketplace with few
+   listings) into mostly blank full-viewport bands, making sections look missing.
+
+A second, independent suppressor was found while verifying the fix: the
+`AtmosphericSection` parallax layers (`.atmo-bg-layer` etc.) animate `transform`
+every frame while their spring settles. When Chrome selects one as its
+scroll-anchor node, scroll anchoring is suppressed and the shift returns even
+without snap. They are opted out via `overflow-anchor: none` in `src/index.css`.
+
+**Fix:** The landing page uses natural document flow. The snap CSS block was removed
+from `src/index.css`, the body-class toggle was removed from `src/pages/Index.tsx`,
+the inert `snap-landing-*` classes were stripped from components, and the atmo
+layers carry `overflow-anchor: none`.
+
+**Guardrails:** `scripts/guardrails/check-landing-layout-stability.mjs` (in `npm run
+guardrails`, CI-enforced) bans document-axis mandatory snapping, the
+`snap-landing-active` mechanism, removal of the homepage's five sections, and removal
+of the loading skeletons. `e2e/homepage-layout-stability.spec.ts` asserts sections
+render, the document is not a snap container, CLS < 0.1, and that late content growth
+does not yank the viewport. `src/test/incident-regression.test.ts` mirrors the static
+checks in Vitest. Do not re-add scroll snapping to the document scroller; if a
+snap-like feel is ever wanted, it must live in an inner overflow container with
+stable (non-async) panel heights.
+
+*Last updated by: Claude Code — landing layout-shift fix (2026-07-07)*

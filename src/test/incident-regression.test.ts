@@ -17,6 +17,20 @@ describe('incident regression coverage', () => {
     expect(host).toContain('rolesError');
   });
 
+  it('landing page never re-enables body scroll snapping and keeps all sections', () => {
+    const index = readFileSync('src/pages/Index.tsx', 'utf8');
+    const css = readFileSync('src/index.css', 'utf8');
+    expect(index).not.toContain('classList.add');
+    for (const section of ['<Hero />', '<PopularCitiesSection />', '<FeaturedStaysSection />', '<QuickStaysSection />', '<BecomeHost />']) {
+      expect(index).toContain(section);
+    }
+    // Strip comments before checking — the incident is documented in a comment.
+    const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(cssCode).not.toMatch(/scroll-snap-type\s*:\s*y\s+mandatory/);
+    expect(cssCode).not.toContain('snap-landing-active');
+    expect(readFileSync('package.json', 'utf8')).toContain('check-landing-layout-stability.mjs');
+  });
+
   it('ci workflow enforces guardrails before downstream checks', () => {
     const workflow = readFileSync('.github/workflows/pr-checks.yml', 'utf8');
     expect(workflow).toContain('name: Guardrails');

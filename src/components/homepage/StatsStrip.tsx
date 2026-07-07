@@ -11,7 +11,7 @@ export function StatsStrip() {
   const { t } = useTranslation();
 
   return (
-    <section className="snap-landing-strip border-y border-border/60 bg-secondary/40">
+    <section className="border-y border-border/60 bg-secondary/40">
       <div className="container py-10 grid grid-cols-2 md:grid-cols-4 gap-6">
         {stats.map((s) => (
           <div key={s.key}>
