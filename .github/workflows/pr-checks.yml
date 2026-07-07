@@ -129,8 +129,11 @@ jobs:
       - name: Comment preview URL on PR
         uses: actions/github-script@v7
         if: always()
+        # Cosmetic step — a transient GitHub API 50x must not fail the deploy job
+        continue-on-error: true
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          retries: 3
           script: |
             const body = `### Cloudflare Pages Preview
 
@@ -143,7 +146,7 @@ jobs:
             | Build | ✅ Passed |
             | Preview deploy | ${{ steps.deploy.outcome == 'success' && '✅ Deployed' || '❌ Failed (CLOUDFLARE_AGENT_TOKEN may not be set)' }} |
             `;
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
