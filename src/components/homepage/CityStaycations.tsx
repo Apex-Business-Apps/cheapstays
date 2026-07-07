@@ -36,7 +36,7 @@ export function CityStaycations() {
   const { t } = useTranslation();
 
   return (
-    <AtmosphericSection as="section" variant="lake" parallaxStrength="subtle" className="snap-landing-panel border-y border-border/60">
+    <AtmosphericSection as="section" variant="lake" parallaxStrength="subtle" className="border-y border-border/60">
       <div className="absolute top-12 right-[-60px] h-72 w-72 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
       <div className="container py-24">
         <div className="flex flex-wrap items-end justify-between gap-6 mb-12">

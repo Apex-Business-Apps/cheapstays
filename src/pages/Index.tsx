@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Seo } from "@/components/Seo";
 import {
   Hero,
@@ -11,12 +10,12 @@ import {
 // Sections moved to dedicated nav pages: BecomePartner, CustomerSupport, AboutUs.
 // Other sections kept for re-use: Destinations, WhyCheapStays, StatsStrip, CityStaycations, HowItWorks, Testimonials, FinalCta.
 
-export default function Index() {
-  useEffect(() => {
-    document.body.classList.add("snap-landing-active");
-    return () => document.body.classList.remove("snap-landing-active");
-  }, []);
+// GUARDRAIL: never re-enable body-level scroll snapping here (the old
+// "snap-landing-active" body class). Snap containers disable browser scroll
+// anchoring, so the async section loads (skeleton → data) shoved the whole
+// page around and forced every panel to 100svh. See CLAUDE.md §17.
 
+export default function Index() {
   return (
     <div>
       <Seo
@@ -24,13 +23,11 @@ export default function Index() {
         description="Short-term rentals across the Philippines with owner-direct pricing and no platform markup."
         path="/"
       />
-      <div className="snap-landing-page">
-        <Hero />
-        <PopularCitiesSection />
-        <FeaturedStaysSection />
-        <QuickStaysSection />
-        <BecomeHost />
-      </div>
+      <Hero />
+      <PopularCitiesSection />
+      <FeaturedStaysSection />
+      <QuickStaysSection />
+      <BecomeHost />
     </div>
   );
 }

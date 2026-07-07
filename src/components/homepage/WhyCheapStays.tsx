@@ -18,7 +18,7 @@ export function WhyCheapStays() {
   const { t } = useTranslation();
 
   return (
-    <AtmosphericSection as="div" variant="neighborhood" parallaxStrength="subtle" className="snap-landing-panel">
+    <AtmosphericSection as="div" variant="neighborhood" parallaxStrength="subtle">
       <section className="container pb-24">
         <div className="max-w-2xl mb-12">
           <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">

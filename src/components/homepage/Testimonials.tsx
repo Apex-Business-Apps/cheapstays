@@ -16,7 +16,7 @@ export function Testimonials() {
   const { t } = useTranslation();
 
   return (
-    <AtmosphericSection as="div" variant="coastal" parallaxStrength="subtle" className="snap-landing-strip">
+    <AtmosphericSection as="div" variant="coastal" parallaxStrength="subtle">
       <section className="container py-24">
         <div className="max-w-xl mb-10">
           <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">

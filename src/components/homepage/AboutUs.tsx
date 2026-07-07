@@ -69,7 +69,7 @@ export function AboutUs() {
   }
 
   return (
-    <AtmosphericSection as="div" variant="neighborhood" parallaxStrength="subtle" className="snap-landing-strip border-t border-border/60">
+    <AtmosphericSection as="div" variant="neighborhood" parallaxStrength="subtle" className="border-t border-border/60">
       <section className="container py-24">
         <div className="grid gap-12 lg:grid-cols-[1fr_1fr] lg:gap-16 items-start">
           {/* Story */}

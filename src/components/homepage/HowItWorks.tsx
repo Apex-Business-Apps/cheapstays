@@ -14,7 +14,7 @@ export function HowItWorks() {
   const { t } = useTranslation();
 
   return (
-    <AtmosphericSection variant="interior" parallaxStrength="none" className="snap-landing-panel border-y border-border/60">
+    <AtmosphericSection variant="interior" parallaxStrength="none" className="border-y border-border/60">
       <section className="bg-card/35">
         <div className="container py-24 grid lg:grid-cols-[1fr_1.2fr] gap-12 items-start">
           <div>

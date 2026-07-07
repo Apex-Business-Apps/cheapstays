@@ -139,7 +139,7 @@ export function CustomerSupport() {
   }
 
   return (
-    <AtmosphericSection as="div" variant="interior" parallaxStrength="none" className="snap-landing-strip border-y border-border/60">
+    <AtmosphericSection as="div" variant="interior" parallaxStrength="none" className="border-y border-border/60">
       <section className="container py-24">
         <div className="grid gap-12 lg:grid-cols-[1fr_1.05fr] lg:gap-16 items-start">
           {/* Info */}

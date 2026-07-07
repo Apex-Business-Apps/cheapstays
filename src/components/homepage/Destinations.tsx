@@ -38,7 +38,7 @@ export function Destinations() {
   const [brokenImages, setBrokenImages] = useState<Record<number, boolean>>({});
 
   return (
-    <AtmosphericSection as="div" variant="city" parallaxStrength="subtle" className="snap-landing-panel">
+    <AtmosphericSection as="div" variant="city" parallaxStrength="subtle">
       <section className="container py-24">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
           <div className="max-w-xl">

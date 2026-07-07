@@ -8,7 +8,7 @@ export function FinalCta() {
   const { t } = useTranslation();
 
   return (
-    <AtmosphericSection as="div" variant="coastal" parallaxStrength="subtle" className="snap-landing-strip">
+    <AtmosphericSection as="div" variant="coastal" parallaxStrength="subtle">
       <section className="container py-24">
         <div className="relative overflow-hidden rounded-3xl bg-primary text-primary-foreground p-8 md:p-16">
           <div className="absolute -right-20 -bottom-20 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />

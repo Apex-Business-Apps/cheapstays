@@ -151,6 +151,16 @@ All colors MUST be HSL.
   .atmo-tint-layer { background: var(--atmo-tint); }
   .atmo-veil-layer { background: var(--atmo-veil); }
 
+  /* GUARDRAIL: decorative atmosphere layers must never be scroll-anchor
+     candidates. The bg layer's parallax transform animates every frame while
+     its spring settles; if the browser anchors to it, scroll anchoring is
+     suppressed and late-loading content shifts the page (CLS). */
+  .atmo-bg-layer,
+  .atmo-tint-layer,
+  .atmo-veil-layer {
+    overflow-anchor: none;
+  }
+
   @media (max-width: 768px) {
     .atmo-section { --atmo-wallpaper-opacity: 0.18; }
     .dark .atmo-section { --atmo-wallpaper-opacity: 0.22; }
@@ -164,50 +174,20 @@ All colors MUST be HSL.
 @layer base {
   :root {
     --site-header-h: 4rem;
-    --snap-scroll-padding-top: calc(var(--site-header-h) + env(safe-area-inset-top, 0px));
-    --snap-section-min-h: calc(100svh - var(--snap-scroll-padding-top));
   }
 
-  body.snap-landing-active {
-    scroll-snap-type: y mandatory;
-    scroll-padding-top: var(--snap-scroll-padding-top);
-  }
+  /* GUARDRAIL — landing layout stability (do not reintroduce scroll snapping).
+     The removed "body.snap-landing-active { scroll-snap-type: y mandatory }"
+     rules caused a massive layout shift on the homepage: snap containers
+     disable browser scroll anchoring, so when the Popular Cities / Featured /
+     Quick Stays sections finished loading (skeleton -> data) all content below
+     jumped with no compensation, and every panel was stretched to ~100svh,
+     leaving huge blank bands. Landing sections must flow naturally. See
+     CLAUDE.md section 17 and scripts/guardrails/check-landing-layout-stability.mjs. */
 
-  body.snap-landing-active .snap-landing-panel {
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-    scroll-margin-top: var(--snap-scroll-padding-top);
-    min-height: var(--snap-section-min-h);
-  }
-
-  body.snap-landing-active .snap-landing-strip {
-    scroll-snap-align: start;
-    scroll-snap-stop: normal;
-    scroll-margin-top: var(--snap-scroll-padding-top);
-    min-height: auto;
-  }
-
-  body.snap-landing-active .snap-landing-footer {
-    scroll-snap-align: end;
-    scroll-snap-stop: normal;
-    min-height: auto;
-  }
-
-  @supports (height: 100dvh) {
-    body.snap-landing-active .snap-landing-panel {
-      min-height: calc(100dvh - var(--snap-scroll-padding-top));
-    }
-  }
-
-  /* Reduce strictness on touch-first devices to avoid iOS/Safari momentum jank and trap-like feel. */
-  @media (hover: none) and (pointer: coarse) {
-    body.snap-landing-active {
-      scroll-snap-type: y proximity;
-    }
-
-    body.snap-landing-active .snap-landing-panel {
-      scroll-snap-stop: normal;
-    }
+  /* Keep in-page anchor targets clear of the sticky header. */
+  html {
+    scroll-padding-top: calc(var(--site-header-h) + env(safe-area-inset-top, 0px));
   }
 
   @media (prefers-reduced-motion: reduce) {
