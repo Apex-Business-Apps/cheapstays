@@ -79,8 +79,14 @@ function WalletCardSkeleton() {
 
 function WalletCardEmpty() {
   return (
-    <div className="rounded-2xl bg-card border border-border p-6 text-center text-muted-foreground text-sm">
-      No wallet found. Your wallet will be created automatically when you receive your first booking.
+    <div className="rounded-2xl bg-card border border-border p-6 space-y-2">
+      <h2 className="text-lg font-semibold text-foreground">Host Wallet</h2>
+      <p className="text-sm text-muted-foreground">
+        Your wallet balance will appear here once you receive your first confirmed booking.
+      </p>
+      <p className="text-xs text-muted-foreground">
+        The wallet tracks your earnings on the platform. Your payout account below is where those earnings get sent.
+      </p>
     </div>
   );
 }
