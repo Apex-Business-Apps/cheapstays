@@ -26,11 +26,12 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
   const { action, host_id } = body;
 
-  // List all unverified payout accounts with profile info
+  // List ALL payout accounts (verified and pending) with profile info.
+  // No server-side status filtering — the admin panel filters client-side.
   if (action === "list") {
     const { data, error: fetchError } = await serviceClient
       .from("host_payout_accounts")
-      .select("id, host_id, payout_method, account_holder_name, is_verified, created_at, updated_at")
+      .select("id, host_id, payout_method, account_holder_name, is_verified, verified_by, verified_at, created_at, updated_at")
       .order("created_at", { ascending: false });
 
     if (fetchError) return json({ error: fetchError.message }, 500);
@@ -58,7 +59,11 @@ Deno.serve(async (req) => {
 
     const { error: updateError } = await serviceClient
       .from("host_payout_accounts")
-      .update({ is_verified: true, updated_at: new Date().toISOString() })
+      .update({
+        is_verified: true,
+        verified_by: user.id,
+        verified_at: new Date().toISOString(),
+      })
       .eq("host_id", host_id);
 
     if (updateError) return json({ error: updateError.message }, 500);

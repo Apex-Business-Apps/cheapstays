@@ -71,7 +71,10 @@ export function PayoutAccountSettings() {
         setSavedName(holderName);
         setAccountNumber('');
         setEditing(false);
-        toast({ title: 'Payout account saved', description: 'Your account details have been encrypted and saved.' });
+        // Saving always resets verification — the account must be re-approved
+        // by an admin before disbursements are sent.
+        setIsVerified(false);
+        toast({ title: 'Payout account saved', description: 'Your account details have been encrypted and saved. They will be reviewed before your next payout.' });
       } else {
         const body = await res.json().catch(() => ({}));
         toast({ title: 'Save failed', description: body?.error ?? 'Something went wrong. Please try again.', variant: 'destructive' });
@@ -199,6 +202,7 @@ export function PayoutAccountSettings() {
 
           <p className="text-xs text-muted-foreground">
             Account details are encrypted and stored securely. They are never shared with third parties.
+            {savedMethod && isVerified && ' Updating your details will require re-verification before payouts are sent.'}
           </p>
         </div>
       )}

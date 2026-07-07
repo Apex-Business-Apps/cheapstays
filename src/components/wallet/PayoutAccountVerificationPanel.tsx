@@ -21,31 +21,45 @@ const METHOD_LABEL: Record<string, string> = {
 export function PayoutAccountVerificationPanel() {
   const [accounts, setAccounts] = useState<PayoutAccountRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"pending" | "all">("pending");
 
   async function load() {
     setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-payout-account`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ action: "list" }),
+    setLoadError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-payout-account`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ action: "list" }),
+        }
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setLoadError(body?.error ?? `Failed to load payout accounts (HTTP ${res.status}).`);
+        return;
       }
-    );
-    const json = await res.json();
-    setAccounts(json.data ?? []);
-    setLoading(false);
+      const json = await res.json();
+      setAccounts(json.data ?? []);
+    } catch {
+      setLoadError("Network error while loading payout accounts.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, []);
 
   async function handleApprove(hostId: string) {
+    setConfirmingId(null);
     setApprovingId(hostId);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -102,6 +116,16 @@ export function PayoutAccountVerificationPanel() {
 
       {loading ? (
         <div className="animate-pulse h-32 m-4 rounded-xl bg-muted" />
+      ) : loadError ? (
+        <div className="px-6 py-8 text-center space-y-3">
+          <p className="text-sm text-destructive">{loadError}</p>
+          <button
+            onClick={() => load()}
+            className="text-xs font-medium border border-border px-4 py-2 rounded-lg text-foreground"
+          >
+            Retry
+          </button>
+        </div>
       ) : displayed.length === 0 ? (
         <div className="px-6 py-8 text-center text-muted-foreground text-sm">
           {filter === "pending" ? "No pending payout accounts to verify." : "No payout accounts found."}
@@ -125,13 +149,30 @@ export function PayoutAccountVerificationPanel() {
               </div>
 
               {!account.is_verified && (
-                <button
-                  onClick={() => handleApprove(account.host_id)}
-                  disabled={approvingId === account.host_id}
-                  className="shrink-0 bg-primary text-primary-foreground text-xs font-medium px-4 py-2 rounded-lg disabled:opacity-50"
-                >
-                  {approvingId === account.host_id ? "Approving…" : "Approve"}
-                </button>
+                confirmingId === account.host_id ? (
+                  <div className="shrink-0 flex items-center gap-2">
+                    <button
+                      onClick={() => setConfirmingId(null)}
+                      className="border border-border text-xs font-medium px-3 py-2 rounded-lg text-muted-foreground"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleApprove(account.host_id)}
+                      className="bg-primary text-primary-foreground text-xs font-medium px-4 py-2 rounded-lg"
+                    >
+                      Confirm approval
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmingId(account.host_id)}
+                    disabled={approvingId === account.host_id}
+                    className="shrink-0 bg-primary text-primary-foreground text-xs font-medium px-4 py-2 rounded-lg disabled:opacity-50"
+                  >
+                    {approvingId === account.host_id ? "Approving…" : "Approve"}
+                  </button>
+                )
               )}
             </li>
           ))}
