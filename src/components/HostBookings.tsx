@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { GuestRatingBadge } from "@/components/GuestRatingBadge";
 import { cn } from "@/lib/utils";
+import { BookingDetailDrawer } from "@/components/BookingDetailDrawer";
 
 type Booking = {
   id: string;
@@ -55,6 +56,7 @@ export function HostBookings({ hostId }: { hostId: string }) {
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -174,16 +176,20 @@ export function HostBookings({ hostId }: { hostId: string }) {
             className="text-sm"
           />
           <div className="flex gap-2">
-            <Button size="sm" disabled={rating === 0 || submitting} onClick={submitGuestReview}>
+            <Button size="sm" disabled={rating === 0 || submitting} onClick={(e) => { e.stopPropagation(); submitGuestReview(); }}>
               {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Post review"}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => { setRateState(null); setRating(0); setBody(""); }}>Cancel</Button>
+            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setRateState(null); setRating(0); setBody(""); }}>Cancel</Button>
           </div>
         </div>
       )}
 
       {bookings.map((b) => (
-        <div key={b.id} className="rounded-xl border border-border/60 bg-card p-4 space-y-3">
+        <div
+          key={b.id}
+          className="rounded-xl border border-border/60 bg-card p-4 space-y-3 cursor-pointer hover:bg-secondary/20 transition-colors"
+          onClick={() => setSelectedBookingId(b.id)}
+        >
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <p className="font-medium text-sm">{b.listings?.title ?? "Listing"}</p>
@@ -214,11 +220,22 @@ export function HostBookings({ hostId }: { hostId: string }) {
           <div className="flex flex-wrap gap-2 pt-1">
             {b.status === "pending" && (
               <>
-                <Button size="sm" className="gap-1.5" disabled={updating === b.id} onClick={() => updateStatus(b.id, "confirmed")}>
+                <Button
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={updating === b.id}
+                  onClick={(e) => { e.stopPropagation(); updateStatus(b.id, "confirmed"); }}
+                >
                   {updating === b.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
                   Confirm
                 </Button>
-                <Button size="sm" variant="outline" className="gap-1.5 text-destructive hover:text-destructive" disabled={updating === b.id} onClick={() => updateStatus(b.id, "cancelled")}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-destructive hover:text-destructive"
+                  disabled={updating === b.id}
+                  onClick={(e) => { e.stopPropagation(); updateStatus(b.id, "cancelled"); }}
+                >
                   <XCircle className="h-3 w-3" /> Decline
                 </Button>
               </>
@@ -228,7 +245,7 @@ export function HostBookings({ hostId }: { hostId: string }) {
                 size="sm"
                 variant="outline"
                 className="gap-1.5"
-                onClick={() => setRateState({ bookingId: b.id, guestId: b.guest_id, listingId: b.listing_id })}
+                onClick={(e) => { e.stopPropagation(); setRateState({ bookingId: b.id, guestId: b.guest_id, listingId: b.listing_id }); }}
               >
                 <Star className="h-3 w-3" /> Rate guest
               </Button>
@@ -241,6 +258,10 @@ export function HostBookings({ hostId }: { hostId: string }) {
           </div>
         </div>
       ))}
+      <BookingDetailDrawer
+        bookingId={selectedBookingId}
+        onClose={() => setSelectedBookingId(null)}
+      />
     </div>
   );
 }

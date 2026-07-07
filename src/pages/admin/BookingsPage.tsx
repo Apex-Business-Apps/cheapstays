@@ -9,11 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Seo } from "@/components/Seo";
 import type { Booking } from "./types";
 import { STATUS_COLORS } from "./types";
+import { BookingDetailDrawer } from "@/components/BookingDetailDrawer";
 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [month, setMonth] = useState(new Date());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await supabase.from("bookings")
@@ -69,7 +71,11 @@ export default function BookingsPage() {
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">This month</p>
             {monthBookings.length === 0 && <p className="text-sm text-muted-foreground py-2">No bookings this month.</p>}
             {monthBookings.map((b) => (
-              <div key={b.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border/40">
+              <button
+                key={b.id}
+                onClick={() => setSelectedId(b.id)}
+                className="w-full flex items-center justify-between text-sm py-1.5 border-b border-border/40 hover:bg-secondary/40 rounded px-1 transition-colors min-h-[44px] text-left"
+              >
                 <div className="flex items-center gap-2">
                   <span className={`h-2 w-2 rounded-full shrink-0 ${STATUS_COLORS[b.status] ?? "bg-gray-400"}`} />
                   <span>{format(parseISO(b.check_in), "MMM d")} → {format(parseISO(b.check_out), "MMM d")}</span>
@@ -78,11 +84,15 @@ export default function BookingsPage() {
                   <Badge variant="secondary" className="text-[10px]">{b.status}</Badge>
                   <span className="text-muted-foreground text-xs">₱{b.total_php.toLocaleString()}</span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
       )}
+      <BookingDetailDrawer
+        bookingId={selectedId}
+        onClose={() => setSelectedId(null)}
+      />
     </>
   );
 }

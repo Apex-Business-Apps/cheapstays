@@ -5,6 +5,39 @@ export type Booking = {
   check_in: string; check_out: string; status: string; total_php: number; created_at: string;
 };
 
+export type BookingDetail = {
+  // core booking
+  id: string;
+  listing_id: string;
+  guest_id: string;
+  host_id: string;
+  check_in: string;
+  check_out: string;
+  nights: number;
+  guests: number;
+  status: string;
+  total_php: number;
+  payment_status: string | null;
+  payment_method: string | null;
+  payment_ref: string | null;
+  refundable_until: string | null;
+  payout_release_on: string | null;
+  guest_message: string | null;
+  cancellation_reason: string | null;
+  cancelled_at: string | null;
+  confirmed_at: string | null;
+  created_at: string;
+  // joined
+  guestName: string;
+  hostName: string;
+  listingTitle: string;
+  listingCity: string;
+  listingProvince: string;
+  listingAddress: string | null;
+  listingType: string;
+  nightlyPhp: number;
+};
+
 export type SupportTicket = {
   id: string; ticket_num: number; subject: string; status: string;
   priority: string; category: string; escalated: boolean; created_at: string; user_id: string;
