@@ -26,7 +26,7 @@ serve(async (req) => {
   // Fetch booking with host and amount
   const { data: booking, error: bookingError } = await supabase
     .from('bookings')
-    .select('id, host_id, total_amount, status')
+    .select('id, host_id, total_php, status')
     .eq('id', booking_id)
     .single();
 
@@ -38,7 +38,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Booking not confirmed' }), { status: 400 });
   }
 
-  const hostEarnings = Number(booking.total_amount) * (1 - PLATFORM_FEE_RATE);
+  const hostEarnings = Number(booking.total_php) * (1 - PLATFORM_FEE_RATE);
 
   // Idempotency guard: booking can only be credited once
   const { data: existingCredit } = await supabase
