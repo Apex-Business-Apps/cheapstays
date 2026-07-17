@@ -25,13 +25,13 @@ serve(async (req) => {
 
   const { data: booking } = await supabase
     .from('bookings')
-    .select('id, host_id, total_amount')
+    .select('id, host_id, total_php')
     .eq('id', booking_id)
     .single();
 
   if (!booking) return new Response('Booking not found', { status: 404 });
 
-  const hostEarnings = Number(booking.total_amount) * (1 - PLATFORM_FEE_RATE);
+  const hostEarnings = Number(booking.total_php) * (1 - PLATFORM_FEE_RATE);
 
   // Idempotency guard: booking can only be released once
   const { data: existingRelease } = await supabase

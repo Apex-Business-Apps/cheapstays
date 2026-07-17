@@ -49,7 +49,7 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 export function AppSidebar() {
-  const { roles, signOut } = useAuth();
+  const { user, roles, signOut } = useAuth();
   const admin = isAdmin(roles);
   const host = isHost(roles);
   const logoHref = admin ? "/admin/overview" : "/host/dashboard";
@@ -127,6 +127,16 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3 flex flex-col gap-2">
+        {user && (
+          <div className="px-2 py-1">
+            {user.user_metadata?.full_name && (
+              <p className="text-sm font-medium text-foreground truncate">
+                {user.user_metadata.full_name}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          </div>
+        )}
         <Button
           variant="ghost"
           size="sm"

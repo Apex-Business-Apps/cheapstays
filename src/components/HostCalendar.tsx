@@ -22,6 +22,7 @@ type BookingRow = {
   check_out: string;
   flow_state: string;
   status: string;
+  payment_status: string;
   total_php: number;
   guest_id: string;
   listings: { title: string } | null;
@@ -80,8 +81,10 @@ export function HostCalendar({ hostId }: Props) {
 
       const [bRes, blRes] = await Promise.all([
         sb.from("bookings")
-          .select("id,listing_id,check_in,check_out,flow_state,status,total_php,guest_id,listings(title)")
+          .select("id,listing_id,check_in,check_out,flow_state,status,payment_status,total_php,guest_id,listings(title)")
           .eq("host_id", hostId)
+          .eq("payment_status", "paid")
+          .neq("status", "cancelled")
           .order("check_in", { ascending: true }),
         listingIds.length === 0
           ? Promise.resolve({ data: [], error: null })

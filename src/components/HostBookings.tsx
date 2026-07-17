@@ -20,6 +20,9 @@ type Booking = {
   guests: number;
   total_php: number;
   status: string;
+  booking_flow: string;
+  flow_state: string;
+  payment_status: string | null;
   guest_message: string | null;
   created_at: string;
   listings: { title: string } | null;
@@ -62,7 +65,7 @@ export function HostBookings({ hostId }: { hostId: string }) {
     async function load() {
       const { data: bData } = await supabase
         .from("bookings")
-        .select("id,listing_id,guest_id,check_in,check_out,nights,guests,total_php,status,guest_message,created_at,listings(title)")
+        .select("id,listing_id,guest_id,check_in,check_out,nights,guests,total_php,status,booking_flow,flow_state,payment_status,guest_message,created_at,listings(title)")
         .eq("host_id", hostId)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -218,7 +221,7 @@ export function HostBookings({ hostId }: { hostId: string }) {
 
           {/* Actions */}
           <div className="flex flex-wrap gap-2 pt-1">
-            {b.status === "pending" && (
+            {b.status === "pending" && b.booking_flow === "request_booking" && b.flow_state === "requested" && (
               <>
                 <Button
                   size="sm"
@@ -239,6 +242,11 @@ export function HostBookings({ hostId }: { hostId: string }) {
                   <XCircle className="h-3 w-3" /> Decline
                 </Button>
               </>
+            )}
+            {b.status === "pending" && b.booking_flow === "instant_book" && (
+              <span className="text-xs text-muted-foreground">
+                Awaiting guest payment — this booking will confirm automatically once paid.
+              </span>
             )}
             {b.status === "confirmed" && !b.hasReview && (
               <Button
