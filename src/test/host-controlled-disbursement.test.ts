@@ -200,3 +200,21 @@ describe("host-confirm-disbursement edge function", () => {
     expect(confirmFn).toContain('type: "disbursement_released"');
   });
 });
+
+const monthlyFn = readFileSync("supabase/functions/process-monthly-payouts/index.ts", "utf8");
+
+describe("process-monthly-payouts is paused", () => {
+  it("exits early with a disabled flag before any Xendit call", () => {
+    const disabledIdx = monthlyFn.indexOf('"disabled": true');
+    const xenditIdx = monthlyFn.indexOf("api.xendit.co");
+    expect(disabledIdx).toBeGreaterThan(-1);
+    // xenditIdx may be -1 if we deleted the code, or it must appear inside a comment block AFTER the early return
+    if (xenditIdx > -1) {
+      const pausedStart = monthlyFn.indexOf("/* PAUSED");
+      const pausedEnd = monthlyFn.indexOf("PAUSED */");
+      expect(pausedStart).toBeGreaterThan(-1);
+      expect(pausedStart).toBeLessThan(xenditIdx);
+      expect(xenditIdx).toBeLessThan(pausedEnd);
+    }
+  });
+});
