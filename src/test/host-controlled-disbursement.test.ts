@@ -152,3 +152,29 @@ describe("admin-attach-disbursement-proof edge function", () => {
     expect(attachFn).toMatch(/const rl = await rateLimit/);
   });
 });
+
+const rejectFn = readFileSync("supabase/functions/admin-reject-disbursement/index.ts", "utf8");
+
+describe("admin-reject-disbursement edge function", () => {
+  it("verifies caller is admin", () => {
+    expect(rejectFn).toContain('.rpc("has_role"');
+  });
+
+  it("requires a rejection_reason", () => {
+    expect(rejectFn).toContain("rejection_reason");
+    expect(rejectFn).toContain('return json(400');
+  });
+
+  it("allows rejection only from pending or awaiting_confirmation", () => {
+    expect(rejectFn).toMatch(/\!\["pending",\s*"awaiting_confirmation"\]\.includes\(/);
+  });
+
+  it("refunds the wallet using available_balance + amount", () => {
+    expect(rejectFn).toContain("available_balance:");
+    expect(rejectFn).toContain('type: "debit_failed_reversal"');
+  });
+
+  it("notifies the host with the rejection reason", () => {
+    expect(rejectFn).toContain('type: "disbursement_rejected"');
+  });
+});
