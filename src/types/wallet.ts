@@ -12,7 +12,10 @@ export type DisbursementStatus =
   | 'processing'
   | 'completed'
   | 'failed'
-  | 'retrying';
+  | 'retrying'
+  | 'awaiting_confirmation'
+  | 'released'
+  | 'rejected';
 
 export interface HostWallet {
   id: string;
@@ -51,6 +54,15 @@ export interface DisbursementRequest {
   requested_at: string;
   processed_at: string | null;
   cycle_month: string;
+  proof_image_path: string | null;
+  admin_note: string | null;
+  released_by: string | null;
+  released_at: string | null;
+  confirmed_at: string | null;
+  rejected_by: string | null;
+  rejected_at: string | null;
+  rejection_reason: string | null;
+  trigger: 'manual' | 'auto';
 }
 
 export interface HostPayoutAccount {

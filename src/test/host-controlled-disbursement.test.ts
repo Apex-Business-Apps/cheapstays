@@ -6,6 +6,8 @@ const migration = readFileSync(
   "utf8",
 );
 
+const walletTypes = readFileSync("src/types/wallet.ts", "utf8");
+
 describe("host-controlled disbursement migration", () => {
   it("extends the disbursement_requests status CHECK to include manual-flow states", () => {
     expect(migration).toMatch(/ALTER TABLE\s+disbursement_requests[\s\S]*DROP CONSTRAINT[\s\S]*valid_disburse_status/);
@@ -45,5 +47,23 @@ describe("host-controlled disbursement migration", () => {
 
   it("unschedules the monthly payout cron", () => {
     expect(migration).toContain("cron.unschedule('cheapstays-monthly-host-payouts')");
+  });
+
+  it("adds the new disbursement statuses to the DisbursementStatus union", () => {
+    expect(walletTypes).toContain("'awaiting_confirmation'");
+    expect(walletTypes).toContain("'released'");
+    expect(walletTypes).toContain("'rejected'");
+  });
+
+  it("adds proof and audit fields to DisbursementRequest", () => {
+    expect(walletTypes).toContain("proof_image_path: string | null");
+    expect(walletTypes).toContain("admin_note: string | null");
+    expect(walletTypes).toContain("released_by: string | null");
+    expect(walletTypes).toContain("released_at: string | null");
+    expect(walletTypes).toContain("confirmed_at: string | null");
+    expect(walletTypes).toContain("rejected_by: string | null");
+    expect(walletTypes).toContain("rejected_at: string | null");
+    expect(walletTypes).toContain("rejection_reason: string | null");
+    expect(walletTypes).toContain("trigger: 'manual' | 'auto'");
   });
 });
