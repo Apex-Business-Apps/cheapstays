@@ -67,3 +67,50 @@ describe("host-controlled disbursement migration", () => {
     expect(walletTypes).toContain("trigger: 'manual' | 'auto'");
   });
 });
+
+const requestFn = readFileSync("supabase/functions/request-disbursement/index.ts", "utf8");
+
+describe("request-disbursement edge function", () => {
+  it("returns CORS headers on OPTIONS", () => {
+    expect(requestFn).toContain('if (req.method === "OPTIONS")');
+    expect(requestFn).toContain("corsHeaders");
+  });
+
+  it("uses getUserFromRequest for auth", () => {
+    expect(requestFn).toContain("getUserFromRequest(req)");
+  });
+
+  it("awaits the rate limit and uses a 7-day window keyed by user id", () => {
+    expect(requestFn).toMatch(/const rl = await rateLimit\(`request-disbursement:\$\{user\.id\}`,\s*1,\s*7\s*\*\s*24\s*\*\s*60\s*\*\s*60\s*\*\s*1000\)/);
+  });
+
+  it("enforces the ₱500 minimum", () => {
+    expect(requestFn).toContain("const MINIMUM_PAYOUT = 500");
+    expect(requestFn).toContain("available_balance < MINIMUM_PAYOUT");
+  });
+
+  it("blocks when the payout account is not verified", () => {
+    expect(requestFn).toContain("is_verified");
+    expect(requestFn).toContain("Payout account not verified");
+  });
+
+  it("blocks when an in-flight request already exists", () => {
+    expect(requestFn).toContain("status.in.(pending,awaiting_confirmation)");
+    expect(requestFn).toContain("A disbursement request is already in progress");
+  });
+
+  it("debits the wallet before returning success (write order matters)", () => {
+    const insertIdx = requestFn.indexOf('.from("disbursement_requests")');
+    const debitIdx = requestFn.indexOf("available_balance: 0");
+    const returnIdx = requestFn.indexOf('"ok": true');
+    expect(insertIdx).toBeGreaterThan(-1);
+    expect(debitIdx).toBeGreaterThan(insertIdx);
+    expect(returnIdx).toBeGreaterThan(debitIdx);
+  });
+
+  it("dispatches an in-app notification to every admin", () => {
+    expect(requestFn).toContain('type: "disbursement_requested"');
+    expect(requestFn).toContain('.from("user_roles")');
+    expect(requestFn).toContain('.eq("role", "admin")');
+  });
+});
