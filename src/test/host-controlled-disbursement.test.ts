@@ -178,3 +178,25 @@ describe("admin-reject-disbursement edge function", () => {
     expect(rejectFn).toContain('type: "disbursement_rejected"');
   });
 });
+
+const confirmFn = readFileSync("supabase/functions/host-confirm-disbursement/index.ts", "utf8");
+
+describe("host-confirm-disbursement edge function", () => {
+  it("verifies the caller owns the wallet on the request", () => {
+    expect(confirmFn).toContain("host_id");
+    expect(confirmFn).toContain("!== user.id");
+  });
+
+  it("only transitions from awaiting_confirmation", () => {
+    expect(confirmFn).toContain('status !== "awaiting_confirmation"');
+  });
+
+  it("sets status=released and confirmed_at", () => {
+    expect(confirmFn).toContain('status: "released"');
+    expect(confirmFn).toContain("confirmed_at:");
+  });
+
+  it("dispatches disbursement_released notification to the host", () => {
+    expect(confirmFn).toContain('type: "disbursement_released"');
+  });
+});
