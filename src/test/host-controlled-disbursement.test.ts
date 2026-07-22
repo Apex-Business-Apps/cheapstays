@@ -114,3 +114,41 @@ describe("request-disbursement edge function", () => {
     expect(requestFn).toContain('.eq("role", "admin")');
   });
 });
+
+const attachFn = readFileSync("supabase/functions/admin-attach-disbursement-proof/index.ts", "utf8");
+
+describe("admin-attach-disbursement-proof edge function", () => {
+  it("returns CORS headers on OPTIONS", () => {
+    expect(attachFn).toContain('if (req.method === "OPTIONS")');
+  });
+
+  it("verifies caller is admin via has_role RPC", () => {
+    expect(attachFn).toContain('.rpc("has_role"');
+    expect(attachFn).toContain('_role: "admin"');
+  });
+
+  it("validates required fields disbursement_id and proof_image_path", () => {
+    expect(attachFn).toContain("disbursement_id");
+    expect(attachFn).toContain("proof_image_path");
+    expect(attachFn).toContain('return json(400');
+  });
+
+  it("only accepts requests in pending status", () => {
+    expect(attachFn).toContain('status !== "pending"');
+    expect(attachFn).toContain("Request is not pending");
+  });
+
+  it("sets awaiting_confirmation, records released_by and released_at", () => {
+    expect(attachFn).toContain('status: "awaiting_confirmation"');
+    expect(attachFn).toContain("released_by: user.id");
+    expect(attachFn).toContain("released_at:");
+  });
+
+  it("notifies the host that proof was uploaded", () => {
+    expect(attachFn).toContain('type: "disbursement_proof_uploaded"');
+  });
+
+  it("awaits the rate limit", () => {
+    expect(attachFn).toMatch(/const rl = await rateLimit/);
+  });
+});
