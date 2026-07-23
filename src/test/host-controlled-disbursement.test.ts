@@ -166,7 +166,7 @@ describe("admin-reject-disbursement edge function", () => {
   });
 
   it("allows rejection only from pending or awaiting_confirmation", () => {
-    expect(rejectFn).toMatch(/\!\["pending",\s*"awaiting_confirmation"\]\.includes\(/);
+    expect(rejectFn).toMatch(/!\["pending",\s*"awaiting_confirmation"\]\.includes\(/);
   });
 
   it("refunds the wallet using available_balance + amount", () => {
