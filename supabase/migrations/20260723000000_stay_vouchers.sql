@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS public.stay_voucher_purchases (
   payment_ref       TEXT,
   payment_status    TEXT NOT NULL DEFAULT 'pending'
                     CHECK (payment_status IN ('pending','paid','failed')),
-  success_token     TEXT NOT NULL,
+  success_token     TEXT NOT NULL UNIQUE,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   paid_at           TIMESTAMPTZ
 );
@@ -76,7 +76,8 @@ CREATE POLICY "Service role manages purchases"
 CREATE TABLE IF NOT EXISTS public.stay_voucher_codes (
   id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   batch_id               UUID NOT NULL REFERENCES public.stay_voucher_batches(id) ON DELETE RESTRICT,
-  code                   TEXT NOT NULL UNIQUE,
+  code                   TEXT NOT NULL UNIQUE
+                         CHECK (code ~ '^CS-[2-9A-HJKMNP-TV-Z]{4}-[2-9A-HJKMNP-TV-Z]{4}$'),
   status                 TEXT NOT NULL DEFAULT 'unclaimed'
                          CHECK (status IN ('unclaimed','claimed','expired')),
   purchase_id            UUID NOT NULL REFERENCES public.stay_voucher_purchases(id) ON DELETE RESTRICT,

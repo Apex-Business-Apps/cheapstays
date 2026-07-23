@@ -46,4 +46,12 @@ describe("stay-voucher migration", () => {
     expect(migration).toMatch(/cheapstays-stay-voucher-expiry/);
     expect(migration).toMatch(/pg_extension WHERE extname = 'pg_cron'/);
   });
+
+  it("enforces the CS-XXXX-XXXX format at the DB level", () => {
+    expect(migration).toMatch(/code\s+TEXT\s+NOT\s+NULL\s+UNIQUE[\s\S]{0,200}CHECK \(code ~ '\^CS-\[/);
+  });
+
+  it("makes success_token UNIQUE to prevent race collisions", () => {
+    expect(migration).toMatch(/success_token\s+TEXT\s+NOT\s+NULL\s+UNIQUE/);
+  });
 });
