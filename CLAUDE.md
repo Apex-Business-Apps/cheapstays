@@ -203,6 +203,40 @@ All edge functions live under `supabase/functions/<name>/index.ts`. All function
 | `membership-payment-intent` | PayMongo checkout for ₱249/month membership |
 | `omnihub-role-authority` | OmniHub/GitHub registry commands via `execute_role_mutation` RPC |
 
+### 4.9 Manual Disbursement Functions (host-controlled)
+
+#### `request-disbursement`
+- **Purpose:** Host requests a payout of their available wallet balance.
+- **Auth required:** Yes — caller must own the wallet.
+- **Body:** `{ }` (empty). User + wallet are derived server-side.
+- **Preconditions:** `available_balance >= 500`, `host_payout_accounts.is_verified = true`, no in-flight request, once per 7 days.
+- **Side effects:** Inserts a `disbursement_requests` row (`status = 'pending'`, `trigger = 'manual'`), debits `host_wallets.available_balance` to 0, inserts a `debit_disbursement` ledger row, notifies every admin.
+- **Rate limit:** 1 req / 7 days per host.
+
+#### `admin-attach-disbursement-proof`
+- **Purpose:** Admin uploads a screenshot / QR of the manual payment they sent off-platform.
+- **Auth required:** Yes — caller must be `admin`.
+- **Body:** `{ disbursement_id, proof_image_path, admin_note? }`. The client uploads the image to Storage bucket `disbursement-proofs` first, then passes the resulting path here.
+- **Allowed statuses:** `pending` only.
+- **Side effects:** Sets `status = 'awaiting_confirmation'`, records `released_by`, `released_at`, `proof_image_path`, `admin_note`; notifies the host.
+
+#### `admin-reject-disbursement`
+- **Purpose:** Admin rejects a payout request and refunds the wallet.
+- **Auth required:** Yes — caller must be `admin`.
+- **Body:** `{ disbursement_id, rejection_reason }`.
+- **Allowed statuses:** `pending` or `awaiting_confirmation`.
+- **Side effects:** Sets `status = 'rejected'`, records `rejected_by`/`rejected_at`/`rejection_reason`, adds `amount` back to `host_wallets.available_balance`, inserts a `debit_failed_reversal` ledger row, notifies the host.
+
+#### `host-confirm-disbursement`
+- **Purpose:** Host confirms they actually received the money in their off-platform account.
+- **Auth required:** Yes — caller must own the wallet on the request.
+- **Body:** `{ disbursement_id }`.
+- **Allowed statuses:** `awaiting_confirmation` only.
+- **Side effects:** Sets `status = 'released'`, records `confirmed_at`; notifies the host.
+
+#### `process-monthly-payouts` ⏸ PAUSED
+- Neutralized on 2026-07-22 in favor of the manual flow above. Returns `{ disabled: true }` immediately. The pg_cron schedule `cheapstays-monthly-host-payouts` was unscheduled in migration `20260722000000_host_controlled_disbursements.sql`. Do not re-enable without a product decision.
+
 ---
 
 ## 5. Database — Critical Constraints
@@ -244,6 +278,9 @@ Write once. The `operation` column is an enum — current values: `grant_host`, 
 | `role_mutation_audit` | Immutable audit trail | command_id, operation, before_state, after_state |
 | `webhook_events` | Idempotency for payment webhooks | provider, event_id, event_type, booking_id |
 | `push_subscriptions` | Web push endpoints | endpoint, p256dh, auth_key |
+| `disbursement_requests` (extended) | Payout requests | `status` now includes `awaiting_confirmation`, `released`, `rejected`. Partial unique index blocks two in-flight requests per wallet. `trigger` column: `'manual'` (host-initiated) or `'auto'` (paused monthly cron). |
+
+**Storage bucket `disbursement-proofs`** (private, 10 MB, image-only): admin uploads proof of off-platform payment. Path convention: `{wallet_id}/{disbursement_id}.{ext}`. Admins write and read; hosts can read only their own wallet's folder.
 
 ### Host Application Paths — BOTH Must Be Handled
 
@@ -602,3 +639,12 @@ snap-like feel is ever wanted, it must live in an inner overflow container with
 stable (non-async) panel heights.
 
 *Last updated by: Claude Code — landing layout-shift fix (2026-07-07)*
+
+### ❌ Adding a new disbursement request without checking the in-flight partial unique index
+The `disbursement_requests` table has `uniq_disbursement_in_flight` — a partial unique index on `(wallet_id) WHERE status IN ('pending','awaiting_confirmation')`. Two active requests per wallet is impossible at the DB level. The edge function `request-disbursement` also checks explicitly for a clearer error message; do not remove either layer.
+
+### ❌ Editing `process-monthly-payouts` as if it were live
+It was paused on 2026-07-22 in favor of the manual host-controlled flow. The pg_cron schedule was dropped. The function returns `{ disabled: true }` on every call. Its old Xendit sweep logic is retained as a `/* PAUSED ... */` comment for reference only. Do not "re-enable" without a product decision — the host-controlled flow is the current design.
+
+### ❌ Referencing `has_role` via JWT claim in new RLS policies
+The 2025-05-27 wallet migration used `auth.jwt() ->> 'role' = 'admin'` for admin bypass. This is inconsistent with the rest of the app which uses `public.has_role(auth.uid(), 'admin')`. New RLS and storage policies (see the `disbursement-proofs` bucket in migration `20260722000000`) must use `has_role`.
