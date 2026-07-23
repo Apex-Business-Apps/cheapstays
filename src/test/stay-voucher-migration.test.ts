@@ -38,6 +38,10 @@ describe("stay-voucher migration", () => {
     expect(migration).toMatch(/ALTER TABLE public\.bookings[\s\S]*ADD COLUMN IF NOT EXISTS guest_name_snapshot TEXT/);
   });
 
+  it("drops the NOT NULL on bookings.guest_id for anonymous voucher redemption", () => {
+    expect(migration).toMatch(/ALTER TABLE public\.bookings[\s\S]*ALTER COLUMN guest_id DROP NOT NULL/);
+  });
+
   it("schedules the 6-hour expiry cron guarded by pg_extension check", () => {
     expect(migration).toMatch(/cheapstays-stay-voucher-expiry/);
     expect(migration).toMatch(/pg_extension WHERE extname = 'pg_cron'/);

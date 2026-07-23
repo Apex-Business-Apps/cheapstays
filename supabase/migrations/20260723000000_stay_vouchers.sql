@@ -145,6 +145,11 @@ CREATE POLICY "Service role manages revenue events"
 ALTER TABLE public.bookings
   ADD COLUMN IF NOT EXISTS guest_name_snapshot TEXT;
 
+-- Anonymous voucher redemptions have no auth.users row, so guest_id must
+-- be nullable. Existing paid bookings always set it, so this is safe.
+ALTER TABLE public.bookings
+  ALTER COLUMN guest_id DROP NOT NULL;
+
 -- 6. Atomic redemption RPC -------------------------------------
 
 CREATE OR REPLACE FUNCTION public.redeem_stay_voucher_transaction(
