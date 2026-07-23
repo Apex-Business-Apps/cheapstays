@@ -136,10 +136,14 @@ Deno.serve(async (req) => {
   }
 
   // Persist the PayMongo checkout session id onto the purchase row via payment_ref
-  await admin
+  const { error: refErr } = await admin
     .from("stay_voucher_purchases")
     .update({ payment_ref: pmJson.data.id })
     .eq("id", purchase.id);
+  if (refErr) {
+    console.error("stay-voucher-checkout: failed to persist payment_ref", refErr);
+    return json({ error: "Failed to persist checkout session" }, 500);
+  }
 
   return json(
     {
