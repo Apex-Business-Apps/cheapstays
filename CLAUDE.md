@@ -203,6 +203,80 @@ All edge functions live under `supabase/functions/<name>/index.ts`. All function
 | `membership-payment-intent` | PayMongo checkout for ₱249/month membership |
 | `omnihub-role-authority` | OmniHub/GitHub registry commands via `execute_role_mutation` RPC |
 
+### 4.9 Manual Disbursement Functions (host-controlled)
+
+#### `request-disbursement`
+- **Purpose:** Host requests a payout of their available wallet balance.
+- **Auth required:** Yes — caller must own the wallet.
+- **Body:** `{ }` (empty). User + wallet are derived server-side.
+- **Preconditions:** `available_balance >= 500`, `host_payout_accounts.is_verified = true`, no in-flight request, once per 7 days.
+- **Side effects:** Inserts a `disbursement_requests` row (`status = 'pending'`, `trigger = 'manual'`), debits `host_wallets.available_balance` to 0, inserts a `debit_disbursement` ledger row, notifies every admin.
+- **Rate limit:** 1 req / 7 days per host.
+
+#### `admin-attach-disbursement-proof`
+- **Purpose:** Admin uploads a screenshot / QR of the manual payment they sent off-platform.
+- **Auth required:** Yes — caller must be `admin`.
+- **Body:** `{ disbursement_id, proof_image_path, admin_note? }`. The client uploads the image to Storage bucket `disbursement-proofs` first, then passes the resulting path here.
+- **Allowed statuses:** `pending` only.
+- **Side effects:** Sets `status = 'awaiting_confirmation'`, records `released_by`, `released_at`, `proof_image_path`, `admin_note`; notifies the host.
+
+#### `admin-reject-disbursement`
+- **Purpose:** Admin rejects a payout request and refunds the wallet.
+- **Auth required:** Yes — caller must be `admin`.
+- **Body:** `{ disbursement_id, rejection_reason }`.
+- **Allowed statuses:** `pending` or `awaiting_confirmation`.
+- **Side effects:** Sets `status = 'rejected'`, records `rejected_by`/`rejected_at`/`rejection_reason`, adds `amount` back to `host_wallets.available_balance`, inserts a `debit_failed_reversal` ledger row, notifies the host.
+
+#### `host-confirm-disbursement`
+- **Purpose:** Host confirms they actually received the money in their off-platform account.
+- **Auth required:** Yes — caller must own the wallet on the request.
+- **Body:** `{ disbursement_id }`.
+- **Allowed statuses:** `awaiting_confirmation` only.
+- **Side effects:** Sets `status = 'released'`, records `confirmed_at`; notifies the host.
+
+#### `process-monthly-payouts` ⏸ PAUSED
+- Neutralized on 2026-07-22 in favor of the manual flow above. Returns `{ disabled: true }` immediately. The pg_cron schedule `cheapstays-monthly-host-payouts` was unscheduled in migration `20260722000000_host_controlled_disbursements.sql`. Do not re-enable without a product decision.
+
+### 4.10 Stay Voucher Functions (prepaid overnight stays)
+
+Coexists with the pre-existing hourly-voucher system (§4.9 is Manual Disbursement, then §4.10 is the new stay vouchers). Do not confuse `stay_voucher_*` with the pre-existing hourly `vouchers` table, `purchase-voucher`, and `redeem-voucher` functions — those are a separate, still-live product.
+
+#### `admin-stay-voucher-batch-create`
+- **Auth:** admin only (`has_role`).
+- **Body:** `{ listing_id, batch_name, nights, price_php, quantity, valid_days, terms? }`. Caps: nights ≤30, quantity ≤500, valid_days 1–14.
+- **Effect:** inserts a `stay_voucher_batches` row.
+
+#### `admin-stay-voucher-batch-deactivate`
+- **Auth:** admin only.
+- **Body:** `{ batch_id }`. Sets `is_active=false`. Existing purchased codes remain valid until their own `valid_until`.
+
+#### `stay-voucher-checkout` (anonymous public)
+- **Auth:** none.
+- **Body:** `{ batch_id, quantity, buyer_name, buyer_email, buyer_phone, payment_method, accept_terms: true }`.
+- **Flow:** stock check → insert `stay_voucher_purchases` with minted `success_token` → PayMongo checkout session (metadata `{ purchase_id, kind: "stay_voucher" }`) → returns `{ checkout_url, purchase_id, success_token }`.
+- **Rate limit:** 10 req/60s per IP.
+
+#### `stay-voucher-webhook`
+- **Auth:** PayMongo signature.
+- **Effect:** idempotent via `webhook_events(provider='paymongo_stay_voucher', event_id)`; marks purchase `paid`, mints `quantity` codes with `valid_until = paid_at + batch.valid_days days`, emails buyer via Resend.
+
+#### `stay-voucher-purchase-lookup` (anonymous public)
+- **Auth:** none — verifies `success_token`.
+- **Body:** `{ purchase_id, success_token }` → `{ payment_status, codes | null, batch: { name, nights, price_php, valid_until, listing } }`.
+
+#### `stay-voucher-resend-email` (anonymous public)
+- **Auth:** none — verifies `success_token`.
+- **Body:** `{ purchase_id, success_token }`. Rate limit: 5 req/60s per purchase.
+
+#### `host-stay-voucher-preview`
+- **Auth:** host only.
+- **Body:** `{ code }` → batch + buyer name + `valid_until` if host owns the listing; else 403.
+
+#### `host-stay-voucher-redeem`
+- **Auth:** host only.
+- **Body:** `{ code, listing_id, p_check_in }`.
+- **Effect:** calls the `redeem_stay_voucher_transaction(p_code, p_listing_id, p_caller_id, p_check_in)` RPC which locks the code row, verifies listing/host ownership + status + expiry, inserts a `stay_type='voucher'` booking (`payment_status='paid'`, `status='confirmed'`, `guest_id=NULL`, `guest_name_snapshot=buyer_name`), and updates the voucher to `claimed`. Wallet crediting follows the standard paid-booking pipeline (`credit-host-wallet` 10 % fee, `release-pending-balance` 1 day after check-out).
+
 ---
 
 ## 5. Database — Critical Constraints
@@ -244,6 +318,12 @@ Write once. The `operation` column is an enum — current values: `grant_host`, 
 | `role_mutation_audit` | Immutable audit trail | command_id, operation, before_state, after_state |
 | `webhook_events` | Idempotency for payment webhooks | provider, event_id, event_type, booking_id |
 | `push_subscriptions` | Web push endpoints | endpoint, p256dh, auth_key |
+| `stay_voucher_batches` | Admin-created prepaid stay voucher batches | listing_id, nights, price_php, quantity, valid_days (1–14), is_active |
+| `stay_voucher_codes`   | Individual redeemable codes (`CS-XXXX-XXXX`) | batch_id, code UNIQUE, status ('unclaimed'/'claimed'/'expired'), purchase_id, valid_until |
+| `stay_voucher_purchases` | Anonymous PayMongo purchases | batch_id, buyer_name/email/phone, success_token (nonce), payment_status |
+| `platform_revenue_events` | Generic platform revenue log | source ('voucher_expired' at ship time), amount_php, stay_voucher_code_id |
+
+**`bookings.guest_name_snapshot`** — nullable column populated only when the booking was created via voucher redemption. Anonymous voucher purchases have no `auth.users` row, so the buyer name is carried onto the booking via this snapshot.
 
 ### Host Application Paths — BOTH Must Be Handled
 
@@ -602,3 +682,15 @@ snap-like feel is ever wanted, it must live in an inner overflow container with
 stable (non-async) panel heights.
 
 *Last updated by: Claude Code — landing layout-shift fix (2026-07-07)*
+
+### ❌ Confusing the hourly voucher system with the stay voucher system
+The codebase runs two independent voucher products:
+- **Hourly vouchers** (older): tables `vouchers`, RPC `redeem_voucher_transaction`, edge functions `purchase-voucher`/`redeem-voucher`, UI in `BookingPanel`/`HostVouchers`/`TodayActivityTab`, public route `/vouchers`, host route `/host/vouchers`.
+- **Stay vouchers** (this feature): tables `stay_voucher_*`, RPC `redeem_stay_voucher_transaction`, edge functions `stay-voucher-*` / `admin-stay-voucher-*` / `host-stay-voucher-*`, UI in `src/components/stay-vouchers/*` and `src/pages/stay-vouchers/*`, public routes under `/stay-vouchers`, host route `/host/redeem-stay-voucher`, admin route `/admin/stay-vouchers`.
+Do not rename one to the other. Do not merge tables. Anything referring to a batch (`batch_id`), an anonymous buyer, or a `stay_voucher_` identifier is the new system.
+
+### ❌ Inserting `stay_voucher_purchases` from the client
+Client SDK insert bypasses the server-generated `success_token` and PayMongo idempotency key. The success page's anonymous lookup relies on that token being minted server-side. Always call the `stay-voucher-checkout` edge function.
+
+### ❌ Redeeming a voucher without going through the RPC
+The redemption path must go through `redeem_stay_voucher_transaction`. The RPC locks the code row (`FOR UPDATE`) to block concurrent double-redemption, and inserts the `bookings` row + updates the code row + snapshots the buyer name in one transaction. Client-side or edge-function-side sequenced writes will race and can create ghost bookings or leave codes in inconsistent states.
