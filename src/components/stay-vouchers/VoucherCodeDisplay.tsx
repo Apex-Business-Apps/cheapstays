@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
 
@@ -12,9 +13,13 @@ export function VoucherCodeDisplay({ code }: { code: string }) {
         variant="ghost"
         size="sm"
         onClick={async () => {
-          await navigator.clipboard.writeText(code);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
+          try {
+            await navigator.clipboard.writeText(code);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          } catch {
+            toast.error("Could not copy. Long-press the code to select it manually.");
+          }
         }}
         className="min-h-[44px]"
       >
