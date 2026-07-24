@@ -14,6 +14,8 @@ export type Database = {
   }
   public: {
     Tables: {
+      // TEMPORARY: manually derived from migration 20260723000000_stay_vouchers.sql.
+      // Remove this block when `supabase gen types` is re-run against the updated schema.
       stay_voucher_batches: {
         Row: {
           id: string;
