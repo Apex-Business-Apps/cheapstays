@@ -15,9 +15,8 @@ describe("stay-voucher-checkout", () => {
     expect(fn).toMatch(/accept_terms/);
     expect(fn).toMatch(/z\.literal\(true\)/);
   });
-  it("counts unclaimed codes against batch.quantity for stock", () => {
-    expect(fn).toContain("stay_voucher_codes");
-    expect(fn).toContain("unclaimed");
+  it("counts codes against batch.quantity for stock (sold + quantity > quantity)", () => {
+    expect(fn).toMatch(/sold[\s\S]{0,80}quantity[\s\S]{0,80}batch\.quantity/);
   });
   it("mints a cryptographic success_token before creating the PayMongo session", () => {
     expect(fn).toMatch(/crypto\.getRandomValues|randomUUID/);

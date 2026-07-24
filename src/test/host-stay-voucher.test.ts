@@ -26,4 +26,8 @@ describe("host-stay-voucher-redeem", () => {
     expect(redeem).toMatch(/p_check_in/);
     expect(redeem).toMatch(/z\.string\(\)\.regex\(\/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$\//);
   });
+  it("invokes credit-host-wallet on successful redemption", () => {
+    expect(redeem).toContain("credit-host-wallet");
+    expect(redeem).toContain("SUPABASE_SERVICE_ROLE_KEY");
+  });
 });

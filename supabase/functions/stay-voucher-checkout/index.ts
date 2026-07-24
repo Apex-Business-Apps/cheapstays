@@ -63,13 +63,14 @@ Deno.serve(async (req) => {
   if (!batch) return json({ error: "Voucher not found." }, 404);
   if (!batch.is_active) return json({ error: "This voucher is no longer available." }, 409);
 
-  // Count unclaimed codes remaining in the batch for stock check
-  const { count: unclaimed = 0 } = await admin
-    .from("stay_voucher_codes")
-    .select("id", { count: "exact", head: true })
-    .eq("batch_id", batch_id)
-    .eq("status", "unclaimed");
-  if ((unclaimed ?? 0) < quantity) {
+  // Count ALL codes issued against this batch (regardless of status) to determine
+  // remaining stock. Codes are only inserted by the webhook AFTER payment succeeds,
+  // so for a fresh batch unclaimed=0 even though slots are available.
+  // The correct check is: sold + quantity must not exceed batch.quantity.
+  const { count: sold = 0 } = await admin
+    .from("stay_voucher_codes").select("id", { count: "exact", head: true })
+    .eq("batch_id", batch_id);
+  if ((sold ?? 0) + quantity > batch.quantity) {
     return json({ error: "Not enough vouchers left in this batch." }, 409);
   }
 

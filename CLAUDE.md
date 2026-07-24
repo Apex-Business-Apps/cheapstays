@@ -275,7 +275,7 @@ Coexists with the pre-existing hourly-voucher system (§4.9 is Manual Disburseme
 #### `host-stay-voucher-redeem`
 - **Auth:** host only.
 - **Body:** `{ code, listing_id, p_check_in }`.
-- **Effect:** calls the `redeem_stay_voucher_transaction(p_code, p_listing_id, p_caller_id, p_check_in)` RPC which locks the code row, verifies listing/host ownership + status + expiry, inserts a `stay_type='voucher'` booking (`payment_status='paid'`, `status='confirmed'`, `guest_id=NULL`, `guest_name_snapshot=buyer_name`), and updates the voucher to `claimed`. Wallet crediting follows the standard paid-booking pipeline (`credit-host-wallet` 10 % fee, `release-pending-balance` 1 day after check-out).
+- **Effect:** calls the `redeem_stay_voucher_transaction(p_code, p_listing_id, p_caller_id, p_check_in)` RPC which locks the code row, verifies listing/host ownership + status + expiry, inserts a `stay_type='voucher'` booking (`payment_status='paid'`, `status='confirmed'`, `flow_state='active'`, `guest_id=NULL`, `guest_name_snapshot=buyer_name`), and updates the voucher to `claimed`. Wallet crediting follows the standard paid-booking pipeline (`credit-host-wallet` 10 % fee, `release-pending-balance` 1 day after check-out). The wallet credit is fire-and-log — if the credit-host-wallet call fails the booking still succeeds and admins reconcile out of band.
 
 ---
 

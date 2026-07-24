@@ -46,5 +46,21 @@ Deno.serve(async (req) => {
     p_check_in: parsed.data.p_check_in,
   });
   if (error) return json({ error: error.message }, 400);
+
+  // Fire-and-log: credit the host wallet. If this call fails the booking still
+  // succeeded and is auditable — admins reconcile out of band.
+  try {
+    await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/credit-host-wallet`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ booking_id: (data as { booking_id: string }).booking_id }),
+    });
+  } catch (err) {
+    console.error("host-stay-voucher-redeem: credit-host-wallet failed (non-fatal):", err);
+  }
+
   return json(data as Record<string, unknown>, 200);
 });
