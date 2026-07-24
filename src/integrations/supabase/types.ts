@@ -16,6 +16,116 @@ export type Database = {
     Tables: {
       // TEMPORARY: manually derived from migration 20260723000000_stay_vouchers.sql.
       // Remove this block when `supabase gen types` is re-run against the updated schema.
+      stay_voucher_purchases: {
+        Row: {
+          id: string;
+          batch_id: string;
+          quantity: number;
+          buyer_name: string;
+          buyer_email: string;
+          buyer_phone: string;
+          subtotal_php: number;
+          payment_provider: string;
+          payment_method: string;
+          payment_ref: string | null;
+          payment_status: string;
+          success_token: string;
+          created_at: string;
+          paid_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          batch_id: string;
+          quantity?: number;
+          buyer_name: string;
+          buyer_email: string;
+          buyer_phone: string;
+          subtotal_php: number;
+          payment_provider?: string;
+          payment_method: string;
+          payment_ref?: string | null;
+          payment_status?: string;
+          success_token: string;
+          created_at?: string;
+          paid_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          batch_id?: string;
+          quantity?: number;
+          buyer_name?: string;
+          buyer_email?: string;
+          buyer_phone?: string;
+          subtotal_php?: number;
+          payment_provider?: string;
+          payment_method?: string;
+          payment_ref?: string | null;
+          payment_status?: string;
+          success_token?: string;
+          created_at?: string;
+          paid_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stay_voucher_purchases_batch_id_fkey";
+            columns: ["batch_id"];
+            referencedRelation: "stay_voucher_batches";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      stay_voucher_codes: {
+        Row: {
+          id: string;
+          batch_id: string;
+          code: string;
+          status: string;
+          purchase_id: string;
+          booking_id: string | null;
+          valid_until: string;
+          redeemed_by_host_id: string | null;
+          redeemed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          batch_id: string;
+          code: string;
+          status?: string;
+          purchase_id: string;
+          booking_id?: string | null;
+          valid_until: string;
+          redeemed_by_host_id?: string | null;
+          redeemed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          batch_id?: string;
+          code?: string;
+          status?: string;
+          purchase_id?: string;
+          booking_id?: string | null;
+          valid_until?: string;
+          redeemed_by_host_id?: string | null;
+          redeemed_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stay_voucher_codes_batch_id_fkey";
+            columns: ["batch_id"];
+            referencedRelation: "stay_voucher_batches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "stay_voucher_codes_purchase_id_fkey";
+            columns: ["purchase_id"];
+            referencedRelation: "stay_voucher_purchases";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       stay_voucher_batches: {
         Row: {
           id: string;
