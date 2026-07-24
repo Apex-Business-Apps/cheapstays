@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     .eq("provider", "paymongo_stay_voucher").eq("event_id", eventId).maybeSingle();
   if (duplicate) return json({ received: true, duplicate: true }, 200);
 
-  const record = async (purchaseId: string | null) => {
+  const record = async () => {
     try {
       await admin.from("webhook_events").insert({
         provider: "paymongo_stay_voucher",
@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
   };
 
   if (!SUPPORTED_PAYMONGO_EVENTS.has(eventType)) {
-    await record(null);
+    await record();
     return json({ received: true, ignored: eventType }, 200);
   }
 
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
   const purchaseId = resource?.attributes?.metadata?.purchase_id;
   const sessionId  = resource?.id;
   if (!purchaseId && !sessionId) {
-    await record(null);
+    await record();
     return json({ received: true, ignored: "no purchase_id" }, 200);
   }
 
@@ -117,11 +117,11 @@ Deno.serve(async (req) => {
     purchase = fb.data;
   }
   if (!purchase) {
-    await record(null);
+    await record();
     return json({ received: true, ignored: "purchase not found" }, 200);
   }
   if (purchase.payment_status === "paid") {
-    await record(purchase.id);
+    await record();
     return json({ received: true, skipped: "already paid" }, 200);
   }
 
@@ -153,10 +153,15 @@ Deno.serve(async (req) => {
     }
   }
 
-  try { await sendEmail(purchase.id, purchase.buyer_email, batch!.batch_name, codes, validUntil); }
-  catch (err) { console.error("resend send (non-fatal):", err); }
+  try {
+    if (codes.length === 0) {
+      console.error("stay-voucher-webhook: no codes minted for purchase", purchase.id);
+    } else {
+      await sendEmail(purchase.id, purchase.buyer_email, batch!.batch_name, codes, validUntil);
+    }
+  } catch (err) { console.error("resend send (non-fatal):", err); }
 
   // Notify admins in-app (best-effort — no admin ids known here; skip if not applicable).
-  await record(purchase.id);
+  await record();
   return json({ received: true, processed: true, purchase_id: purchase.id, codes_minted: codes.length }, 200);
 });
