@@ -33,3 +33,14 @@ Object.defineProperty(window, "matchMedia", {
 });
 
 (globalThis as { __CACHE_BUST__?: string }).__CACHE_BUST__ = 'test';
+
+// Radix UI components (RadioGroup, Checkbox, etc.) rely on ResizeObserver,
+// which jsdom does not implement. Provide a no-op stub so component renders
+// don't throw during unit tests.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}

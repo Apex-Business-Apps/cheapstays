@@ -14,6 +14,55 @@ export type Database = {
   }
   public: {
     Tables: {
+      stay_voucher_batches: {
+        Row: {
+          id: string;
+          listing_id: string;
+          batch_name: string;
+          nights: number;
+          price_php: number;
+          quantity: number;
+          valid_days: number;
+          terms: string | null;
+          is_active: boolean;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          listing_id: string;
+          batch_name: string;
+          nights: number;
+          price_php: number;
+          quantity: number;
+          valid_days: number;
+          terms?: string | null;
+          is_active?: boolean;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          listing_id?: string;
+          batch_name?: string;
+          nights?: number;
+          price_php?: number;
+          quantity?: number;
+          valid_days?: number;
+          terms?: string | null;
+          is_active?: boolean;
+          created_by?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stay_voucher_batches_listing_id_fkey";
+            columns: ["listing_id"];
+            referencedRelation: "listings";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       host_wallets: {
         Row: {
           id: string;
