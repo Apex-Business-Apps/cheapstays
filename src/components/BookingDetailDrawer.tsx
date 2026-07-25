@@ -80,7 +80,7 @@ export function BookingDetailDrawer({ bookingId, onClose }: Props) {
         cancellation_reason: bk.cancellation_reason ?? null,
         cancelled_at: bk.cancelled_at ?? null,
         confirmed_at: bk.confirmed_at ?? null,
-        guestName: guestProfile?.display_name ?? bk.guest_id.slice(0, 8),
+        guestName: guestProfile?.display_name ?? (bk.guest_id?.slice(0, 8) ?? "voucher"),
         hostName: hostProfile?.display_name ?? bk.host_id.slice(0, 8),
         listingTitle: listing?.title ?? "Unknown listing",
         listingCity: listing?.city ?? "",

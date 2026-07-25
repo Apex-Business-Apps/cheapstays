@@ -13,6 +13,9 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LegalDocumentPage } from "@/pages/legal/LegalDocumentPage";
 
 // Public pages
+const StayVouchersIndex        = lazy(() => import("./pages/stay-vouchers/StayVouchersIndex"));
+const StayVoucherDetailPage    = lazy(() => import("./pages/stay-vouchers/StayVoucherDetailPage"));
+const StayVoucherSuccessPage   = lazy(() => import("./pages/stay-vouchers/StayVoucherSuccessPage"));
 const Index                      = lazy(() => import("./pages/Index"));
 const NotFound                   = lazy(() => import("./pages/NotFound"));
 const Auth                       = lazy(() => import("./pages/Auth"));
@@ -34,6 +37,7 @@ const BookingConfirmationSuccess = lazy(() => import("./pages/BookingConfirmatio
 const ListingDetail              = lazy(() => import("./pages/ListingDetail"));
 
 // Host dashboard pages
+const HostRedeemStayVoucherPage = lazy(() => import("./pages/host/RedeemStayVoucherPage"));
 const HostDashboardPage  = lazy(() => import("./pages/host/DashboardPage"));
 const HostCalendarPage   = lazy(() => import("./pages/host/CalendarPage"));
 const HostRequestsPage   = lazy(() => import("./pages/host/RequestsPage"));
@@ -45,6 +49,7 @@ const HostVouchersPage   = lazy(() => import("./pages/host/VouchersPage"));
 const HostWalletPage     = lazy(() => import("./pages/host/WalletPage").then((m) => ({ default: m.HostWalletPage })));
 
 // Admin dashboard pages
+const AdminStayVouchersPage = lazy(() => import("./pages/admin/StayVouchersPage"));
 const AdminOverviewPage       = lazy(() => import("./pages/admin/OverviewPage"));
 const AdminBookingsPage       = lazy(() => import("./pages/admin/BookingsPage"));
 const AdminApplicationsPage   = lazy(() => import("./pages/admin/ApplicationsPage"));
@@ -108,6 +113,9 @@ const App = () => (
                     <Route path="/popular-cities"    element={<PopularCities />} />
                     <Route path="/featured-stays"    element={<FeaturedStays />} />
                     <Route path="/vouchers"          element={<QuickStayVouchers />} />
+                    <Route path="/stay-vouchers"             element={<StayVouchersIndex />} />
+                    <Route path="/stay-vouchers/success"     element={<StayVoucherSuccessPage />} />
+                    <Route path="/stay-vouchers/:batchId"    element={<StayVoucherDetailPage />} />
                     <Route path="/types-of-stays"    element={<TypesOfStays />} />
                     <Route path="/become-a-partner"  element={<BecomePartnerPage />} />
                     <Route path="/customer-support"  element={<CustomerSupportPage />} />
@@ -144,6 +152,7 @@ const App = () => (
                     <Route path="/host/listings"    element={<HostListingsPage />} />
                     <Route path="/host/bookings"    element={<HostBookingsPage />} />
                     <Route path="/host/vouchers"    element={<HostVouchersPage />} />
+                    <Route path="/host/redeem-stay-voucher" element={<HostRedeemStayVoucherPage />} />
                     <Route path="/host/wallet"      element={<HostWalletPage />} />
                   </Route>
 
@@ -157,6 +166,7 @@ const App = () => (
                     <Route path="/admin/users"           element={<AdminUsersPage />} />
                     <Route path="/admin/audit"           element={<AdminAuditPage />} />
                     <Route path="/admin/disbursements"   element={<AdminDisbursementsPage />} />
+                    <Route path="/admin/stay-vouchers"      element={<AdminStayVouchersPage />} />
                   </Route>
 
                   <Route path="*" element={<NotFound />} />

@@ -13,3 +13,4 @@ export { CustomerSupport } from "./CustomerSupport";
 export { AboutUs } from "./AboutUs";
 export { Testimonials } from "./Testimonials";
 export { FinalCta } from "./FinalCta";
+export { VoucherDealsSection } from "./VoucherDealsSection";

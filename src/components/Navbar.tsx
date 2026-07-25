@@ -17,7 +17,7 @@ export function Navbar() {
   const [isCompactViewport, setIsCompactViewport] = useState(false);
 
   useEffect(() => {
-    const mql = window.matchMedia("(max-width: 1023px)");
+    const mql = window.matchMedia("(max-width: 1279px)");
     const onChange = () => setIsCompactViewport(mql.matches);
     onChange();
     mql.addEventListener("change", onChange);
@@ -28,6 +28,7 @@ export function Navbar() {
   const mobileLinks = [
     { to: "/",                  label: t("nav.home") },
     { to: "/types-of-stays",    label: t("nav.typesOfStays") },
+    { to: "/stay-vouchers",     label: t("nav.vouchers", "Vouchers") },
     // Hosts get a direct link to their dashboard; everyone else sees the
     // partner-onboarding entry point.
     isHost(roles)
@@ -71,7 +72,7 @@ export function Navbar() {
         </Link>
 
         {/* Desktop nav links */}
-        <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
+        <nav className="hidden xl:flex items-center gap-1 flex-1 justify-center">
           {desktopLinks.map((l) => (
             <NavLink key={l.to} to={l.to} end={l.to === "/"} className={navLinkClass}>
               {l.label}
@@ -122,7 +123,7 @@ export function Navbar() {
           )}
           {/* Hamburger button — mobile only */}
           <button
-            className="block lg:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="block xl:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((o) => !o)}
@@ -134,7 +135,7 @@ export function Navbar() {
 
       {/* Mobile nav drawer */}
       {mobileOpen && (
-        <nav className="lg:hidden border-t border-border/60 bg-background/95 backdrop-blur px-4 pb-4 pt-2">
+        <nav className="xl:hidden border-t border-border/60 bg-background/95 backdrop-blur px-4 pb-4 pt-2">
           <ul className="flex flex-col gap-1">
             {mobileLinks.map((l) => (
               <li key={l.to}>

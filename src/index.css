@@ -8,102 +8,96 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* cheapstays.me — light tan canvas, forest accents */
-    --background: 34 38% 90%;
-    --foreground: 150 25% 10%;
+    /* cheapstays.me — city modern: cream canvas, cool-gray surfaces, charcoal ink */
+    --background: 30 22% 96%;
+    --foreground: 220 14% 14%;
 
-    --card: 36 45% 96%;
-    --card-foreground: 150 25% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 14% 14%;
 
-    --popover: 36 45% 96%;
-    --popover-foreground: 150 25% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 14% 14%;
 
-    --primary: 152 45% 22%;
-    --primary-foreground: 36 40% 97%;
+    --primary: 220 15% 20%;
+    --primary-foreground: 30 22% 97%;
 
-    --secondary: 34 42% 82%;
-    --secondary-foreground: 152 45% 18%;
+    --secondary: 30 14% 90%;
+    --secondary-foreground: 220 15% 22%;
 
-    --muted: 34 30% 86%;
-    --muted-foreground: 150 12% 32%;
+    --muted: 30 12% 93%;
+    --muted-foreground: 220 8% 42%;
 
-    --accent: 28 80% 60%;
-    --accent-foreground: 150 30% 10%;
+    --accent: 30 26% 84%;
+    --accent-foreground: 220 14% 14%;
 
-    --success: 152 55% 35%;
-    --success-foreground: 36 40% 97%;
+    --success: 150 30% 38%;
+    --success-foreground: 30 22% 97%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 150 25% 10%;
+    --warning: 35 78% 50%;
+    --warning-foreground: 220 14% 14%;
 
-    --destructive: 0 72% 48%;
-    --destructive-foreground: 36 40% 97%;
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 30 22% 97%;
 
-    --border: 34 25% 78%;
-    --input: 34 25% 78%;
-    --ring: 152 45% 22%;
+    --border: 30 12% 86%;
+    --input: 30 12% 86%;
+    --ring: 220 15% 20%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 14% 24%;
+    --sidebar-primary: 220 15% 20%;
+    --sidebar-primary-foreground: 30 22% 97%;
+    --sidebar-accent: 30 14% 92%;
+    --sidebar-accent-foreground: 220 15% 22%;
+    --sidebar-border: 30 12% 88%;
+    --sidebar-ring: 220 15% 20%;
   }
 
   .dark {
-    --background: 150 20% 7%;
-    --foreground: 36 30% 95%;
+    --background: 220 10% 8%;
+    --foreground: 30 15% 94%;
 
-    --card: 150 22% 10%;
-    --card-foreground: 36 30% 95%;
+    --card: 220 8% 12%;
+    --card-foreground: 30 15% 94%;
 
-    --popover: 150 22% 10%;
-    --popover-foreground: 36 30% 95%;
+    --popover: 220 8% 12%;
+    --popover-foreground: 30 15% 94%;
 
-    --primary: 152 50% 60%;
-    --primary-foreground: 150 30% 8%;
+    --primary: 30 18% 92%;
+    --primary-foreground: 220 10% 8%;
 
-    --secondary: 150 15% 16%;
-    --secondary-foreground: 36 30% 95%;
+    --secondary: 220 8% 18%;
+    --secondary-foreground: 30 15% 94%;
 
-    --muted: 150 12% 14%;
-    --muted-foreground: 36 12% 65%;
+    --muted: 220 6% 16%;
+    --muted-foreground: 30 8% 66%;
 
-    --accent: 28 80% 60%;
-    --accent-foreground: 150 30% 8%;
+    --accent: 30 20% 72%;
+    --accent-foreground: 220 10% 8%;
 
-    --success: 152 55% 50%;
-    --success-foreground: 150 30% 8%;
+    --success: 150 35% 55%;
+    --success-foreground: 220 10% 8%;
 
-    --warning: 38 92% 60%;
-    --warning-foreground: 150 30% 8%;
+    --warning: 35 80% 60%;
+    --warning-foreground: 220 10% 8%;
 
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 36 30% 95%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 30 15% 94%;
 
-    --border: 150 12% 18%;
-    --input: 150 12% 18%;
-    --ring: 152 50% 60%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 220 6% 20%;
+    --input: 220 6% 20%;
+    --ring: 30 18% 92%;
+
+    --sidebar-background: 220 10% 10%;
+    --sidebar-foreground: 30 12% 88%;
+    --sidebar-primary: 30 18% 92%;
+    --sidebar-primary-foreground: 220 10% 8%;
+    --sidebar-accent: 220 8% 16%;
+    --sidebar-accent-foreground: 30 12% 88%;
+    --sidebar-border: 220 6% 18%;
+    --sidebar-ring: 30 18% 92%;
   }
 }
 
@@ -117,12 +111,31 @@ All colors MUST be HSL.
   }
 }
 
+@layer base {
+  /* Suppress Chromium/Safari's native calendar/clock icon on inputs that
+     receive our overlay icon (shared <Input>). We render a Lucide icon
+     positioned reliably on the right and open the picker via showPicker()
+     on any click of the input, so the built-in indicator would only be
+     duplicate visual noise. Firefox has no equivalent pseudo-element. */
+  .native-picker-hidden::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    display: none;
+  }
+  /* Remove default extra spacing Chromium adds inside date/time fields
+     that would push text off-center of the height-10 wrapper. */
+  input[type="date"]::-webkit-inner-spin-button,
+  input[type="time"]::-webkit-inner-spin-button,
+  input[type="datetime-local"]::-webkit-inner-spin-button {
+    display: none;
+  }
+}
+
 @layer components {
   .atmo-section {
     --atmo-wallpaper-opacity: 0.2;
     --atmo-wallpaper-position: center;
     --atmo-wallpaper-scale: 1.08;
-    --atmo-art-fill: hsl(152 32% 24%);
+    --atmo-art-fill: hsl(220 15% 30%);
     --atmo-edge-fade: radial-gradient(120% 100% at 50% 50%, black 0 72%, transparent 100%);
     --atmo-tint: linear-gradient(120deg, hsl(var(--background) / 0.12), hsl(var(--secondary) / 0.08));
     --atmo-veil: radial-gradient(120% 95% at 50% 16%, transparent 0%, hsl(var(--background) / 0.06) 58%, hsl(var(--background) / 0.24) 100%);
@@ -131,9 +144,9 @@ All colors MUST be HSL.
 
   .dark .atmo-section {
     --atmo-wallpaper-opacity: 0.26;
-    --atmo-art-fill: hsl(151 45% 56%);
-    --atmo-tint: linear-gradient(125deg, hsl(155 34% 12% / 0.14), hsl(152 26% 10% / 0.1));
-    --atmo-veil: radial-gradient(120% 95% at 50% 16%, transparent 0%, hsl(154 34% 10% / 0.08) 60%, hsl(154 34% 8% / 0.3) 100%);
+    --atmo-art-fill: hsl(30 18% 74%);
+    --atmo-tint: linear-gradient(125deg, hsl(220 10% 12% / 0.14), hsl(220 8% 10% / 0.1));
+    --atmo-veil: radial-gradient(120% 95% at 50% 16%, transparent 0%, hsl(220 10% 8% / 0.08) 60%, hsl(220 10% 6% / 0.3) 100%);
   }
 
   .atmo-bg-layer {
@@ -234,7 +247,7 @@ All colors MUST be HSL.
 
   /* Header background adjustments in dark mode for readability */
   .dark header {
-    background-color: hsl(150 18% 14% / 0.8) !important;
+    background-color: hsl(220 10% 10% / 0.8) !important;
   }
 
   .logo-glow {

@@ -76,7 +76,7 @@ function BookingRow({
             {" · "}{booking.nights} night{booking.nights !== 1 ? "s" : ""}
           </p>
           <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
-            {booking.guest_id.slice(0, 8)}…
+            {(booking.guest_id?.slice(0, 8) ?? "voucher")}…
           </p>
         </div>
         <p className="text-sm font-semibold shrink-0 mt-0.5">
