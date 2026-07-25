@@ -32,8 +32,6 @@ export function VoucherDealsSection() {
     })();
   }, []);
 
-  if (batches.length === 0) return null;
-
   return (
     <section className="py-10 px-4 max-w-6xl mx-auto">
       <div className="flex items-baseline justify-between mb-4">
@@ -45,9 +43,18 @@ export function VoucherDealsSection() {
           See all <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-        {batches.slice(0, 4).map((b) => <VoucherCard key={b.id} batch={b} />)}
-      </div>
+      {batches.length === 0 ? (
+        <Link
+          to="/stay-vouchers"
+          className="block rounded-lg border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground hover:border-primary/60 hover:text-foreground transition-colors"
+        >
+          New voucher deals arrive weekly. Tap to see what's live now →
+        </Link>
+      ) : (
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+          {batches.slice(0, 4).map((b) => <VoucherCard key={b.id} batch={b} />)}
+        </div>
+      )}
     </section>
   );
 }
