@@ -1373,6 +1373,12 @@ export type Database = {
         Args: { listing_id: string; title: string }
         Returns: string
       }
+      // TEMPORARY: manually derived from migration 20260725200000_stay_voucher_batch_stock_rpc.sql.
+      // Remove when `supabase gen types` is re-run against the updated schema.
+      get_stay_voucher_batch_stock: {
+        Args: { p_batch_ids: string[] }
+        Returns: { batch_id: string; sold_or_held: number }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
