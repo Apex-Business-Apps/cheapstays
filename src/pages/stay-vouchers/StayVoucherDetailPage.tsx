@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Seo } from "@/components/Seo";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft, BedDouble, Bath, Users, CalendarDays, Star, CheckCircle2, ScrollText, Ticket,
@@ -23,6 +24,7 @@ type BatchRow = {
   batch_name: string;
   nights: number;
   price_php: number;
+  quantity: number;
   valid_days: number;
   terms: string | null;
   is_active: boolean;
@@ -35,6 +37,7 @@ export default function StayVoucherDetailPage() {
   const [batch, setBatch] = useState<BatchRow | null | undefined>(undefined);
   const [listing, setListing] = useState<Listing | null>(null);
   const [houseRules, setHouseRules] = useState<string | null>(null);
+  const [soldCount, setSoldCount] = useState<number>(0);
 
   // Surface the outcome when a buyer returns from a cancelled PayMongo checkout,
   // then clear the param so it doesn't re-fire on refresh.
@@ -52,20 +55,20 @@ export default function StayVoucherDetailPage() {
     (async () => {
       const { data: b } = await supabase
         .from("stay_voucher_batches")
-        .select("id, batch_name, nights, price_php, valid_days, terms, is_active, listing_id")
+        .select("id, batch_name, nights, price_php, quantity, valid_days, terms, is_active, listing_id")
         .eq("id", batchId)
         .maybeSingle();
       if (cancelled) return;
       if (!b) { setBatch(null); return; }
       setBatch(b as BatchRow);
-      const { data: l } = await supabase
-        .from("listings")
-        .select("*")
-        .eq("id", b.listing_id)
-        .eq("status", "active")
-        .maybeSingle();
+      const [{ data: l }, { data: stock }] = await Promise.all([
+        supabase.from("listings").select("*").eq("id", b.listing_id).eq("status", "active").maybeSingle(),
+        supabase.rpc("get_stay_voucher_batch_stock", { p_batch_ids: [b.id] }),
+      ]);
       if (cancelled) return;
       setListing((l as Listing | null) ?? null);
+      const firstRow = (stock as { batch_id: string; sold_or_held: number }[] | null)?.[0];
+      setSoldCount(firstRow?.sold_or_held ?? 0);
     })();
     return () => { cancelled = true; };
   }, [batchId]);
@@ -300,12 +303,26 @@ export default function StayVoucherDetailPage() {
                     {Math.round((savings / (listing.nightly_php * batch.nights)) * 100)}% off)
                   </Badge>
                 )}
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  {soldCount >= batch.quantity
+                    ? "All vouchers in this batch have been sold."
+                    : `${Math.max(batch.quantity - soldCount, 0)} of ${batch.quantity} left`}
+                </p>
               </div>
-              <VoucherPurchaseForm batch={{
-                id: batch.id, batch_name: batch.batch_name, nights: batch.nights,
-                price_php: batch.price_php, valid_days: batch.valid_days,
-                listing_title: listing?.title ?? batch.batch_name,
-              }} />
+              {soldCount >= batch.quantity ? (
+                <div className="space-y-2">
+                  <Button disabled className="w-full min-h-[44px]">Sold out</Button>
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Check back — the host may add more. <Link to="/stay-vouchers" className="text-primary underline">Browse other vouchers</Link>
+                  </p>
+                </div>
+              ) : (
+                <VoucherPurchaseForm batch={{
+                  id: batch.id, batch_name: batch.batch_name, nights: batch.nights,
+                  price_php: batch.price_php, valid_days: batch.valid_days,
+                  listing_title: listing?.title ?? batch.batch_name,
+                }} />
+              )}
             </Card>
           </div>
         </div>

@@ -62,5 +62,7 @@ export interface StayVoucherBatchWithListing extends StayVoucherBatch {
     hero_image_url: string | null;
     nightly_php: number | null;
   };
-  unclaimed_count: number;
+  // Number of slots already sold or held (paid + pending in last 30 min).
+  // Batch is out of stock when sold_count >= quantity.
+  sold_count: number;
 }

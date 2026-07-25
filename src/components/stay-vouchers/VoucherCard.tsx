@@ -5,7 +5,7 @@ import { MapPin, Clock, ArrowRight } from "lucide-react";
 import type { StayVoucherBatchWithListing } from "@/types/stay-vouchers";
 
 export function VoucherCard({ batch }: { batch: StayVoucherBatchWithListing }) {
-  const soldOut = batch.unclaimed_count >= batch.quantity;
+  const soldOut = batch.sold_count >= batch.quantity;
   const orig = batch.listing.nightly_php ? batch.listing.nightly_php * batch.nights : null;
   const discounted = orig !== null && orig > batch.price_php;
   const pctOff = discounted && orig
