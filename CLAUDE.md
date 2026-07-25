@@ -276,7 +276,6 @@ Coexists with the pre-existing hourly-voucher system (§4.9 is Manual Disburseme
 - **Auth:** host only.
 - **Body:** `{ code, listing_id, p_check_in }`.
 - **Effect:** calls the `redeem_stay_voucher_transaction(p_code, p_listing_id, p_caller_id, p_check_in)` RPC which locks the code row, verifies listing/host ownership + status + expiry, inserts a `stay_type='voucher'` booking (`payment_status='paid'`, `status='confirmed'`, `flow_state='active'`, `guest_id=NULL`, `guest_name_snapshot=buyer_name`), and updates the voucher to `claimed`. Wallet crediting follows the standard paid-booking pipeline (`credit-host-wallet` 10 % fee, `release-pending-balance` 1 day after check-out). The wallet credit is fire-and-log — if the credit-host-wallet call fails the booking still succeeds and admins reconcile out of band.
-
 ---
 
 ## 5. Database — Critical Constraints
@@ -318,10 +317,13 @@ Write once. The `operation` column is an enum — current values: `grant_host`, 
 | `role_mutation_audit` | Immutable audit trail | command_id, operation, before_state, after_state |
 | `webhook_events` | Idempotency for payment webhooks | provider, event_id, event_type, booking_id |
 | `push_subscriptions` | Web push endpoints | endpoint, p256dh, auth_key |
+| `disbursement_requests` (extended) | Payout requests | `status` now includes `awaiting_confirmation`, `released`, `rejected`. Partial unique index blocks two in-flight requests per wallet. `trigger` column: `'manual'` (host-initiated) or `'auto'` (paused monthly cron). |
 | `stay_voucher_batches` | Admin-created prepaid stay voucher batches | listing_id, nights, price_php, quantity, valid_days (1–14), is_active |
 | `stay_voucher_codes`   | Individual redeemable codes (`CS-XXXX-XXXX`) | batch_id, code UNIQUE, status ('unclaimed'/'claimed'/'expired'), purchase_id, valid_until |
 | `stay_voucher_purchases` | Anonymous PayMongo purchases | batch_id, buyer_name/email/phone, success_token (nonce), payment_status |
 | `platform_revenue_events` | Generic platform revenue log | source ('voucher_expired' at ship time), amount_php, stay_voucher_code_id |
+
+**Storage bucket `disbursement-proofs`** (private, 10 MB, image-only): admin uploads proof of off-platform payment. Path convention: `{wallet_id}/{disbursement_id}.{ext}`. Admins write and read; hosts can read only their own wallet's folder.
 
 **`bookings.guest_name_snapshot`** — nullable column populated only when the booking was created via voucher redemption. Anonymous voucher purchases have no `auth.users` row, so the buyer name is carried onto the booking via this snapshot.
 
@@ -682,6 +684,15 @@ snap-like feel is ever wanted, it must live in an inner overflow container with
 stable (non-async) panel heights.
 
 *Last updated by: Claude Code — landing layout-shift fix (2026-07-07)*
+
+### ❌ Adding a new disbursement request without checking the in-flight partial unique index
+The `disbursement_requests` table has `uniq_disbursement_in_flight` — a partial unique index on `(wallet_id) WHERE status IN ('pending','awaiting_confirmation')`. Two active requests per wallet is impossible at the DB level. The edge function `request-disbursement` also checks explicitly for a clearer error message; do not remove either layer.
+
+### ❌ Editing `process-monthly-payouts` as if it were live
+It was paused on 2026-07-22 in favor of the manual host-controlled flow. The pg_cron schedule was dropped. The function returns `{ disabled: true }` on every call. Its old Xendit sweep logic is retained as a `/* PAUSED ... */` comment for reference only. Do not "re-enable" without a product decision — the host-controlled flow is the current design.
+
+### ❌ Referencing `has_role` via JWT claim in new RLS policies
+The 2025-05-27 wallet migration used `auth.jwt() ->> 'role' = 'admin'` for admin bypass. This is inconsistent with the rest of the app which uses `public.has_role(auth.uid(), 'admin')`. New RLS and storage policies (see the `disbursement-proofs` bucket in migration `20260722000000`) must use `has_role`.
 
 ### ❌ Confusing the hourly voucher system with the stay voucher system
 The codebase runs two independent voucher products:
