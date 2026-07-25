@@ -16,7 +16,15 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
+  // Use STAY_VOUCHER-specific secrets so this webhook doesn't collide with the
+  // booking webhook's PAYMONGO_WEBHOOK_SECRET* env vars. PayMongo issues a
+  // unique signing secret per endpoint, so voucher and booking webhooks each
+  // have their own. We fall back to the shared vars only for backwards
+  // compatibility during initial setup.
   const secrets = [
+    Deno.env.get("PAYMONGO_STAY_VOUCHER_WEBHOOK_SECRET"),
+    Deno.env.get("PAYMONGO_STAY_VOUCHER_WEBHOOK_SECRET_TEST"),
+    Deno.env.get("PAYMONGO_STAY_VOUCHER_WEBHOOK_SECRET_LIVE"),
     Deno.env.get("PAYMONGO_WEBHOOK_SECRET"),
     Deno.env.get("PAYMONGO_WEBHOOK_SECRET_TEST"),
     Deno.env.get("PAYMONGO_WEBHOOK_SECRET_LIVE"),
