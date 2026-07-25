@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   addMonths, endOfMonth, format, isSameDay, parseISO, startOfMonth, subMonths,
-  eachDayOfInterval, addDays,
+  eachDayOfInterval, addDays, subDays, startOfWeek, endOfWeek,
 } from "date-fns";
 import { ChevronLeft, ChevronRight, Loader2, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { BookingDetailDrawer } from "@/components/BookingDetailDrawer";
 import { HostBlackoutDialog } from "@/components/host/HostBlackoutDialog";
+import { HostCalendarTimeline } from "@/components/host/HostCalendarTimeline";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -21,11 +23,14 @@ type BookingRow = {
   listing_id: string;
   check_in: string;
   check_out: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  stay_type: string;
   flow_state: string;
   status: string;
   payment_status: string;
   total_php: number;
-  guest_id: string;
+  guest_id: string | null;
   listings: { title: string } | null;
 };
 
@@ -70,7 +75,11 @@ const FLOW_STYLES: Record<string, string> = {
 
 const BLACKOUT_STYLE = "bg-gray-300 dark:bg-gray-700 stripe";
 
+type ViewMode = "day" | "week" | "month";
+
 export function HostCalendar({ hostId }: Props) {
+  const [viewMode, setViewMode] = useState<ViewMode>("month");
+  const [anchorDate, setAnchorDate] = useState<Date>(() => new Date());
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
@@ -95,7 +104,7 @@ export function HostCalendar({ hostId }: Props) {
 
       const [bRes, blRes] = await Promise.all([
         sb.from("bookings")
-          .select("id,listing_id,check_in,check_out,flow_state,status,payment_status,total_php,guest_id,listings(title)")
+          .select("id,listing_id,check_in,check_out,starts_at,ends_at,stay_type,flow_state,status,payment_status,total_php,guest_id,listings(title)")
           .eq("host_id", hostId)
           .eq("payment_status", "paid")
           .neq("status", "cancelled")
@@ -151,37 +160,92 @@ export function HostCalendar({ hostId }: Props) {
     );
   }
 
+  // Header label + prev/next/today handlers are view-aware.
+  const headerLabel = viewMode === "month"
+    ? format(month, "MMMM yyyy")
+    : viewMode === "week"
+      ? `${format(startOfWeek(anchorDate, { weekStartsOn: 0 }), "MMM d")} – ${format(endOfWeek(anchorDate, { weekStartsOn: 0 }), "MMM d, yyyy")}`
+      : format(anchorDate, "EEEE, MMM d, yyyy");
+
+  const goPrev = () => {
+    if (viewMode === "month") setMonth((m) => subMonths(m, 1));
+    else if (viewMode === "week") setAnchorDate((d) => subDays(d, 7));
+    else setAnchorDate((d) => subDays(d, 1));
+  };
+  const goNext = () => {
+    if (viewMode === "month") setMonth((m) => addMonths(m, 1));
+    else if (viewMode === "week") setAnchorDate((d) => addDays(d, 7));
+    else setAnchorDate((d) => addDays(d, 1));
+  };
+  const goToday = () => {
+    const now = new Date();
+    setMonth(startOfMonth(now));
+    setAnchorDate(now);
+  };
+
   return (
     <Card className="p-5 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold">{format(month, "MMMM yyyy")}</h3>
+          <h3 className="text-base font-semibold">{headerLabel}</h3>
           <p className="text-[11px] text-muted-foreground">
-            Hover a day for a summary. Click to open booking details and edit blackouts.
+            {viewMode === "month"
+              ? "Click a day to open booking details and edit blackouts."
+              : "Time-blocked view. Click a booking chip to open its details."}
           </p>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+            <TabsList className="h-8">
+              <TabsTrigger value="day" className="px-3 text-xs">Day</TabsTrigger>
+              <TabsTrigger value="week" className="px-3 text-xs">Week</TabsTrigger>
+              <TabsTrigger value="month" className="px-3 text-xs">Month</TabsTrigger>
+            </TabsList>
+          </Tabs>
           <Button
             size="sm"
             variant="outline"
-            className="mr-2"
             onClick={() => { setBlackoutInitialDate(undefined); setBlackoutFormOpen(true); }}
           >
             <Ban className="h-4 w-4 mr-1" /> Block dates
           </Button>
-          <Button size="icon" variant="ghost"
-            onClick={() => setMonth((m) => subMonths(m, 1))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="ghost"
-            onClick={() => setMonth(startOfMonth(new Date()))}>
-            Today
-          </Button>
-          <Button size="icon" variant="ghost"
-            onClick={() => setMonth((m) => addMonths(m, 1))}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button size="icon" variant="ghost" onClick={goPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={goToday}>Today</Button>
+            <Button size="icon" variant="ghost" onClick={goNext}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
+      </div>
+
+      {/* Legend — shown in every view so hosts always know the color code */}
+      <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-emerald-400" /> Overnight</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-sky-400" /> Hourly / quick stay</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-primary" /> Voucher</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-amber-400" /> Pending / hourly blackout</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-slate-400" /> Full-day blackout</span>
+      </div>
+
+      {viewMode !== "month" && (
+        <HostCalendarTimeline
+          bookings={bookings}
+          blackouts={blackouts}
+          anchorDate={anchorDate}
+          viewMode={viewMode}
+          onOpenBooking={setSelectedBookingId}
+        />
+      )}
+
+      {viewMode === "month" && (
+      <>
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="opacity-0 select-none pointer-events-none">.</div>
+        <span className="italic">Hover a day for a summary.</span>
+        <div className="opacity-0 select-none pointer-events-none">.</div>
       </div>
 
       <div className="grid grid-cols-7 gap-1 text-[10px] uppercase tracking-wide text-muted-foreground text-center">
@@ -241,6 +305,8 @@ export function HostCalendar({ hostId }: Props) {
           Blackout
         </span>
       </div>
+      </>
+      )}
 
       <Dialog open={openDay !== null} onOpenChange={(o) => !o && setOpenDay(null)}>
         <DialogContent>
