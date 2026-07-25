@@ -9,6 +9,12 @@ verify_jwt = false
 [functions.paymongo-webhook]
 verify_jwt = false
 
+# Stay-voucher webhook (PayMongo → us) uses HMAC signature verification, not
+# JWT. Without this, the platform 401s PayMongo before the function runs and
+# no purchases ever transition from pending to paid via the webhook path.
+[functions.stay-voucher-webhook]
+verify_jwt = false
+
 [functions.membership-webhook]
 verify_jwt = false
 
