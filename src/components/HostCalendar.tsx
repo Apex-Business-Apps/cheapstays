@@ -36,7 +36,16 @@ type BlackoutRow = {
   end_date: string;
   reason: string | null;
   stay_type: "hourly" | "overnight" | "both";
+  start_time: string | null;
+  end_time: string | null;
 };
+
+function formatTime(t: string): string {
+  const [hh, mm] = t.split(":").map(Number);
+  const period = hh >= 12 ? "PM" : "AM";
+  const displayH = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
+  return `${displayH}:${mm.toString().padStart(2, "0")} ${period}`;
+}
 
 type DayMeta = {
   date: Date;
@@ -94,7 +103,7 @@ export function HostCalendar({ hostId }: Props) {
         listingIds.length === 0
           ? Promise.resolve({ data: [], error: null })
           : sb.from("listing_blackout_dates")
-              .select("id,listing_id,start_date,end_date,reason,stay_type")
+              .select("id,listing_id,start_date,end_date,reason,stay_type,start_time,end_time")
               .in("listing_id", listingIds),
       ]);
 
@@ -272,24 +281,33 @@ export function HostCalendar({ hostId }: Props) {
                 </button>
               ))}
 
-              {openDay.blackouts.map((bl) => (
-                <div key={bl.id} className="rounded-md border border-dashed border-border/60 p-3 text-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium">Blocked</p>
-                    <Badge variant="outline" className="text-[10px] capitalize">
-                      {bl.stay_type === "both" ? "All bookings" : `${bl.stay_type} only`}
-                    </Badge>
+              {openDay.blackouts.map((bl) => {
+                const hasTimes = bl.start_time && bl.end_time;
+                const stayLabel = bl.stay_type === "both"
+                  ? "All bookings"
+                  : hasTimes
+                    ? `Hourly · ${formatTime(bl.start_time!)} – ${formatTime(bl.end_time!)}`
+                    : `${bl.stay_type} only`;
+                return (
+                  <div key={bl.id} className="rounded-md border border-dashed border-border/60 p-3 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium">Blocked</p>
+                      <Badge variant="outline" className="text-[10px] capitalize">
+                        {stayLabel}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {format(parseISO(bl.start_date), "MMM d")}
+                      {bl.start_date !== bl.end_date && ` → ${format(parseISO(bl.end_date), "MMM d")}`}
+                    </p>
+                    {bl.reason ? (
+                      <p className="text-xs mt-1 whitespace-pre-wrap">{bl.reason}</p>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground italic mt-1">No note added.</p>
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {format(parseISO(bl.start_date), "MMM d")} → {format(parseISO(bl.end_date), "MMM d")}
-                  </p>
-                  {bl.reason ? (
-                    <p className="text-xs mt-1 whitespace-pre-wrap">{bl.reason}</p>
-                  ) : (
-                    <p className="text-[11px] text-muted-foreground italic mt-1">No note added.</p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
 
               {openDay.blackouts.length === 0 && (
                 <Button

@@ -31,6 +31,9 @@ export function HostBlackoutDialog({ hostId, open, onOpenChange, onSaved, initia
   const [stayType, setStayType] = useState<StayType>("both");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [hoursMode, setHoursMode] = useState<"full_day" | "time_range">("full_day");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -58,10 +61,17 @@ export function HostBlackoutDialog({ hostId, open, onOpenChange, onSaved, initia
     setStartDate(initialDate ?? today);
     setEndDate(initialDate ?? today);
     setStayType("both");
+    setHoursMode("full_day");
+    setStartTime("");
+    setEndTime("");
     setReason("");
   }, [open, initialDate]);
 
-  const canSave = listingId && startDate && endDate && endDate >= startDate && !saving;
+  // A time-range hold must sit on a single date and have valid HH:MM ordering
+  const usingTimeRange = stayType === "hourly" && hoursMode === "time_range";
+  const timeRangeValid = !usingTimeRange
+    || (startTime.length > 0 && endTime.length > 0 && endTime > startTime && startDate === endDate);
+  const canSave = listingId && startDate && endDate && endDate >= startDate && timeRangeValid && !saving;
 
   const handleSave = async () => {
     if (!canSave) return;
@@ -71,6 +81,8 @@ export function HostBlackoutDialog({ hostId, open, onOpenChange, onSaved, initia
       start_date: startDate,
       end_date: endDate,
       stay_type: stayType,
+      start_time: usingTimeRange ? startTime : null,
+      end_time: usingTimeRange ? endTime : null,
       reason: reason.trim() || null,
       created_by: hostId,
     });
@@ -79,7 +91,7 @@ export function HostBlackoutDialog({ hostId, open, onOpenChange, onSaved, initia
       toast.error(error.message);
       return;
     }
-    toast.success("Dates blocked");
+    toast.success(usingTimeRange ? "Hours blocked" : "Dates blocked");
     onSaved();
     onOpenChange(false);
   };
@@ -117,7 +129,11 @@ export function HostBlackoutDialog({ hostId, open, onOpenChange, onSaved, initia
 
             <div className="space-y-1.5">
               <Label>Applies to</Label>
-              <Tabs value={stayType} onValueChange={(v) => setStayType(v as StayType)}>
+              <Tabs value={stayType} onValueChange={(v) => {
+                const next = v as StayType;
+                setStayType(next);
+                if (next !== "hourly") setHoursMode("full_day");
+              }}>
                 <TabsList className="grid grid-cols-3 w-full">
                   <TabsTrigger value="overnight">Overnight</TabsTrigger>
                   <TabsTrigger value="hourly">Hourly</TabsTrigger>
@@ -131,18 +147,64 @@ export function HostBlackoutDialog({ hostId, open, onOpenChange, onSaved, initia
               </p>
             </div>
 
+            {stayType === "hourly" && (
+              <div className="space-y-1.5">
+                <Label>Duration</Label>
+                <Tabs value={hoursMode} onValueChange={(v) => {
+                  const next = v as "full_day" | "time_range";
+                  setHoursMode(next);
+                  if (next === "time_range") setEndDate(startDate);
+                }}>
+                  <TabsList className="grid grid-cols-2 w-full">
+                    <TabsTrigger value="full_day">Full day(s)</TabsTrigger>
+                    <TabsTrigger value="time_range">Specific hours</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                <p className="text-[11px] text-muted-foreground">
+                  {hoursMode === "full_day"
+                    ? "Blocks hourly bookings for the entire date range."
+                    : "Blocks only the picked time slot on a single date. Add another blackout for other slots."}
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="blackout-start">Start</Label>
-                <Input id="blackout-start" type="date" value={startDate}
-                       onChange={(e) => setStartDate(e.target.value)} required />
+                <Input
+                  id="blackout-start" type="date" value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    if (usingTimeRange) setEndDate(e.target.value);
+                  }}
+                  required
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="blackout-end">End</Label>
-                <Input id="blackout-end" type="date" value={endDate} min={startDate}
-                       onChange={(e) => setEndDate(e.target.value)} required />
+                <Input
+                  id="blackout-end" type="date" value={endDate} min={startDate}
+                  max={usingTimeRange ? startDate : undefined}
+                  disabled={usingTimeRange}
+                  onChange={(e) => setEndDate(e.target.value)} required
+                />
               </div>
             </div>
+
+            {usingTimeRange && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="blackout-start-time">From</Label>
+                  <Input id="blackout-start-time" type="time" value={startTime}
+                         onChange={(e) => setStartTime(e.target.value)} required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="blackout-end-time">To</Label>
+                  <Input id="blackout-end-time" type="time" value={endTime} min={startTime}
+                         onChange={(e) => setEndTime(e.target.value)} required />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="blackout-reason">Notes (shown to you on the calendar)</Label>
