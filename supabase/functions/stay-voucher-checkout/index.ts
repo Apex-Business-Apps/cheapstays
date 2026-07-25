@@ -63,15 +63,27 @@ Deno.serve(async (req) => {
   if (!batch) return json({ error: "Voucher not found." }, 404);
   if (!batch.is_active) return json({ error: "This voucher is no longer available." }, 409);
 
-  // Count ALL codes issued against this batch (regardless of status) to determine
-  // remaining stock. Codes are only inserted by the webhook AFTER payment succeeds,
-  // so for a fresh batch unclaimed=0 even though slots are available.
-  // The correct check is: sold + quantity must not exceed batch.quantity.
-  const { count: sold = 0 } = await admin
-    .from("stay_voucher_codes").select("id", { count: "exact", head: true })
-    .eq("batch_id", batch_id);
-  if ((sold ?? 0) + quantity > batch.quantity) {
-    return json({ error: "Not enough vouchers left in this batch." }, 409);
+  // Stock check counts PURCHASES (paid + recent pending), not codes.
+  // Codes are only minted after the PayMongo webhook fires, so counting codes
+  // means a broken/slow webhook lets us oversell until the mint catches up.
+  // A pending purchase holds a slot for 30 minutes (long enough to walk
+  // through PayMongo checkout, short enough that abandoned checkouts free
+  // the slot for the next buyer).
+  const holdCutoff = new Date(Date.now() - 30 * 60_000).toISOString();
+  const { data: activePurchases } = await admin
+    .from("stay_voucher_purchases")
+    .select("quantity, payment_status, created_at")
+    .eq("batch_id", batch_id)
+    .in("payment_status", ["pending", "paid"]);
+  const soldOrHeld = (activePurchases ?? []).reduce((sum: number, p: {
+    quantity: number; payment_status: string; created_at: string;
+  }) => {
+    if (p.payment_status === "paid") return sum + p.quantity;
+    if (p.created_at >= holdCutoff) return sum + p.quantity;
+    return sum;
+  }, 0);
+  if (soldOrHeld + quantity > batch.quantity) {
+    return json({ error: "Not enough vouchers left in this batch. Someone may have just bought the last one." }, 409);
   }
 
   const paymongoKey = Deno.env.get("PAYMONGO_SECRET_KEY");

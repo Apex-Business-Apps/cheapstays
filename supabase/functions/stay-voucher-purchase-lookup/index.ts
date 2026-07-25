@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.23.8";
 import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
+import { checkPaymongoSessionPaid, markPaidAndMintCodes } from "../_shared/stay-voucher-mint.ts";
 
 const BodySchema = z.object({
   purchase_id: z.string().uuid(),
@@ -31,9 +32,9 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  const { data: purchase } = await admin
+  let { data: purchase } = await admin
     .from("stay_voucher_purchases")
-    .select("id, batch_id, payment_status, paid_at")
+    .select("id, batch_id, payment_status, paid_at, payment_ref")
     .eq("id", purchase_id)
     .eq("success_token", success_token)
     .maybeSingle();
@@ -46,6 +47,22 @@ Deno.serve(async (req) => {
 
   const { data: listing } = await admin
     .from("listings").select("id, title, city").eq("id", batch!.listing_id).single();
+
+  // Self-heal: if still pending and we have a PayMongo session id, ask PayMongo
+  // directly. If PayMongo says paid, transition + mint codes right now — makes
+  // the flow resilient to a broken/misconfigured/slow webhook.
+  if (purchase.payment_status === "pending" && purchase.payment_ref) {
+    const paymongo = await checkPaymongoSessionPaid(purchase.payment_ref);
+    if (paymongo.paid) {
+      await markPaidAndMintCodes(admin, purchase.id);
+      // Re-read the purchase after mint
+      const refreshed = await admin
+        .from("stay_voucher_purchases")
+        .select("id, batch_id, payment_status, paid_at, payment_ref")
+        .eq("id", purchase_id).maybeSingle();
+      if (refreshed.data) purchase = refreshed.data;
+    }
+  }
 
   if (purchase.payment_status !== "paid") {
     return json({

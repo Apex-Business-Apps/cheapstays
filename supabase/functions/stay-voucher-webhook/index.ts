@@ -4,43 +4,11 @@ import {
   PAYMONGO_SIGNATURE_HEADER, parsePaymongoEvent,
   SUPPORTED_PAYMONGO_EVENTS, verifyPaymongoSignature,
 } from "../_shared/paymongo-webhook.ts";
-
-const CROCKFORD = "23456789ABCDEFGHJKMNPQRSTVWXYZ";
-const MAX_CODE_ATTEMPTS = 5;
+import { markPaidAndMintCodes } from "../_shared/stay-voucher-mint.ts";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
-function genCode(): string {
-  const raw = new Uint8Array(8);
-  crypto.getRandomValues(raw);
-  const chars = Array.from(raw, (b) => CROCKFORD[b % CROCKFORD.length]).join("");
-  return `CS-${chars.slice(0,4)}-${chars.slice(4,8)}`;
-}
-
-async function sendEmail(purchaseId: string, buyerEmail: string, batchName: string, codes: string[], validUntil: string) {
-  const key = Deno.env.get("RESEND_API_KEY");
-  if (!key) return;
-  const html = `
-    <h2>Your CheapStays voucher${codes.length > 1 ? "s" : ""}</h2>
-    <p><strong>${batchName}</strong></p>
-    <p>Valid until <strong>${new Date(validUntil).toLocaleDateString("en-PH", { year:"numeric", month:"long", day:"numeric" })}</strong>.</p>
-    <ul>${codes.map((c) => `<li style="font-family:monospace;font-size:20px">${c}</li>`).join("")}</ul>
-    <p>Show your code to the host at check-in. Save this email — codes are non-refundable.</p>
-    <p style="color:#888;font-size:12px">Reference: ${purchaseId.slice(0,8)}</p>
-  `;
-  await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: "CheapStays <no-reply@cheapstays.me>",
-      to: [buyerEmail],
-      subject: `Your CheapStays voucher — ${codes[0]}${codes.length > 1 ? ` +${codes.length - 1} more` : ""}`,
-      html,
-    }),
   });
 }
 
@@ -108,11 +76,11 @@ Deno.serve(async (req) => {
 
   let { data: purchase } = await admin
     .from("stay_voucher_purchases")
-    .select("id, batch_id, quantity, buyer_email, payment_status")
+    .select("id, payment_status")
     .eq("id", purchaseId ?? "00000000-0000-0000-0000-000000000000").maybeSingle();
   if (!purchase && sessionId) {
     const fb = await admin.from("stay_voucher_purchases")
-      .select("id, batch_id, quantity, buyer_email, payment_status")
+      .select("id, payment_status")
       .eq("payment_ref", sessionId).maybeSingle();
     purchase = fb.data;
   }
@@ -125,43 +93,10 @@ Deno.serve(async (req) => {
     return json({ received: true, skipped: "already paid" }, 200);
   }
 
-  const paidAt = new Date().toISOString();
-  await admin.from("stay_voucher_purchases")
-    .update({ payment_status: "paid", paid_at: paidAt })
-    .eq("id", purchase.id);
-
-  const { data: batch } = await admin
-    .from("stay_voucher_batches")
-    .select("id, batch_name, valid_days")
-    .eq("id", purchase.batch_id).single();
-
-  const validUntil = new Date(Date.now() + batch!.valid_days * 86_400_000).toISOString();
-  const codes: string[] = [];
-  for (let i = 0; i < purchase.quantity; i++) {
-    let attempts = 0;
-    while (attempts < MAX_CODE_ATTEMPTS) {
-      const code = genCode();
-      const { error } = await admin.from("stay_voucher_codes").insert({
-        batch_id: purchase.batch_id, code, purchase_id: purchase.id, valid_until: validUntil,
-      });
-      if (!error) { codes.push(code); break; }
-      if (!error.message.toLowerCase().includes("duplicate")) {
-        console.error("code insert failed:", error);
-        break;
-      }
-      attempts++;
-    }
-  }
-
-  try {
-    if (codes.length === 0) {
-      console.error("stay-voucher-webhook: no codes minted for purchase", purchase.id);
-    } else {
-      await sendEmail(purchase.id, purchase.buyer_email, batch!.batch_name, codes, validUntil);
-    }
-  } catch (err) { console.error("resend send (non-fatal):", err); }
-
-  // Notify admins in-app (best-effort — no admin ids known here; skip if not applicable).
+  const result = await markPaidAndMintCodes(admin, purchase.id);
   await record();
-  return json({ received: true, processed: true, purchase_id: purchase.id, codes_minted: codes.length }, 200);
+  return json({
+    received: true, processed: true, purchase_id: purchase.id,
+    codes_minted: result.minted, already_paid: result.alreadyPaid,
+  }, 200);
 });
