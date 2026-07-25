@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { Seo } from "@/components/Seo";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,9 +31,20 @@ type BatchRow = {
 
 export default function StayVoucherDetailPage() {
   const { batchId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [batch, setBatch] = useState<BatchRow | null | undefined>(undefined);
   const [listing, setListing] = useState<Listing | null>(null);
   const [houseRules, setHouseRules] = useState<string | null>(null);
+
+  // Surface the outcome when a buyer returns from a cancelled PayMongo checkout,
+  // then clear the param so it doesn't re-fire on refresh.
+  useEffect(() => {
+    if (searchParams.get("cancelled") === "1") {
+      toast.error("Payment cancelled — you weren't charged. Try again when you're ready.");
+      searchParams.delete("cancelled");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!batchId) return;
