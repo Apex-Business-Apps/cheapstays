@@ -18,13 +18,16 @@ describe("stay-voucher-checkout", () => {
   it("counts codes against batch.quantity for stock (sold + quantity > quantity)", () => {
     expect(fn).toMatch(/sold[\s\S]{0,80}quantity[\s\S]{0,80}batch\.quantity/);
   });
-  it("mints a cryptographic success_token before creating the PayMongo session", () => {
+  it("mints a cryptographic success_token before writing to the purchase row", () => {
     expect(fn).toMatch(/crypto\.getRandomValues|randomUUID/);
     expect(fn).toContain("success_token");
-    // token minted before insert
-    const tokenIdx = fn.indexOf("success_token");
-    const insertIdx = fn.indexOf("stay_voucher_purchases");
-    expect(tokenIdx).toBeLessThan(insertIdx);
+    // Token must be minted before the INSERT into stay_voucher_purchases,
+    // not just any mention of the table (the stock-check reads the table
+    // earlier in the flow — that read is not what this rule protects).
+    const tokenIdx = fn.search(/const\s+success_token\s*=/);
+    const insertIdx = fn.search(/\.from\(["']stay_voucher_purchases["']\)\s*\.insert/);
+    expect(tokenIdx).toBeGreaterThanOrEqual(0);
+    expect(insertIdx).toBeGreaterThan(tokenIdx);
   });
   it("stores the PayMongo checkout session id on the purchase row", () => {
     expect(fn).toContain("payment_ref");

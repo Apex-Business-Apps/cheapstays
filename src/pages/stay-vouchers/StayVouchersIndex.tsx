@@ -19,6 +19,14 @@ export default function StayVouchersIndex() {
         `)
         .eq("is_active", true)
         .order("created_at", { ascending: false });
+      const batchIds = (data ?? []).map((b) => b.id);
+      const soldMap = new Map<string, number>();
+      if (batchIds.length > 0) {
+        const { data: stock } = await supabase.rpc("get_stay_voucher_batch_stock", { p_batch_ids: batchIds });
+        for (const row of (stock ?? []) as { batch_id: string; sold_or_held: number }[]) {
+          soldMap.set(row.batch_id, row.sold_or_held);
+        }
+      }
       const rows = (data ?? []).map((b) => {
         const l = Array.isArray(b.listing) ? b.listing[0] : b.listing;
         return {
@@ -28,7 +36,7 @@ export default function StayVouchersIndex() {
             nightly_php: l?.nightly_php ?? null,
             hero_image_url: Array.isArray(l?.hero_image_url) ? l!.hero_image_url[0] ?? null : null,
           },
-          unclaimed_count: 0,
+          sold_count: soldMap.get(b.id) ?? 0,
         } as unknown as StayVoucherBatchWithListing;
       });
       setBatches(rows);
