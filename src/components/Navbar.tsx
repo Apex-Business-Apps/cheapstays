@@ -28,6 +28,7 @@ export function Navbar() {
   const mobileLinks = [
     { to: "/",                  label: t("nav.home") },
     { to: "/types-of-stays",    label: t("nav.typesOfStays") },
+    { to: "/stay-vouchers",     label: t("nav.vouchers", "Vouchers") },
     // Hosts get a direct link to their dashboard; everyone else sees the
     // partner-onboarding entry point.
     isHost(roles)
