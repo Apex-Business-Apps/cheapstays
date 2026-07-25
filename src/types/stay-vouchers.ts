@@ -60,6 +60,7 @@ export interface StayVoucherBatchWithListing extends StayVoucherBatch {
     title: string;
     city: string | null;
     hero_image_url: string | null;
+    nightly_php: number | null;
   };
   unclaimed_count: number;
 }

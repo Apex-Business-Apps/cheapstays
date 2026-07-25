@@ -271,10 +271,23 @@ export default function StayVoucherDetailPage() {
             <Card className="p-5 space-y-3">
               <div>
                 <p className="text-xs text-muted-foreground">{batch.batch_name}</p>
-                <p className="text-3xl font-semibold">₱{batch.price_php.toLocaleString()}</p>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <p className="text-3xl font-semibold">₱{batch.price_php.toLocaleString()}</p>
+                  {savings > 0 && listing && (
+                    <p className="text-sm text-muted-foreground line-through">
+                      ₱{(listing.nightly_php * batch.nights).toLocaleString()}
+                    </p>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   {batch.nights} night{batch.nights === 1 ? "" : "s"} · one voucher
                 </p>
+                {savings > 0 && listing && (
+                  <Badge className="mt-2 bg-primary/10 text-primary hover:bg-primary/10 border-0">
+                    Save ₱{savings.toLocaleString()} (
+                    {Math.round((savings / (listing.nightly_php * batch.nights)) * 100)}% off)
+                  </Badge>
+                )}
               </div>
               <VoucherPurchaseForm batch={{
                 id: batch.id, batch_name: batch.batch_name, nights: batch.nights,

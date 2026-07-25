@@ -14,7 +14,7 @@ export function VoucherDealsSection() {
         .select(`
           id, listing_id, batch_name, nights, price_php, quantity, valid_days,
           terms, is_active, created_by, created_at,
-          listing:listings(id, title, city, images)
+          listing:listings(id, title, city, nightly_php, images)
         `)
         .eq("is_active", true)
         .order("created_at", { ascending: false })
@@ -23,8 +23,11 @@ export function VoucherDealsSection() {
         const l = Array.isArray(b.listing) ? b.listing[0] : b.listing;
         return {
           ...b,
-          listing: { id: l?.id, title: l?.title, city: l?.city ?? null,
-                     hero_image_url: Array.isArray(l?.images) ? l!.images[0] ?? null : null },
+          listing: {
+            id: l?.id, title: l?.title, city: l?.city ?? null,
+            nightly_php: l?.nightly_php ?? null,
+            hero_image_url: Array.isArray(l?.images) ? l!.images[0] ?? null : null,
+          },
           unclaimed_count: 0,
         } as unknown as StayVoucherBatchWithListing;
       });
