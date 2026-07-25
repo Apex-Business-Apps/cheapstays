@@ -3,7 +3,7 @@ import {
   addMonths, endOfMonth, format, isSameDay, parseISO, startOfMonth, subMonths,
   eachDayOfInterval, addDays,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { BookingDetailDrawer } from "@/components/BookingDetailDrawer";
+import { HostBlackoutDialog } from "@/components/host/HostBlackoutDialog";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -34,6 +35,7 @@ type BlackoutRow = {
   start_date: string;
   end_date: string;
   reason: string | null;
+  stay_type: "hourly" | "overnight" | "both";
 };
 
 type DayMeta = {
@@ -66,6 +68,9 @@ export function HostCalendar({ hostId }: Props) {
   const [blackouts, setBlackouts] = useState<BlackoutRow[]>([]);
   const [openDay, setOpenDay] = useState<DayMeta | null>(null);
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [blackoutFormOpen, setBlackoutFormOpen] = useState(false);
+  const [blackoutInitialDate, setBlackoutInitialDate] = useState<string | undefined>(undefined);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,7 +94,7 @@ export function HostCalendar({ hostId }: Props) {
         listingIds.length === 0
           ? Promise.resolve({ data: [], error: null })
           : sb.from("listing_blackout_dates")
-              .select("id,listing_id,start_date,end_date,reason")
+              .select("id,listing_id,start_date,end_date,reason,stay_type")
               .in("listing_id", listingIds),
       ]);
 
@@ -103,7 +108,7 @@ export function HostCalendar({ hostId }: Props) {
     }
     load();
     return () => { cancelled = true; };
-  }, [hostId]);
+  }, [hostId, reloadKey]);
 
   const days = useMemo(() => {
     const start = startOfMonth(month);
@@ -147,6 +152,14 @@ export function HostCalendar({ hostId }: Props) {
           </p>
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="mr-2"
+            onClick={() => { setBlackoutInitialDate(undefined); setBlackoutFormOpen(true); }}
+          >
+            <Ban className="h-4 w-4 mr-1" /> Block dates
+          </Button>
           <Button size="icon" variant="ghost"
             onClick={() => setMonth((m) => subMonths(m, 1))}>
             <ChevronLeft className="h-4 w-4" />
@@ -261,13 +274,37 @@ export function HostCalendar({ hostId }: Props) {
 
               {openDay.blackouts.map((bl) => (
                 <div key={bl.id} className="rounded-md border border-dashed border-border/60 p-3 text-sm">
-                  <p className="font-medium">Blackout</p>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium">Blocked</p>
+                    <Badge variant="outline" className="text-[10px] capitalize">
+                      {bl.stay_type === "both" ? "All bookings" : `${bl.stay_type} only`}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
                     {format(parseISO(bl.start_date), "MMM d")} → {format(parseISO(bl.end_date), "MMM d")}
                   </p>
-                  {bl.reason && <p className="text-xs mt-1">{bl.reason}</p>}
+                  {bl.reason ? (
+                    <p className="text-xs mt-1 whitespace-pre-wrap">{bl.reason}</p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground italic mt-1">No note added.</p>
+                  )}
                 </div>
               ))}
+
+              {openDay.blackouts.length === 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setBlackoutInitialDate(format(openDay.date, "yyyy-MM-dd"));
+                    setOpenDay(null);
+                    setBlackoutFormOpen(true);
+                  }}
+                >
+                  <Ban className="h-4 w-4 mr-1" /> Block this date
+                </Button>
+              )}
             </div>
           )}
         </DialogContent>
@@ -276,6 +313,14 @@ export function HostCalendar({ hostId }: Props) {
       <BookingDetailDrawer
         bookingId={selectedBookingId}
         onClose={() => setSelectedBookingId(null)}
+      />
+
+      <HostBlackoutDialog
+        hostId={hostId}
+        open={blackoutFormOpen}
+        onOpenChange={setBlackoutFormOpen}
+        initialDate={blackoutInitialDate}
+        onSaved={() => setReloadKey((k) => k + 1)}
       />
     </Card>
   );
