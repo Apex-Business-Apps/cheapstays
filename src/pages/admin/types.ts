@@ -59,6 +59,9 @@ export type HostApp = {
   property_type: string; city: string; province: string; property_description: string;
   id_type: string; id_front_path: string | null; selfie_path: string | null;
   status: string; created_at: string;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  rejection_reason?: string | null;
 };
 
 export const STATUS_COLORS: Record<string, string> = {
