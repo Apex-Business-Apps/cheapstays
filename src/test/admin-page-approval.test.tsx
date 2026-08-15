@@ -21,13 +21,25 @@ vi.mock("sonner", () => ({
   toast: { success: (...args: unknown[]) => toastSuccess(...args), error: (...args: unknown[]) => toastError(...args) },
 }));
 
+type DecisionFn = (appId: string, userId: string, approve: boolean, reason?: string) => Promise<void>;
+
 vi.mock("@/features/admin/HostApplicationReview", () => ({
-  HostApplicationReview: ({ onDecision }: { onDecision: (appId: string, userId: string, approve: boolean, reason?: string) => Promise<void> }) => (
+  HostApplicationReview: ({ onDecision }: { onDecision: DecisionFn }) => (
     <div>
       <button onClick={() => onDecision("app-1", "user-1", true)}>approve</button>
       <button onClick={() => onDecision("app-2", "user-2", false, "bad docs")}>reject</button>
     </div>
   ),
+  HostApplicationReviewDialog: ({ onDecision }: { onDecision: DecisionFn }) => (
+    <div>
+      <button onClick={() => onDecision("app-1", "user-1", true)}>approve</button>
+      <button onClick={() => onDecision("app-2", "user-2", false, "bad docs")}>reject</button>
+    </div>
+  ),
+}));
+
+vi.mock("@/features/admin/TicketApplicationReview", () => ({
+  TicketApplicationReview: () => null,
 }));
 
 function tableResponse(data: unknown[] = []) {

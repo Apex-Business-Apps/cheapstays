@@ -1379,6 +1379,17 @@ export type Database = {
         Args: { p_batch_ids: string[] }
         Returns: { batch_id: string; sold_or_held: number }[]
       }
+      // TEMPORARY: manually derived from migration 20260815120000_admin_user_contact_rpc.sql.
+      // Remove when `supabase gen types` is re-run against the updated schema.
+      admin_get_user_contact: {
+        Args: { target: string }
+        Returns: {
+          user_id: string
+          email: string | null
+          display_name: string | null
+          account_created_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
