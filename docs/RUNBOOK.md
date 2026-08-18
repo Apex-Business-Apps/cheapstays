@@ -2,8 +2,8 @@
 
 **Organization:** JGP Corporation  
 **Location:** Pasig City, Metro Manila, Philippines  
-**Document Version:** 1.2.0  
-**Last Updated:** 2026-05-21
+**Document Version:** 1.3.0  
+**Last Updated:** 2026-08-18
 
 ## 1) Incident Severity Model
 
@@ -159,7 +159,148 @@ Manual card-hold holds via client keys are completely disabled in favor of secur
   2. if needed, restore from point-in-time backup per Supabase recovery process
 - Document rollback cause and preventive action in `docs/STATUS.md`.
 
-## 10) Contact & Ownership
+## 10) Host Payout Flow (booking → withdrawable money)
+
+End-to-end trace of how a paid booking becomes money a host can withdraw. Every
+step in the pipeline is idempotent — safe to re-run any function without
+double-crediting or double-releasing.
+
+### 10.1 Timeline for a normal booking
+
+Example: guest books today for a stay 25–28 of the month.
+
+| When | Event | Effect on host wallet |
+|------|-------|-----------------------|
+| Booking day | Guest completes PayMongo checkout | Booking flips to `payment_status='paid'`, `status='confirmed'`. `refundable_until = check_in - 2 days`, `payout_release_on = check_in + 1 day` are written on the booking. |
+| Booking day, seconds later | `paymongo-webhook` fires `credit-host-wallet` | 90 % of the booking total lands in `host_wallets.pending_balance`. A `credit_pending` row is written to `wallet_transactions`. Platform keeps 10 %. |
+| Check-in − 2 days | Refund window closes | Guest can no longer self-refund. Money is now the host's to keep, but still not withdrawable. |
+| Check-in day | Guest checks in | No change to wallet. |
+| Check-in + 1 day | `payout_release_on` elapses | Money becomes **eligible** to move from pending → available. Actual move waits for the next daily sweeper tick. |
+| Next daily 02:00 Asia/Manila | `wallet-release-sweep` cron runs | Sweeper moves 90 % of total from `pending_balance` → `available_balance` and writes a `release_to_available` ledger row. |
+| After that | Host requests payout via `/host/wallet` | Preconditions: `available_balance ≥ ₱500`, `host_payout_accounts.is_verified = true`, no in-flight request, not requested in the last 7 days. |
+| Admin action | `/admin/disbursements` → attach proof | Admin sends off-platform (GCash / bank transfer), uploads screenshot, request flips to `awaiting_confirmation`. |
+| Host action | Host confirms receipt in `/host/wallet` | Request flips to `released`. Flow complete. |
+
+**Rule of thumb:** money is available on the *morning after* `check_in + 1 day`.
+Worst-case lag from check-in to withdrawable = **1 day + up to 24 h** (dependent on
+when the 02:00 Manila cron ticks vs. exactly when `payout_release_on` passes).
+
+### 10.2 Scheduled jobs
+
+Two pg_cron jobs (registered by migration
+`20260818000000_wallet_release_scheduler.sql`) drive the wallet lifecycle:
+
+| jobname | Schedule (UTC) | Manila local | Target function | Purpose |
+|---------|----------------|--------------|-----------------|---------|
+| `cheapstays-wallet-credit-reconcile` | `30 17 * * *` | 01:30 | `wallet-credit-reconcile` | Finds paid+confirmed bookings with **no `credit_pending` ledger row** and credits them. Safety net for the fire-and-forget `credit-host-wallet` call from `paymongo-webhook`. |
+| `cheapstays-wallet-release-sweep` | `0 18 * * *` | 02:00 | `wallet-release-sweep` | Finds paid bookings whose `payout_release_on ≤ now()` and no `release_to_available` row exists, and moves pending → available. |
+
+Reconcile runs 30 min *before* release so a credit repaired at 01:30 can be
+released in the same nightly run if the payout window has elapsed.
+
+Verify jobs are registered:
+
+```sql
+SELECT jobname, schedule, active
+FROM cron.job
+WHERE jobname LIKE 'cheapstays-wallet-%';
+```
+
+Recent run history:
+
+```sql
+SELECT jobname, status, start_time, end_time, return_message
+FROM cron.job_run_details jrd
+JOIN cron.job j ON j.jobid = jrd.jobid
+WHERE j.jobname LIKE 'cheapstays-wallet-%'
+ORDER BY start_time DESC LIMIT 20;
+```
+
+### 10.3 Manual triggers (support / one-off backfill)
+
+Admin (service-role key) can force-run either sweeper without waiting for cron:
+
+```bash
+# Repair any dropped credits (safe to run any time)
+curl -X POST "$SUPABASE_URL/functions/v1/wallet-credit-reconcile" \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" -d '{}'
+
+# Release matured pending balances now
+curl -X POST "$SUPABASE_URL/functions/v1/wallet-release-sweep" \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" -d '{}'
+```
+
+Both return `{ swept, ..., errors: [] }` — inspect `errors` if non-empty.
+
+For a single booking (e.g. a support ticket asks for immediate release), the
+per-booking endpoints still work:
+
+```bash
+curl -X POST "$SUPABASE_URL/functions/v1/credit-host-wallet" \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"booking_id":"<UUID>"}'
+
+curl -X POST "$SUPABASE_URL/functions/v1/release-pending-balance" \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"booking_id":"<UUID>"}'
+```
+
+### 10.4 Diagnosing "host says money is stuck"
+
+Run these SQL blocks in the Supabase SQL editor, substituting the host's email.
+
+**Where is their money right now?**
+
+```sql
+SELECT hw.pending_balance, hw.available_balance, hw.is_frozen,
+       hpa.payout_method, hpa.is_verified AS payout_verified
+FROM auth.users u
+LEFT JOIN host_wallets hw ON hw.host_id = u.id
+LEFT JOIN host_payout_accounts hpa ON hpa.host_id = u.id
+WHERE u.email = '<host_email>';
+```
+
+**Which of their bookings have paid but never got credited or released?**
+
+```sql
+SELECT b.id AS booking_id, b.check_in, b.check_out, b.payment_status,
+       b.total_php, b.paid_at, b.payout_release_on,
+       (SELECT id FROM wallet_transactions wt
+          WHERE wt.booking_id = b.id AND wt.type='credit_pending') AS credit_pending_tx_id,
+       (SELECT id FROM wallet_transactions wt
+          WHERE wt.booking_id = b.id AND wt.type='release_to_available') AS release_tx_id
+FROM bookings b
+JOIN auth.users u ON u.id = b.host_id
+WHERE u.email = '<host_email>'
+ORDER BY b.created_at DESC;
+```
+
+Interpretation:
+
+| Result | Meaning | Fix |
+|--------|---------|-----|
+| `credit_pending_tx_id` NULL for a paid booking | `credit-host-wallet` never fired / errored silently | Run `wallet-credit-reconcile` (or force per booking) |
+| `credit_pending_tx_id` present, `release_tx_id` NULL, `payout_release_on ≤ now()` | Release cron hasn't run yet since the window elapsed | Wait for next 02:00 Manila tick, or run `wallet-release-sweep` |
+| `release_tx_id` present but `available_balance = 0` | Release happened but a later disbursement or reversal consumed it | Check `wallet_transactions` full ledger |
+| `hpa.is_verified = false` | Even after release, host can't request payout | Admin verifies the payout account in `/admin/hosts` |
+| `hw.is_frozen = true` | All wallet operations blocked | Admin unfreezes in `/admin/hosts` |
+
+### 10.5 Why the sweepers exist
+
+Before migration `20260818000000_wallet_release_scheduler.sql`, no code path
+called `release-pending-balance` — the old monthly cron (`cheapstays-monthly-host-payouts`)
+was unscheduled on 2026-07-22 in favour of a host-controlled disbursement
+flow, but the pending → available step was never re-wired. Money credited to
+`pending_balance` had no path out, so `request-disbursement` always refused
+(`available < ₱500`). The reconcile sweeper additionally protects against the
+fire-and-forget `credit-host-wallet` call from `paymongo-webhook`, which
+returns 200 to PayMongo even when the credit HTTP call fails.
+
+## 11) Contact & Ownership
 
 - Product/Engineering Owner: JGP Corporation
 - Operational Base: Pasig City, Metro Manila, Philippines
