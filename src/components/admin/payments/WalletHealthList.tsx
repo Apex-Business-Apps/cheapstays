@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/hooks/use-toast";
 import { formatPHP, splitEarnings } from "@/lib/money";
 
 type StuckRow = {
@@ -74,24 +75,88 @@ async function loadHealth(): Promise<StuckRow[]> {
     });
 }
 
+type JobKey = "reconcile" | "release";
+
+type TriggerResult = {
+  ok: boolean;
+  job: JobKey;
+  status: number;
+  result: {
+    credited?: number;
+    credited_php?: number;
+    swept?: number;
+    released?: number;
+    released_php?: number;
+    errors?: Array<{ booking_id: string; error: string }>;
+  };
+};
+
 export function WalletHealthList() {
   const [rows, setRows] = useState<StuckRow[] | null>(null);
+  const [runningJob, setRunningJob] = useState<JobKey | null>(null);
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     let cancelled = false;
+    setRows(null);
     loadHealth().then((r) => { if (!cancelled) setRows(r); }).catch(() => { if (!cancelled) setRows([]); });
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const runJob = useCallback(async (job: JobKey) => {
+    setRunningJob(job);
+    try {
+      const { data, error } = await supabase.functions.invoke<TriggerResult>(
+        "admin-trigger-wallet-reconcile",
+        { body: { job } },
+      );
+      if (error || !data) {
+        toast({ title: `${job} failed`, description: error?.message ?? "No response", variant: "destructive" });
+        return;
+      }
+      const r = data.result ?? {};
+      const description = job === "reconcile"
+        ? `Credited ${r.credited ?? 0} bookings · ${formatPHP(r.credited_php ?? 0)}${r.errors?.length ? ` · ${r.errors.length} error${r.errors.length === 1 ? "" : "s"}` : ""}`
+        : `Released ${r.released ?? 0} bookings · ${formatPHP(r.released_php ?? 0)}${r.errors?.length ? ` · ${r.errors.length} error${r.errors.length === 1 ? "" : "s"}` : ""}`;
+      toast({
+        title: data.ok ? `${job === "reconcile" ? "Reconcile" : "Release"} done` : `${job} returned ${data.status}`,
+        description,
+        variant: data.ok ? "default" : "destructive",
+      });
+      refresh();
+    } catch (err) {
+      toast({ title: `${job} failed`, description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setRunningJob(null);
+    }
+  }, [refresh]);
+
   return (
     <Card className="p-5">
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div>
+      <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+        <div className="min-w-0">
           <h3 className="text-sm font-semibold text-foreground">Wallet health</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
             Paid bookings past their <span className="font-medium text-foreground">payout release date</span> that
             haven&apos;t reached the host&apos;s available balance yet.
           </p>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <JobButton
+            label="Credit reconcile"
+            hint="Paid → Held"
+            busy={runningJob === "reconcile"}
+            disabled={runningJob !== null}
+            onClick={() => void runJob("reconcile")}
+          />
+          <JobButton
+            label="Release sweep"
+            hint="Held → Ready"
+            busy={runningJob === "release"}
+            disabled={runningJob !== null}
+            onClick={() => void runJob("release")}
+          />
         </div>
       </div>
 
@@ -133,5 +198,22 @@ export function WalletHealthList() {
         </ul>
       )}
     </Card>
+  );
+}
+
+function JobButton({
+  label, hint, busy, disabled, onClick,
+}: { label: string; hint: string; busy: boolean; disabled: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={hint}
+      className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-input bg-background text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+    >
+      <RefreshCw className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
+      {busy ? "Running…" : label}
+    </button>
   );
 }
