@@ -57,6 +57,7 @@ const AdminTicketsPage        = lazy(() => import("./pages/admin/TicketsPage"));
 const AdminUsersPage          = lazy(() => import("./pages/admin/UsersPage"));
 const AdminAuditPage          = lazy(() => import("./pages/admin/AuditPage"));
 const AdminDisbursementsPage  = lazy(() => import("./pages/admin/DisbursementsPage"));
+const AdminPaymentsPage       = lazy(() => import("./pages/admin/PaymentsPage"));
 
 const queryClient = new QueryClient();
 
@@ -165,6 +166,7 @@ const App = () => (
                     <Route path="/admin/tickets"         element={<AdminTicketsPage />} />
                     <Route path="/admin/users"           element={<AdminUsersPage />} />
                     <Route path="/admin/audit"           element={<AdminAuditPage />} />
+                    <Route path="/admin/payments"        element={<AdminPaymentsPage />} />
                     <Route path="/admin/disbursements"   element={<AdminDisbursementsPage />} />
                     <Route path="/admin/stay-vouchers"      element={<AdminStayVouchersPage />} />
                   </Route>
