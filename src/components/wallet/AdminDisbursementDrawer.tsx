@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react';
+import { Copy, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import type { DisbursementRequest } from '@/types/wallet';
+
+type PayoutAccount = {
+  payout_method: string;
+  account_holder_name: string;
+  account_number: string;
+  is_verified: boolean;
+  updated_at: string;
+};
 
 interface Props {
   request: DisbursementRequest;
@@ -22,6 +32,7 @@ export function AdminDisbursementDrawer({ request, open, onClose, onUpdated }: P
   const [saving, setSaving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [signedProof, setSignedProof] = useState<string | null>(null);
+  const [account, setAccount] = useState<PayoutAccount | null | 'missing'>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +48,31 @@ export function AdminDisbursementDrawer({ request, open, onClose, onUpdated }: P
     void loadHost();
     return () => { cancelled = true; };
   }, [request.wallet_id]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setAccount(null);
+    async function loadAccount() {
+      const result = await supabase.functions.invoke('admin-get-payout-account', {
+        body: { disbursement_id: request.id },
+      });
+      if (cancelled) return;
+      const { data, error } = result ?? {};
+      if (error) {
+        let is404 = false;
+        try {
+          const body = await (error as { context?: Response }).context?.json();
+          if (body?.error === 'Host has no payout account on file') is404 = true;
+        } catch { /* ignore */ }
+        setAccount(is404 ? 'missing' : null);
+        return;
+      }
+      setAccount((data ?? null) as PayoutAccount | null);
+    }
+    void loadAccount();
+    return () => { cancelled = true; };
+  }, [open, request.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,6 +163,66 @@ export function AdminDisbursementDrawer({ request, open, onClose, onUpdated }: P
             <a href={signedProof} target="_blank" rel="noreferrer" className="block">
               <img src={signedProof} alt="Current proof" className="max-h-64 rounded-lg object-contain w-full bg-black/5" />
             </a>
+          )}
+        </div>
+
+        <div className="mt-6 rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payout account</span>
+            {account && account !== 'missing' && (
+              account.is_verified ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                  <ShieldCheck className="h-3.5 w-3.5" /> Verified
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                  <ShieldAlert className="h-3.5 w-3.5" /> Unverified
+                </span>
+              )
+            )}
+          </div>
+
+          {account === null ? (
+            <>
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-4 w-40" />
+            </>
+          ) : account === 'missing' ? (
+            <div className="text-xs text-destructive">
+              Host has no payout account on file. Do not disburse — reject and ask host to add one.
+            </div>
+          ) : (
+            <div className="space-y-1.5 text-sm">
+              <div>
+                <span className="text-muted-foreground text-xs">Method: </span>
+                <span className="font-medium uppercase">{account.payout_method}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">Account holder: </span>
+                <span className="font-medium">{account.account_holder_name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground text-xs">Number: </span>
+                <span className="font-mono font-medium tabular-nums">{account.account_number}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(account.account_number).then(
+                      () => toast({ title: 'Account number copied' }),
+                      () => toast({ title: 'Copy failed', variant: 'destructive' }),
+                    );
+                  }}
+                  className="inline-flex items-center justify-center rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="Copy account number"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                Last updated {new Date(account.updated_at).toLocaleDateString('en-PH')}
+              </div>
+            </div>
           )}
         </div>
 
