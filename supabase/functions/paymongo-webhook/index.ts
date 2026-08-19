@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { extractBookingId, PAYMONGO_SIGNATURE_HEADER, parsePaymongoEvent, SUPPORTED_PAYMONGO_EVENTS, verifyPaymongoSignature } from "../_shared/paymongo-webhook.ts";
+import { buildRefundWindow } from "../_shared/payments.ts";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -73,10 +74,10 @@ Deno.serve(async (req) => {
 
   // Resolve booking — prefer metadata id, fall back to the stored checkout-session id.
   let { data: booking } = await adminClient
-    .from("bookings").select("id,status,payment_status").eq("id", bookingId).maybeSingle();
+    .from("bookings").select("id,status,payment_status,check_in").eq("id", bookingId).maybeSingle();
   if (!booking && resource?.id) {
     const fallback = await adminClient
-      .from("bookings").select("id,status,payment_status").eq("payment_ref", resource.id).maybeSingle();
+      .from("bookings").select("id,status,payment_status,check_in").eq("payment_ref", resource.id).maybeSingle();
     booking = fallback.data ?? null;
   }
 
@@ -94,6 +95,11 @@ Deno.serve(async (req) => {
   // ── Authoritative booking update (covers payment_status AND status so the
   //    "Resume payment" CTA clears). Done inline so it doesn't depend on the
   //    process_paymongo_paid_webhook RPC, which may be missing on this project. ──
+  // Refund + payout windows: refundable until 2 days before check-in,
+  // payout releases 1 day after check-in. `wallet-release-sweep` filters on
+  // payout_release_on — leaving it NULL strands host earnings in pending forever.
+  const refundWindow = booking.check_in ? buildRefundWindow(booking.check_in) : null;
+
   const { error: updateErr } = await adminClient
     .from("bookings")
     .update({
@@ -101,6 +107,10 @@ Deno.serve(async (req) => {
       payment_state: "captured",
       status: "confirmed",
       paid_at: new Date().toISOString(),
+      ...(refundWindow ? {
+        refundable_until: refundWindow.refundable_until,
+        payout_release_on: refundWindow.payout_release_on,
+      } : {}),
       ...(paymentId ? { paymongo_payment_id: paymentId } : {}),
     })
     .eq("id", booking.id);

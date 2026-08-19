@@ -32,12 +32,13 @@
 -- Remove stale schedules if re-running migration.
 DO $$
 BEGIN
-  DELETE FROM cron.job
-  WHERE jobname IN (
-    'cheapstays-wallet-credit-reconcile',
-    'cheapstays-wallet-release-sweep'
-  );
-EXCEPTION WHEN undefined_table THEN
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'cheapstays-wallet-credit-reconcile') THEN
+    PERFORM cron.unschedule('cheapstays-wallet-credit-reconcile');
+  END IF;
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'cheapstays-wallet-release-sweep') THEN
+    PERFORM cron.unschedule('cheapstays-wallet-release-sweep');
+  END IF;
+EXCEPTION WHEN undefined_table OR undefined_function THEN
   NULL; -- pg_cron not installed; skip
 END;
 $$;
