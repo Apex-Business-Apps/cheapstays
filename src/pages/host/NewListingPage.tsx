@@ -6,15 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Sparkles, Loader2, CheckSquare, Square } from "lucide-react";
+import { Loader2, CheckSquare, Square } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { ImageUploader } from "@/components/ImageUploader";
 import { VideoUploader } from "@/components/VideoUploader";
 import { ListingPublishGate } from "@/components/ListingPublishGate";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { aiDescribeSchema } from "@/lib/schemas";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
@@ -86,9 +84,6 @@ export default function NewListingPage() {
 
   const [listingId, setListingId] = useState(() => crypto.randomUUID());
   const [title, setTitle] = useState("");
-  const [bullets, setBullets] = useState("");
-  const [aiOut, setAiOut] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
   const [form, setForm] = useState({
     stay_availability_type: "overnight",
     stay_category: "overnight_stay",
@@ -109,30 +104,6 @@ export default function NewListingPage() {
 
   if (loading) return null;
   if (!user) return null;
-
-  async function generateDescription() {
-    const parsed = aiDescribeSchema.safeParse({
-      title,
-      bullets: bullets.split("\n").map((b) => b.trim()).filter(Boolean),
-      tone: "confident",
-    });
-    if (!parsed.success) {
-      toast({ title: "Add a title and at least one bullet", variant: "destructive" });
-      return;
-    }
-    setAiLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("ai-describe", { body: parsed.data });
-      if (error) throw error;
-      const desc = data?.description ?? "";
-      setAiOut(desc);
-      setForm((f) => ({ ...f, description: desc }));
-    } catch (err) {
-      toast({ title: "AI error", description: (err as Error).message, variant: "destructive" });
-    } finally {
-      setAiLoading(false);
-    }
-  }
 
   function toggleAmenity(a: string) {
     setSelectedAmenities((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]);
@@ -194,10 +165,11 @@ export default function NewListingPage() {
   return (
     <>
       <Seo title="New Listing · CheapStays Host" description="Create a new listing." path="/host/new-listing" />
-      <div className="max-w-3xl space-y-8">
-        <h1 className="text-2xl font-semibold tracking-tight">New listing</h1>
+      <div className="max-w-3xl mx-auto space-y-8">
+        <h1 className="text-2xl font-semibold tracking-tight text-center">New listing</h1>
 
-        {/* AI description generator */}
+        {/* AI description generator — temporarily disabled */}
+        {/*
         <Card className="p-6 space-y-4">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
@@ -224,6 +196,7 @@ export default function NewListingPage() {
             </div>
           )}
         </Card>
+        */}
 
         {/* Listing form */}
         <Card className="p-6 space-y-6">
@@ -295,11 +268,16 @@ export default function NewListingPage() {
           <div className="space-y-2">
             <Label>Promo price (₱) <span className="text-muted-foreground text-xs">(optional slash price)</span></Label>
             <Input type="number" min={0} step={50} value={form.promo_price || ""} onChange={(e) => setForm((f) => ({ ...f, promo_price: Number(e.target.value) }))} />
+            <p className="text-xs text-muted-foreground">This is the discounted price guests actually pay and see displayed. Your Overnight or Hourly price below shows as the crossed-out original.</p>
           </div>
 
           {(form.stay_availability_type === "overnight" || form.stay_availability_type === "both") && (
             <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/60">
-              <div className="space-y-2"><Label>Overnight price (₱)</Label><Input type="number" min={100} step={50} value={form.overnight_php} onChange={(e) => setForm((f) => ({ ...f, overnight_php: Number(e.target.value) }))} /></div>
+              <div className="space-y-2">
+                <Label>Overnight price (₱)</Label>
+                <Input type="number" min={100} step={50} value={form.overnight_php} onChange={(e) => setForm((f) => ({ ...f, overnight_php: Number(e.target.value) }))} />
+                <p className="text-xs text-muted-foreground">Your regular per-night rate. Shown crossed-out if a promo price is set.</p>
+              </div>
               <div className="space-y-2"><Label>Minimum nights</Label><Input type="number" min={1} max={30} value={form.min_nights} onChange={(e) => setForm((f) => ({ ...f, min_nights: Number(e.target.value) }))} /></div>
             </div>
           )}
@@ -307,6 +285,7 @@ export default function NewListingPage() {
           {(form.stay_availability_type === "hourly" || form.stay_availability_type === "both") && (
             <div className="space-y-4 pt-2 border-t border-border/60">
               <h3 className="font-medium text-sm">Hourly Pricing</h3>
+              <p className="text-xs text-muted-foreground">Your regular hourly rates. The promo price above still acts as the slash discount when set.</p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>Base Hourly Rate (₱)</Label><Input type="number" min={0} step={50} value={form.hourly_php || ""} onChange={(e) => setForm((f) => ({ ...f, hourly_php: Number(e.target.value) }))} /></div>
                 <div className="space-y-2"><Label>3-Hour Block (₱)</Label><Input type="number" min={0} step={50} value={form.price_3h || ""} onChange={(e) => setForm((f) => ({ ...f, price_3h: Number(e.target.value) }))} /></div>
@@ -319,7 +298,7 @@ export default function NewListingPage() {
           <div className="space-y-2">
             <Label>Description</Label>
             <Textarea rows={6} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="Describe your place…" />
-            <p className="text-xs text-muted-foreground">Use the AI generator above to write this for you.</p>
+            <p className="text-xs text-muted-foreground">Describe your place in a few sentences — what makes it special, the neighborhood, and any house rules.</p>
           </div>
 
           <div className="space-y-3">
