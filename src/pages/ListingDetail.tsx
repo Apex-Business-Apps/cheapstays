@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
 import { Loader2, ArrowLeft, BedDouble, Bath, Users, CalendarDays, Zap, Star, CheckCircle2, ScrollText } from "lucide-react";
-import { ImageGallery } from "@/components/ImageGallery";
+import { ListingPhotoCarousel } from "@/components/ListingPhotoCarousel";
 import { BookingPanel } from "@/components/BookingPanel";
 import { ReviewList } from "@/components/ReviewList";
 import { GuestRatingBadge } from "@/components/GuestRatingBadge";
@@ -114,7 +114,7 @@ export default function ListingDetail() {
 
         {listing.images?.length > 0 ? (
           <div className="mb-8">
-            <ImageGallery images={listing.images} title={listing.title} />
+            <ListingPhotoCarousel images={listing.images} title={listing.title} variant="hero" />
           </div>
         ) : (
           <div className="rounded-2xl h-64 bg-gradient-to-br from-secondary/60 to-accent/10 flex items-center justify-center mb-8">

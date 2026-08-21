@@ -10,7 +10,7 @@ import {
   ArrowLeft, BedDouble, Bath, Users, CalendarDays, Star, CheckCircle2, ScrollText, Ticket,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { ImageGallery } from "@/components/ImageGallery";
+import { ListingPhotoCarousel } from "@/components/ListingPhotoCarousel";
 import { ReviewList } from "@/components/ReviewList";
 import { GuestRatingBadge } from "@/components/GuestRatingBadge";
 import { VoucherPurchaseForm } from "@/components/stay-vouchers/VoucherPurchaseForm";
@@ -128,7 +128,7 @@ export default function StayVoucherDetailPage() {
 
         {listing?.images && listing.images.length > 0 ? (
           <div className="mb-8">
-            <ImageGallery images={listing.images} title={listing.title} />
+            <ListingPhotoCarousel images={listing.images} title={listing.title} variant="hero" />
           </div>
         ) : (
           <div className="rounded-2xl h-64 bg-gradient-to-br from-secondary/60 to-accent/10 flex items-center justify-center mb-8">
