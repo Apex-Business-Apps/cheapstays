@@ -44,3 +44,18 @@ if (typeof globalThis.ResizeObserver === "undefined") {
     disconnect() {}
   };
 }
+
+// Embla carousel uses IntersectionObserver to detect slides in view; jsdom
+// doesn't implement it. A no-op stub is enough — tests care about which
+// controls render, not visibility tracking.
+if (typeof globalThis.IntersectionObserver === "undefined") {
+  globalThis.IntersectionObserver = class IntersectionObserver {
+    root = null;
+    rootMargin = "";
+    thresholds = [];
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() { return []; }
+  } as unknown as typeof IntersectionObserver;
+}
