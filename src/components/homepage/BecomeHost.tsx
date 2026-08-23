@@ -8,7 +8,7 @@ import { ease } from "./constants";
 
 export function BecomeHost() {
   return (
-    <AtmosphericSection as="div" variant="lake" parallaxStrength="subtle" className="border-y border-border/60">
+    <AtmosphericSection as="div" variant="coastal" parallaxStrength="subtle" className="border-y border-border/60">
       <section className="container py-24">
         <div className="relative overflow-hidden rounded-3xl bg-primary/50 text-primary-foreground p-8 md:p-16">
           <div className="absolute -right-24 -bottom-24 h-80 w-80 rounded-full bg-accent/30 blur-3xl" />
@@ -19,7 +19,7 @@ export function BecomeHost() {
             transition={{ duration: 0.7, ease }}
             className="relative mx-auto max-w-2xl text-center flex flex-col items-center"
           >
-            <Badge variant="secondary" className="mb-4 uppercase tracking-wider text-xs">
+            <Badge variant="secondary" className="mb-4 uppercase tracking-wider text-xs bg-transparent border-transparent text-[#b18b44] hover:bg-transparent">
               <Handshake className="h-3 w-3 mr-1" /> Become a host
             </Badge>
             <h2 className="text-3xl md:text-5xl font-semibold tracking-tight leading-[1.05]">

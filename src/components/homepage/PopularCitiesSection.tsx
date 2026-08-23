@@ -89,7 +89,7 @@ export function PopularCitiesSection() {
       <section className="container py-24">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
           <div className="max-w-xl">
-            <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">
+            <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs bg-transparent border-transparent text-[#b18b44] hover:bg-transparent">
               <MapPin className="h-3 w-3 mr-1" /> Popular cities
             </Badge>
             <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">Where travelers are booking now</h2>

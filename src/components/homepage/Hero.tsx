@@ -22,7 +22,7 @@ export function Hero() {
   }
 
   return (
-    <AtmosphericSection as="div" variant="beach" parallaxStrength="subtle">
+    <AtmosphericSection as="div" variant="city" parallaxStrength="subtle">
       <section className="container pt-14 pb-20 md:pt-20 md:pb-24">
         <div className="grid gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-14 items-start">
           <motion.div
@@ -30,7 +30,7 @@ export function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, ease }}
           >
-            <Badge variant="secondary" className="mb-6 uppercase tracking-wider text-xs">
+            <Badge variant="secondary" className="mb-6 uppercase tracking-wider text-xs bg-transparent border-transparent text-[#b18b44] hover:bg-transparent">
               {t("hero.badge")}
             </Badge>
             <h1 className="text-5xl md:text-6xl xl:text-7xl font-semibold tracking-tight leading-[1.02]">
@@ -40,15 +40,19 @@ export function Hero() {
             <p className="mt-6 text-lg text-muted-foreground max-w-xl">
               {t("hero.lead")}
             </p>
-            <form onSubmit={handleSearch} className="mt-8 flex gap-2 max-w-xl">
+            <form onSubmit={handleSearch} className="mt-8 relative max-w-xl">
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("hero.searchPlaceholder")}
                 aria-label={t("hero.searchAria")}
-                className="flex-1 h-12 text-base bg-background/90 backdrop-blur"
+                className="h-12 pr-32 text-base bg-background/90 backdrop-blur"
               />
-              <Button type="submit" size="lg" className="h-12 px-6">
+              <Button
+                type="submit"
+                size="sm"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-9 px-4 bg-[#b18b44] text-white hover:bg-[#9a7838]"
+              >
                 <Search className="h-4 w-4 mr-1.5" /> {t("nav.search")}
               </Button>
             </form>

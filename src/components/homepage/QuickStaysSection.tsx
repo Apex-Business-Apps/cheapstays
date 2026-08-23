@@ -71,7 +71,7 @@ export function QuickStaysSection() {
       <section className="container py-24">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
           <div className="max-w-xl">
-            <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">
+            <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs bg-transparent border-transparent text-[#b18b44] hover:bg-transparent">
               <Clock className="h-3 w-3 mr-1" /> Quick stay vouchers
             </Badge>
             <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">Need just a few hours?</h2>

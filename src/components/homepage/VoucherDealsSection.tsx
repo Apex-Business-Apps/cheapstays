@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { StayVoucherBatchWithListing } from "@/types/stay-vouchers";
 import { VoucherCard } from "@/components/stay-vouchers/VoucherCard";
+import { AtmosphericSection } from "@/components/AtmosphericSection";
 
 export function VoucherDealsSection() {
   const [batches, setBatches] = useState<StayVoucherBatchWithListing[]>([]);
@@ -44,28 +45,30 @@ export function VoucherDealsSection() {
   }, []);
 
   return (
-    <section className="py-10 px-4 max-w-6xl mx-auto">
-      <div className="flex items-baseline justify-between mb-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-semibold">Voucher deals</h2>
-          <p className="text-sm text-muted-foreground">Prepaid stays at discounted prices.</p>
+    <AtmosphericSection as="section" variant="interior" parallaxStrength="subtle">
+      <div className="py-10 px-4 max-w-6xl mx-auto">
+        <div className="flex items-baseline justify-between mb-4">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-semibold">Voucher deals</h2>
+            <p className="text-sm text-muted-foreground">Prepaid stays at discounted prices.</p>
+          </div>
+          <Link to="/stay-vouchers" className="text-xs text-primary hover:underline flex items-center gap-1">
+            See all <ArrowRight className="h-3 w-3" />
+          </Link>
         </div>
-        <Link to="/stay-vouchers" className="text-xs text-primary hover:underline flex items-center gap-1">
-          See all <ArrowRight className="h-3 w-3" />
-        </Link>
+        {batches.length === 0 ? (
+          <Link
+            to="/stay-vouchers"
+            className="block rounded-lg border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground hover:border-primary/60 hover:text-foreground transition-colors"
+          >
+            New voucher deals arrive weekly. Tap to see what's live now →
+          </Link>
+        ) : (
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+            {batches.slice(0, 4).map((b) => <VoucherCard key={b.id} batch={b} />)}
+          </div>
+        )}
       </div>
-      {batches.length === 0 ? (
-        <Link
-          to="/stay-vouchers"
-          className="block rounded-lg border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground hover:border-primary/60 hover:text-foreground transition-colors"
-        >
-          New voucher deals arrive weekly. Tap to see what's live now →
-        </Link>
-      ) : (
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-          {batches.slice(0, 4).map((b) => <VoucherCard key={b.id} batch={b} />)}
-        </div>
-      )}
-    </section>
+    </AtmosphericSection>
   );
 }
