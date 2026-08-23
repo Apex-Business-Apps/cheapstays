@@ -44,11 +44,11 @@ export function FeaturedStaysSection() {
   }, []);
 
   return (
-    <AtmosphericSection as="div" variant="beach" parallaxStrength="subtle">
+    <AtmosphericSection as="div" variant="neighborhood" parallaxStrength="subtle">
       <section className="container py-24">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
           <div className="max-w-xl">
-            <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">
+            <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs bg-transparent border-transparent text-[#b18b44] hover:bg-transparent">
               <Sparkles className="h-3 w-3 mr-1" /> Featured stays
             </Badge>
             <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">Promoted &amp; top-rated stays</h2>
