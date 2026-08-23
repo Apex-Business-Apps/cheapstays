@@ -32,7 +32,7 @@ export function AdminDisbursementDrawer({ request, open, onClose, onUpdated }: P
   const [saving, setSaving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [signedProof, setSignedProof] = useState<string | null>(null);
-  const [account, setAccount] = useState<PayoutAccount | null | 'missing'>(null);
+  const [account, setAccount] = useState<PayoutAccount | null | 'missing' | { error: string }>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,12 +60,16 @@ export function AdminDisbursementDrawer({ request, open, onClose, onUpdated }: P
       if (cancelled) return;
       const { data, error } = result ?? {};
       if (error) {
-        let is404 = false;
+        let serverMsg: string | null = null;
         try {
           const body = await (error as { context?: Response }).context?.json();
-          if (body?.error === 'Host has no payout account on file') is404 = true;
+          if (body?.error) serverMsg = body.error;
         } catch { /* ignore */ }
-        setAccount(is404 ? 'missing' : null);
+        if (serverMsg === 'Host has no payout account on file') {
+          setAccount('missing');
+        } else {
+          setAccount({ error: serverMsg ?? error.message ?? 'Failed to load payout account' });
+        }
         return;
       }
       setAccount((data ?? null) as PayoutAccount | null);
@@ -169,7 +173,7 @@ export function AdminDisbursementDrawer({ request, open, onClose, onUpdated }: P
         <div className="mt-6 rounded-lg border border-border bg-muted/30 p-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payout account</span>
-            {account && account !== 'missing' && (
+            {account && account !== 'missing' && !('error' in account) && (
               account.is_verified ? (
                 <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
                   <ShieldCheck className="h-3.5 w-3.5" /> Verified
@@ -191,6 +195,10 @@ export function AdminDisbursementDrawer({ request, open, onClose, onUpdated }: P
           ) : account === 'missing' ? (
             <div className="text-xs text-destructive">
               Host has no payout account on file. Do not disburse — reject and ask host to add one.
+            </div>
+          ) : 'error' in account ? (
+            <div className="text-xs text-destructive">
+              Couldn't load payout account: {account.error}. Do not disburse — reject and ask host to re-enter their details.
             </div>
           ) : (
             <div className="space-y-1.5 text-sm">

@@ -24,7 +24,7 @@ export function AdminDisbursementPanel() {
   const [requests, setRequests] = useState<DisbursementRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
-  const [selected, setSelected] = useState<DisbursementRequest | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -39,6 +39,21 @@ export function AdminDisbursementPanel() {
   }, [filter]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Host confirms receipt (or another admin uploads proof) in a separate
+  // session — subscribe to disbursement_requests so this panel reflects
+  // status changes without a manual refresh.
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-disbursement-requests')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'disbursement_requests' },
+        () => { void load(); },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [load]);
 
   return (
     <div className="rounded-2xl bg-card border border-border overflow-hidden">
@@ -69,7 +84,7 @@ export function AdminDisbursementPanel() {
             <li key={r.id}>
               <button
                 type="button"
-                onClick={() => setSelected(r)}
+                onClick={() => setSelectedId(r.id)}
                 className="w-full text-left px-6 py-4 hover:bg-muted/50 space-y-1"
               >
                 <div className="flex items-center justify-between">
@@ -89,14 +104,18 @@ export function AdminDisbursementPanel() {
         </ul>
       )}
 
-      {selected && (
-        <AdminDisbursementDrawer
-          request={selected}
-          open={Boolean(selected)}
-          onClose={() => setSelected(null)}
-          onUpdated={() => void load()}
-        />
-      )}
+      {(() => {
+        const selected = selectedId ? requests.find((r) => r.id === selectedId) ?? null : null;
+        if (!selected) return null;
+        return (
+          <AdminDisbursementDrawer
+            request={selected}
+            open={true}
+            onClose={() => setSelectedId(null)}
+            onUpdated={() => void load()}
+          />
+        );
+      })()}
     </div>
   );
 }
