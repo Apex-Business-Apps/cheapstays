@@ -32,9 +32,12 @@ export async function decrypt(encryptedBase64: string): Promise<string> {
 }
 
 function hexToBytes(hex: string): Uint8Array {
+  if (hex.length !== 64 || !/^[0-9a-fA-F]+$/.test(hex)) {
+    throw new Error("WALLET_ENCRYPTION_KEY must be 64 hex characters (32 bytes)");
+  }
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substring(i, 2), 16);
+    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
   }
   return bytes;
 }
