@@ -20,6 +20,7 @@ import heroInterior from "@/assets/stay-2.jpg";
 import guestInterior from "@/assets/stay-6.jpg";
 import ownerBuilding from "@/assets/city-tagaytay.jpg";
 import ctaSkyline from "@/assets/city-cebu.jpg";
+import metroAerial from "@/assets/city-cebu.jpg";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -47,13 +48,13 @@ const WHY = [
   },
 ];
 
-const METRO_PINS: { name: string; x: number; y: number }[] = [
-  { name: "Quezon City",  x: 58, y: 22 },
-  { name: "Makati",       x: 42, y: 52 },
-  { name: "Pasig",        x: 68, y: 50 },
-  { name: "Mandaluyong",  x: 50, y: 62 },
-  { name: "Taguig",       x: 72, y: 68 },
-  { name: "Parañaque",    x: 40, y: 78 },
+const METRO_PINS: { name: string }[] = [
+  { name: "Quezon City" },
+  { name: "Makati" },
+  { name: "Pasig" },
+  { name: "Mandaluyong" },
+  { name: "Taguig" },
+  { name: "Parañaque" },
 ];
 
 export default function AboutPage() {
@@ -175,31 +176,33 @@ export default function AboutPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-40px" }}
           transition={{ duration: 0.6, ease }}
-          className="rounded-3xl bg-card border border-border/60 grid gap-0 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/50 overflow-hidden"
+          className="rounded-3xl bg-card border border-border/60 grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/50 overflow-hidden"
         >
-          <div className="p-6 md:p-10">
+          <div className="p-6 md:p-8 flex items-center">
             <MissionColumn
               icon={Target}
               eyebrow="Our Mission"
               body="To make quality stays more affordable and accessible, so guests can stay comfortably without spending more than they need."
             />
           </div>
-          <div className="p-6 md:p-10">
-            <MissionColumn
-              icon={Eye}
-              eyebrow="Our Vision"
-              body="To become the easiest and most trusted way to find and book affordable stays in the Philippines."
-            />
-            <div className="mt-5 pl-16 space-y-0.5">
-              <p className="text-lg font-semibold tracking-tight text-foreground">
-                Simple stays. Easy booking.
-              </p>
-              <p className="text-lg font-semibold tracking-tight text-foreground">
-                As easy as{" "}
-                <span className="text-primary">1</span>,{" "}
-                <span className="text-primary">2</span>,{" "}
-                <span className="text-primary">3</span>.
-              </p>
+          <div className="p-6 md:p-8 flex items-center">
+            <div className="w-full">
+              <MissionColumn
+                icon={Eye}
+                eyebrow="Our Vision"
+                body="To become the easiest and most trusted way to find and book affordable stays in the Philippines."
+              />
+              <div className="mt-4 pl-16 space-y-0.5">
+                <p className="text-base md:text-lg font-semibold tracking-tight text-foreground">
+                  Simple stays. Easy booking.
+                </p>
+                <p className="text-base md:text-lg font-semibold tracking-tight text-foreground">
+                  As easy as{" "}
+                  <span className="text-primary">1</span>,{" "}
+                  <span className="text-primary">2</span>,{" "}
+                  <span className="text-primary">3</span>.
+                </p>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -210,7 +213,7 @@ export default function AboutPage() {
         <h2 className="text-center text-2xl md:text-3xl font-semibold tracking-tight text-foreground mb-10">
           Why CheapStays?
         </h2>
-        <div className="grid gap-8 md:gap-10 md:grid-cols-3 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-3 max-w-5xl mx-auto divide-y md:divide-y-0 md:divide-x divide-border/50">
           {WHY.map(({ icon: Icon, title, body }, i) => (
             <motion.div
               key={title}
@@ -218,7 +221,7 @@ export default function AboutPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.5, delay: i * 0.06, ease }}
-              className="flex items-start gap-4 justify-self-center max-w-[300px]"
+              className="flex items-start gap-4 px-4 md:px-8 py-6 md:py-4"
             >
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-accent/60 ring-1 ring-border/60">
                 <Icon className="h-5 w-5 text-foreground/80" aria-hidden />
@@ -255,8 +258,8 @@ export default function AboutPage() {
       </section>
 
       {/* Where We Are */}
-      <section className="container py-12 md:py-16">
-        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.4fr] items-start">
+      <section className="container py-10 md:py-12">
+        <div className="grid gap-8 lg:grid-cols-[1fr_1.6fr] items-center">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
               Where We Are
@@ -268,13 +271,43 @@ export default function AboutPage() {
               We're starting close to home, bringing together stays across Metro Manila before
               expanding to more destinations around the Philippines.
             </p>
+            <div className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-accent/60 ring-1 ring-border/60">
+                <Building2 className="h-4 w-4 text-primary" aria-hidden />
+              </span>
+              <span>
+                <span className="font-semibold text-foreground">6 cities</span> and counting
+              </span>
+            </div>
           </div>
 
-          <div className="relative rounded-3xl bg-card border border-border/60 p-6 md:p-8 min-h-[320px] overflow-hidden">
-            {/* Stylised Metro Manila map illustration.
-                Not a real map — a decorative pin layout so the section reads
-                geographically without pulling in a mapping SDK. */}
-            <MetroPinsMap />
+          <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-card min-h-[280px] md:min-h-[340px]">
+            <img
+              src={metroAerial}
+              alt="Aerial view of Metro Manila with high-rise condominiums and a dense urban skyline"
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            {/* Warm scrim so the pin chips stay readable over any photo tone */}
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-t from-foreground/55 via-foreground/10 to-transparent"
+            />
+            {/* City coverage chips — anchored at the bottom of the photo,
+                reads as "areas we cover" without pretending to be a real map. */}
+            <div className="absolute inset-x-0 bottom-0 p-5 md:p-6">
+              <div className="flex flex-wrap gap-2">
+                {METRO_PINS.map((p) => (
+                  <span
+                    key={p.name}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-card/90 backdrop-blur px-3 py-1.5 text-xs font-medium text-foreground ring-1 ring-border/60"
+                  >
+                    <MapPin className="h-3 w-3 text-primary" fill="currentColor" aria-hidden />
+                    {p.name}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -405,54 +438,3 @@ function AudienceTile({
   );
 }
 
-/**
- * Decorative stylised map of Metro Manila with city name pins. Uses a soft
- * SVG landmass shape so it reads as a map without shipping a mapping SDK
- * or leaking real coordinates.
- */
-function MetroPinsMap() {
-  return (
-    <div className="relative w-full h-[300px] md:h-[360px]">
-      {/* Central big city icon */}
-      <div className="absolute left-6 top-1/2 -translate-y-1/2 z-10 flex items-center gap-3">
-        <span className="grid h-14 w-14 place-items-center rounded-full bg-card ring-1 ring-border/70 shadow-sm">
-          <Building2 className="h-6 w-6 text-primary" aria-hidden />
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-foreground">Metro Manila</p>
-          <p className="text-xs text-muted-foreground">and counting...</p>
-        </div>
-      </div>
-
-      {/* Landmass silhouette */}
-      <svg
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        className="absolute inset-0 h-full w-full text-muted/50"
-        aria-hidden
-      >
-        <path
-          d="M28,18 Q52,10 78,20 Q94,32 90,52 Q88,72 74,84 Q56,94 40,90 Q22,84 14,64 Q8,42 20,28 Z"
-          fill="currentColor"
-          fillOpacity="0.35"
-          stroke="hsl(var(--border))"
-          strokeWidth="0.4"
-        />
-      </svg>
-
-      {/* Pins — brass drop marker + city name label alongside it */}
-      {METRO_PINS.map((p) => (
-        <div
-          key={p.name}
-          className="absolute -translate-x-1/2 -translate-y-full flex items-center gap-1.5 pointer-events-none"
-          style={{ left: `${p.x}%`, top: `${p.y}%` }}
-        >
-          <MapPin className="h-4 w-4 text-primary shrink-0" fill="currentColor" aria-hidden />
-          <span className="text-xs font-medium text-foreground whitespace-nowrap">
-            {p.name}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
