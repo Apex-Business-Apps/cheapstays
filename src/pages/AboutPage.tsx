@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowRight,
   Bed,
   BadgePercent,
   Building2,
@@ -9,7 +8,6 @@ import {
   CalendarCheck2,
   Eye,
   Home,
-  Key,
   MapPin,
   Target,
   Wallet,
@@ -114,21 +112,25 @@ export default function AboutPage() {
                 hidden: {},
                 show: { transition: { staggerChildren: 0.08, delayChildren: 0.28 } },
               }}
-              className="mt-10 flex flex-wrap items-start gap-6 sm:gap-10"
+              className="mt-10 flex items-start gap-8"
             >
-              {STAY_TYPES.map(({ icon: Icon, label }) => (
+              {STAY_TYPES.map(({ icon: Icon, label }, i) => (
                 <motion.li
                   key={label}
                   variants={{
                     hidden: { opacity: 0, y: 12 },
                     show: { opacity: 1, y: 0, transition: { duration: 0.5, ease } },
                   }}
-                  className="flex flex-col items-start gap-2"
+                  className={`flex flex-col items-start gap-2 min-w-0 ${
+                    i > 0 ? "pl-8 border-l border-border/50" : ""
+                  }`}
                 >
                   <span className="grid h-11 w-11 place-items-center rounded-full bg-accent/60 ring-1 ring-border/60">
                     <Icon className="h-5 w-5 text-foreground/80" aria-hidden />
                   </span>
-                  <span className="text-sm font-medium text-foreground">{label}</span>
+                  <span className="text-sm font-medium text-foreground whitespace-nowrap">
+                    {label}
+                  </span>
                 </motion.li>
               ))}
             </motion.ul>
@@ -173,28 +175,32 @@ export default function AboutPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-40px" }}
           transition={{ duration: 0.6, ease }}
-          className="rounded-3xl bg-card border border-border/60 p-6 md:p-10 grid gap-8 md:grid-cols-2 md:divide-x md:divide-border/50"
+          className="rounded-3xl bg-card border border-border/60 grid gap-0 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/50 overflow-hidden"
         >
-          <MissionColumn
-            icon={Target}
-            eyebrow="Our Mission"
-            body="To make quality stays more affordable and accessible, so guests can stay comfortably without spending more than they need."
-          />
-          <div className="md:pl-10">
+          <div className="p-6 md:p-10">
+            <MissionColumn
+              icon={Target}
+              eyebrow="Our Mission"
+              body="To make quality stays more affordable and accessible, so guests can stay comfortably without spending more than they need."
+            />
+          </div>
+          <div className="p-6 md:p-10">
             <MissionColumn
               icon={Eye}
               eyebrow="Our Vision"
               body="To become the easiest and most trusted way to find and book affordable stays in the Philippines."
             />
-            <p className="mt-5 text-lg font-semibold tracking-tight text-foreground">
-              Simple stays. Easy booking.
-            </p>
-            <p className="text-lg font-semibold tracking-tight text-foreground">
-              As easy as{" "}
-              <span className="text-primary">1</span>,{" "}
-              <span className="text-primary">2</span>,{" "}
-              <span className="text-primary">3</span>.
-            </p>
+            <div className="mt-5 pl-16 space-y-0.5">
+              <p className="text-lg font-semibold tracking-tight text-foreground">
+                Simple stays. Easy booking.
+              </p>
+              <p className="text-lg font-semibold tracking-tight text-foreground">
+                As easy as{" "}
+                <span className="text-primary">1</span>,{" "}
+                <span className="text-primary">2</span>,{" "}
+                <span className="text-primary">3</span>.
+              </p>
+            </div>
           </div>
         </motion.div>
       </section>
@@ -204,7 +210,7 @@ export default function AboutPage() {
         <h2 className="text-center text-2xl md:text-3xl font-semibold tracking-tight text-foreground mb-10">
           Why CheapStays?
         </h2>
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="grid gap-8 md:gap-10 md:grid-cols-3 max-w-4xl mx-auto">
           {WHY.map(({ icon: Icon, title, body }, i) => (
             <motion.div
               key={title}
@@ -212,16 +218,14 @@ export default function AboutPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.5, delay: i * 0.06, ease }}
-              className="flex items-start gap-4"
+              className="flex items-start gap-4 justify-self-center max-w-[300px]"
             >
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-accent/60 ring-1 ring-border/60">
                 <Icon className="h-5 w-5 text-foreground/80" aria-hidden />
               </span>
               <div className="min-w-0">
-                <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-                <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed max-w-[26ch]">
-                  {body}
-                </p>
+                <h3 className="text-base font-semibold text-foreground">{title}</h3>
+                <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{body}</p>
               </div>
             </motion.div>
           ))}
@@ -282,33 +286,35 @@ export default function AboutPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.6, ease }}
-          className="relative overflow-hidden rounded-3xl bg-accent/40 border border-border/60"
+          className="relative overflow-hidden rounded-3xl bg-muted/60 border border-border/60"
         >
-          <div className="grid md:grid-cols-[0.9fr_1.1fr] items-stretch">
-            <div className="p-8 md:p-12 lg:p-14 flex flex-col justify-center">
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight text-foreground leading-tight">
+          <div className="grid md:grid-cols-[0.85fr_1.15fr] items-stretch">
+            <div className="p-8 md:p-10 lg:p-12 flex flex-col justify-center">
+              <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground leading-tight">
                 Your next stay starts here.
               </h2>
-              <p className="mt-3 text-sm md:text-base text-muted-foreground">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Comfortable. Convenient. Affordable.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button
                   asChild
-                  className="rounded-xl bg-foreground text-background hover:bg-foreground/90 px-6"
+                  size="sm"
+                  className="rounded-xl bg-foreground text-background hover:bg-foreground/90 px-5"
                 >
                   <Link to="/types-of-stays">Find a Stay</Link>
                 </Button>
                 <Button
                   asChild
+                  size="sm"
                   variant="outline"
-                  className="rounded-xl border-foreground/40 text-foreground hover:bg-foreground/5 px-6"
+                  className="rounded-xl border-foreground/40 text-foreground hover:bg-foreground/5 px-5"
                 >
                   <Link to="/become-a-partner">List Your Property</Link>
                 </Button>
               </div>
             </div>
-            <div className="relative min-h-[220px] md:min-h-full overflow-hidden">
+            <div className="relative min-h-[200px] md:min-h-full overflow-hidden">
               <img
                 src={ctaSkyline}
                 alt="Metro Manila skyline of high-rise condos at dusk"
@@ -317,7 +323,7 @@ export default function AboutPage() {
               />
               <div
                 aria-hidden
-                className="absolute inset-0 bg-gradient-to-r from-accent/40 via-transparent to-transparent md:from-accent/40"
+                className="absolute inset-0 bg-gradient-to-r from-muted/60 via-transparent to-transparent md:from-muted/40"
               />
             </div>
           </div>
@@ -382,11 +388,8 @@ function AudienceTile({
             <h3 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">
               {title}
             </h3>
-            <span className="mt-1 block h-[3px] w-10 bg-primary rounded-full" aria-hidden />
-            <p className="mt-3 text-sm text-muted-foreground max-w-xs leading-relaxed">{body}</p>
-            <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-              Learn more <ArrowRight className="h-4 w-4" />
-            </span>
+            <span className="mt-2 block h-[3px] w-10 bg-primary rounded-full" aria-hidden />
+            <p className="mt-4 text-sm text-muted-foreground max-w-xs leading-relaxed">{body}</p>
           </div>
         </div>
         <div className="relative overflow-hidden">
@@ -437,18 +440,17 @@ function MetroPinsMap() {
         />
       </svg>
 
-      {/* Pins */}
+      {/* Pins — brass drop marker + city name label alongside it */}
       {METRO_PINS.map((p) => (
         <div
           key={p.name}
-          className="absolute -translate-x-1/2 -translate-y-full flex flex-col items-center pointer-events-none"
+          className="absolute -translate-x-1/2 -translate-y-full flex items-center gap-1.5 pointer-events-none"
           style={{ left: `${p.x}%`, top: `${p.y}%` }}
         >
-          <span className="rounded-full bg-card px-2.5 py-1 text-xs font-medium text-foreground shadow-[0_6px_20px_-8px_hsl(30_20%_15%/0.35)] ring-1 ring-border/60 whitespace-nowrap flex items-center gap-1">
-            <MapPin className="h-3 w-3 text-primary" aria-hidden />
+          <MapPin className="h-4 w-4 text-primary shrink-0" fill="currentColor" aria-hidden />
+          <span className="text-xs font-medium text-foreground whitespace-nowrap">
             {p.name}
           </span>
-          <span className="mt-0.5 h-1 w-1 rounded-full bg-primary" aria-hidden />
         </div>
       ))}
     </div>
