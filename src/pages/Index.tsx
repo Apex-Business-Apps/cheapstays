@@ -1,6 +1,7 @@
 import { Seo } from "@/components/Seo";
 import {
   Hero,
+  SummaryStrip,
   VoucherDealsSection,
   PopularCitiesSection,
   FeaturedStaysSection,
@@ -25,6 +26,7 @@ export default function Index() {
         path="/"
       />
       <Hero />
+      <SummaryStrip />
       <VoucherDealsSection />
       <PopularCitiesSection />
       <FeaturedStaysSection />
