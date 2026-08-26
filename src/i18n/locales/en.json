@@ -1,6 +1,10 @@
 {
   "nav": {
     "home": "Homepage",
+    "stays": "Stays",
+    "motels": "Motels",
+    "howItWorks": "How It Works",
+    "listYourProperty": "List Your Property",
     "typesOfStays": "Types of Stays",
     "vouchers": "Vouchers",
     "becomePartner": "Become a Partner",
