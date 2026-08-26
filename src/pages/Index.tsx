@@ -2,7 +2,7 @@ import { Seo } from "@/components/Seo";
 import {
   Hero,
   SummaryStrip,
-  VoucherDealsSection,
+  BrowseByStayType,
   PopularCitiesSection,
   FeaturedStaysSection,
   QuickStaysSection,
@@ -27,8 +27,8 @@ export default function Index() {
       />
       <Hero />
       <SummaryStrip />
-      <VoucherDealsSection />
       <PopularCitiesSection />
+      <BrowseByStayType />
       <FeaturedStaysSection />
       <QuickStaysSection />
       <BecomeHost />
