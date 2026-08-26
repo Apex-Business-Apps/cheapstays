@@ -1,12 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, MapPin, MapPinned } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AtmosphericSection } from "@/components/AtmosphericSection";
 import { fetchPopularCities, type PopularCity } from "@/lib/discovery";
 import { getListingPrimaryImage } from "@/lib/listings";
 import cityCebu from "@/assets/city-cebu.jpg";
@@ -45,6 +41,10 @@ const CITY_IMAGE_RULES: { match: string[]; img: string }[] = [
   { match: ["baguio"], img: s7 },
 ];
 
+// Fallback tiles for the "See all" collage when the fetched cities do not
+// yield three usable images.
+const SEE_ALL_FALLBACK = [s2, s5, s7];
+
 function cityImage(city: PopularCity): string | null {
   const name = city.city.toLowerCase();
   for (const rule of CITY_IMAGE_RULES) {
@@ -53,11 +53,14 @@ function cityImage(city: PopularCity): string | null {
   return getListingPrimaryImage(city.sample);
 }
 
+// Guardrail: `CityCardSkeleton` symbol must stay in this file — the landing
+// layout-stability check greps for it to guarantee skeleton parity with the
+// final card so async data-swaps don't yank the viewport.
 function CityCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-border/60 overflow-hidden">
-      <Skeleton className="aspect-[5/4] w-full rounded-none" />
-      <div className="p-5 space-y-2">
+    <div className="snap-start shrink-0 w-[240px] md:w-[260px] rounded-2xl overflow-hidden bg-card border border-border/60">
+      <Skeleton className="aspect-[4/5] w-full rounded-none" />
+      <div className="p-4 space-y-2">
         <Skeleton className="h-5 w-2/3" />
         <Skeleton className="h-3 w-1/2" />
       </div>
@@ -68,12 +71,13 @@ function CityCardSkeleton() {
 export function PopularCitiesSection() {
   const [cities, setCities] = useState<PopularCity[]>([]);
   const [loading, setLoading] = useState(true);
+  const trackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const data = await fetchPopularCities(4);
+        const data = await fetchPopularCities(10);
         if (!cancelled) setCities(data);
       } catch {
         if (!cancelled) setCities([]);
@@ -84,86 +88,125 @@ export function PopularCitiesSection() {
     return () => { cancelled = true; };
   }, []);
 
-  return (
-    <AtmosphericSection as="div" variant="city" parallaxStrength="subtle">
-      <section className="container py-24">
-        <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
-          <div className="max-w-xl">
-            <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs bg-transparent border-transparent text-[#b18b44] hover:bg-transparent">
-              <MapPin className="h-3 w-3 mr-1" /> Popular cities
-            </Badge>
-            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">Where travelers are booking now</h2>
-            <p className="mt-3 text-muted-foreground">
-              The destinations with the most owner-direct stays. Tap any city to see live listings.
-            </p>
-          </div>
-          <Button variant="outline" asChild>
-            <Link to="/popular-cities">View all cities <ArrowRight className="ml-2 h-4 w-4" /></Link>
-          </Button>
-        </div>
+  function scrollByCards(dir: 1 | -1) {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * el.clientWidth * 0.9, behavior: "smooth" });
+  }
 
-        {!loading && cities.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center py-20">
-            <div className="h-14 w-14 rounded-2xl bg-secondary/60 ring-1 ring-border/60 grid place-items-center mb-4">
-              <MapPinned className="h-7 w-7 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-medium tracking-tight">No cities to show yet</h3>
-            <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">
-              As hosts publish listings, the most popular destinations will appear here.
-            </p>
-            <Button variant="outline" className="mt-5" asChild>
-              <Link to="/search">Browse all stays <ArrowRight className="ml-2 h-4 w-4" /></Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {loading ? (
-              [1, 2, 3, 4].map((n) => <CityCardSkeleton key={n} />)
-            ) : (
-              cities.map((c, idx) => {
+  const collageImages = cities
+    .slice(0, 3)
+    .map(cityImage)
+    .filter((img): img is string => !!img);
+  const finalCollage = collageImages.length >= 3 ? collageImages.slice(0, 3) : SEE_ALL_FALLBACK;
+
+  return (
+    <section className="container py-12 md:py-16">
+      <div className="flex items-end justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
+            Stay where you need to be.
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">Popular areas in Metro Manila</p>
+        </div>
+        <div className="hidden md:flex items-center gap-2">
+          <CarouselButton dir="left" onClick={() => scrollByCards(-1)} />
+          <CarouselButton dir="right" onClick={() => scrollByCards(1)} />
+        </div>
+      </div>
+
+      <div
+        ref={trackRef}
+        className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 -mx-6 px-6 md:-mx-0 md:px-0"
+      >
+        {loading
+          ? Array.from({ length: 6 }).map((_, i) => <CityCardSkeleton key={i} />)
+          : cities.map((c, idx) => {
               const img = cityImage(c);
               return (
                 <motion.div
                   key={c.city}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 12 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-60px" }}
-                  transition={{ duration: 0.6, delay: idx * 0.05, ease }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ duration: 0.5, delay: idx * 0.03, ease }}
+                  className="snap-start shrink-0 w-[240px] md:w-[260px]"
                 >
-                  <Card className="group relative overflow-hidden border-border/60 bg-card/95 p-0 h-full transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_30px_80px_-40px_hsl(150_30%_10%/0.5)]">
-                    <Link to={`/search?q=${encodeURIComponent(c.city)}`} className="absolute inset-0 z-10" aria-label={`Search stays in ${c.city}`} />
-                    <div className="relative aspect-[5/4] overflow-hidden bg-gradient-to-br from-secondary/60 to-accent/10">
+                  <Link
+                    to={`/search?q=${encodeURIComponent(c.city)}`}
+                    aria-label={`Search stays in ${c.city}`}
+                    className="group block rounded-2xl overflow-hidden bg-card border border-border/60 transition-shadow duration-300 hover:shadow-[0_20px_60px_-30px_hsl(30_20%_15%/0.4)]"
+                  >
+                    <div className="relative aspect-[4/5] overflow-hidden bg-muted/60">
                       {img ? (
-                        <img src={img} alt={`${c.city}, ${c.province}`} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform [transition-duration:1400ms] ease-out group-hover:scale-[1.08]" />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-6xl opacity-20 select-none">🏙️</span>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-transparent to-transparent" />
-                      <span className="absolute top-4 right-4 text-[10px] uppercase tracking-[0.18em] bg-background/85 backdrop-blur text-foreground px-2.5 py-1 rounded-full ring-1 ring-border/60">
-                        {c.count} {c.count === 1 ? "stay" : "stays"}
-                      </span>
-                    </div>
-                    <div className="p-5">
-                      <h3 className="text-lg font-medium tracking-tight">{c.city}</h3>
-                      <p className="text-sm text-muted-foreground">{c.province}</p>
-                      {c.fromPrice > 0 && (
-                        <p className="mt-2 text-sm">
-                          <span className="text-muted-foreground">from </span>
-                          <span className="font-semibold text-primary">₱{c.fromPrice.toLocaleString()}</span>
-                          <span className="text-muted-foreground text-xs"> / night</span>
+                        <img
+                          src={img}
+                          alt={`${c.city}, ${c.province}`}
+                          loading="lazy"
+                          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+                        />
+                      ) : null}
+                      <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/10 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 p-4">
+                        <h3 className="text-lg font-semibold text-background leading-tight">
+                          {c.city}
+                        </h3>
+                        <p className="text-xs text-background/80 mt-0.5">
+                          {c.count.toLocaleString()} {c.count === 1 ? "stay" : "stays"}
                         </p>
-                      )}
+                      </div>
                     </div>
-                  </Card>
+                  </Link>
                 </motion.div>
               );
-              })
-            )}
+            })}
+
+        {/* 11th tile: "See all" collage. Only appears when there are real cities. */}
+        {!loading && cities.length > 0 && (
+          <div className="snap-start shrink-0 w-[240px] md:w-[260px]">
+            <Link
+              to="/search"
+              aria-label="See all cities"
+              className="group block h-full rounded-2xl overflow-hidden bg-card border border-border/60 transition-shadow duration-300 hover:shadow-[0_20px_60px_-30px_hsl(30_20%_15%/0.4)]"
+            >
+              <div className="relative aspect-[4/5] flex flex-col items-center justify-center p-6 bg-muted/40">
+                <div className="relative h-32 w-32 mb-4">
+                  {finalCollage.map((src, i) => (
+                    <img
+                      key={i}
+                      src={src}
+                      alt=""
+                      loading="lazy"
+                      style={{
+                        transform: `rotate(${i === 0 ? -8 : i === 1 ? 0 : 10}deg) translate(${
+                          i === 0 ? "-18px" : i === 1 ? "0" : "18px"
+                        }, ${i === 1 ? "-8px" : "6px"})`,
+                        zIndex: i === 1 ? 2 : 1,
+                      }}
+                      className="absolute inset-0 h-24 w-24 mx-auto my-auto rounded-xl object-cover ring-2 ring-background shadow-[0_10px_30px_-10px_hsl(30_20%_15%/0.4)] transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                    />
+                  ))}
+                </div>
+                <p className="mt-4 text-lg font-semibold text-foreground text-center">See all</p>
+              </div>
+            </Link>
           </div>
         )}
-      </section>
-    </AtmosphericSection>
+      </div>
+    </section>
+  );
+}
+
+function CarouselButton({ dir, onClick }: { dir: "left" | "right"; onClick: () => void }) {
+  const Icon = dir === "left" ? ChevronLeft : ChevronRight;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={dir === "left" ? "Scroll left" : "Scroll right"}
+      className="grid h-10 w-10 place-items-center rounded-full border border-border/70 bg-card text-foreground/80 hover:text-foreground hover:bg-muted/50 transition-colors"
+    >
+      <Icon className="h-5 w-5" />
+    </button>
   );
 }
