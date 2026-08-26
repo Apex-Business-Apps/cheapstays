@@ -18,7 +18,7 @@ import {
 
 export default function Index() {
   return (
-    <div>
+    <div className="landing-warm bg-background text-foreground">
       <Seo
         title="CheapStays"
         description="Short-term rentals across the Philippines with owner-direct pricing and no platform markup."

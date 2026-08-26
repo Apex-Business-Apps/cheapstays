@@ -99,6 +99,65 @@ All colors MUST be HSL.
     --sidebar-border: 220 6% 18%;
     --sidebar-ring: 30 18% 92%;
   }
+
+  /* Landing-warm palette scope.
+     Only the homepage (`src/pages/Index.tsx`) is wrapped in `.landing-warm`,
+     so the marketplace mock's cream + brass/clay + off-black tokens apply to
+     the landing sections without touching Admin / Host / Search / Legal, all
+     of which continue to consume the base tokens above. */
+  .landing-warm {
+    --background: 37 30% 94%;
+    --foreground: 30 14% 10%;
+
+    --card: 40 33% 98%;
+    --card-foreground: 30 14% 10%;
+
+    --popover: 40 33% 98%;
+    --popover-foreground: 30 14% 10%;
+
+    --primary: 35 45% 48%;
+    --primary-foreground: 37 30% 96%;
+
+    --secondary: 37 22% 90%;
+    --secondary-foreground: 30 14% 14%;
+
+    --muted: 37 20% 88%;
+    --muted-foreground: 30 8% 40%;
+
+    --accent: 35 30% 88%;
+    --accent-foreground: 30 14% 12%;
+
+    --border: 37 15% 84%;
+    --input: 37 15% 84%;
+    --ring: 35 45% 48%;
+  }
+
+  .dark .landing-warm {
+    --background: 30 12% 9%;
+    --foreground: 37 30% 94%;
+
+    --card: 30 10% 13%;
+    --card-foreground: 37 30% 94%;
+
+    --popover: 30 10% 13%;
+    --popover-foreground: 37 30% 94%;
+
+    --primary: 35 50% 62%;
+    --primary-foreground: 30 12% 9%;
+
+    --secondary: 30 10% 18%;
+    --secondary-foreground: 37 22% 92%;
+
+    --muted: 30 8% 16%;
+    --muted-foreground: 37 12% 66%;
+
+    --accent: 30 12% 22%;
+    --accent-foreground: 37 22% 92%;
+
+    --border: 30 8% 20%;
+    --input: 30 8% 20%;
+    --ring: 35 50% 62%;
+  }
 }
 
 @layer base {
