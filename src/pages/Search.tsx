@@ -260,13 +260,18 @@ export default function Search() {
   const initialQ = searchParams.get("q") ?? "";
   const categoryParam = searchParams.get("category");
   const availabilityParam = searchParams.get("availability");
+  const guestsParam = Number(searchParams.get("guests") ?? "");
   const [query, setQuery] = useState(initialQ);
   const [results, setResults] = useState<Listing[]>([]);
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [sort, setSort] = useState<SortKey>("score");
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<Filters>(() =>
+    Number.isFinite(guestsParam) && guestsParam >= 1
+      ? { ...DEFAULT_FILTERS, minGuests: Math.min(guestsParam, 12) }
+      : DEFAULT_FILTERS,
+  );
   const [filterOpen, setFilterOpen] = useState(false);
   const [agodaResults, setAgodaResults] = useState<AgodaResult[]>([]);
   const [browseListings, setBrowseListings] = useState<Listing[]>([]);
