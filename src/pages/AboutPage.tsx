@@ -66,10 +66,27 @@ export default function AboutPage() {
         path="/about"
       />
 
-      {/* Hero */}
+      {/* Hero — mobile overlays copy on the photo; desktop keeps the split. */}
       <section className="relative isolate">
-        <div className="relative grid lg:grid-cols-[1.05fr_1.2fr] lg:min-h-[72dvh]">
-          <div className="relative z-10 flex flex-col justify-center px-6 sm:px-10 lg:px-16 py-14 lg:py-24 max-w-[720px]">
+        <div className="relative lg:grid lg:grid-cols-[1.05fr_1.2fr] lg:min-h-[72dvh]">
+          {/* Photo layer — full-bleed background on mobile, right column on desktop */}
+          <div className="absolute inset-0 -z-10 overflow-hidden lg:static lg:z-0 lg:col-start-2 lg:row-start-1">
+            <img
+              src={heroInterior}
+              alt="Bright condo living room with a Metro Manila skyline view through floor-to-ceiling windows"
+              loading="eager"
+              fetchPriority="high"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            {/* Scrim: dark for text legibility on mobile, warm gradient on desktop */}
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-foreground/55 lg:bg-gradient-to-r lg:from-background lg:via-background/50 lg:to-transparent"
+            />
+          </div>
+
+          {/* Copy layer — centered over photo on mobile, left column on desktop */}
+          <div className="relative z-10 lg:col-start-1 lg:row-start-1 flex flex-col justify-center items-center lg:items-start text-center lg:text-left px-6 sm:px-10 lg:px-16 py-20 lg:py-24 min-h-[92dvh] lg:min-h-0 mx-auto lg:mx-0 w-full max-w-[560px] lg:max-w-[720px]">
             <motion.p
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -83,7 +100,7 @@ export default function AboutPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.9, delay: 0.06, ease }}
-              className="mt-4 text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground leading-[1.05]"
+              className="mt-4 text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-white lg:text-foreground leading-[1.05]"
             >
               Better stays.<br />
               Better <span className="text-primary">value.</span>
@@ -93,7 +110,7 @@ export default function AboutPage() {
               initial={{ scaleX: 0, opacity: 0 }}
               animate={{ scaleX: 1, opacity: 1 }}
               transition={{ duration: 0.7, delay: 0.24, ease }}
-              className="mt-5 block h-[3px] w-16 bg-primary origin-left rounded-full"
+              className="mt-5 block h-[3px] w-16 bg-primary origin-center lg:origin-left rounded-full"
               aria-hidden
             />
 
@@ -101,7 +118,7 @@ export default function AboutPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.16, ease }}
-              className="mt-6 max-w-md text-base text-muted-foreground"
+              className="mt-6 max-w-md text-base text-white/85 lg:text-muted-foreground"
             >
               We make it easy to find quality places to stay without spending more than you need.
             </motion.p>
@@ -113,7 +130,7 @@ export default function AboutPage() {
                 hidden: {},
                 show: { transition: { staggerChildren: 0.08, delayChildren: 0.28 } },
               }}
-              className="mt-10 flex items-start gap-8"
+              className="mt-10 flex items-start justify-center lg:justify-start gap-6 lg:gap-8"
             >
               {STAY_TYPES.map(({ icon: Icon, label }, i) => (
                 <motion.li
@@ -122,14 +139,14 @@ export default function AboutPage() {
                     hidden: { opacity: 0, y: 12 },
                     show: { opacity: 1, y: 0, transition: { duration: 0.5, ease } },
                   }}
-                  className={`flex flex-col items-start gap-2 min-w-0 ${
-                    i > 0 ? "pl-8 border-l border-border/50" : ""
+                  className={`flex flex-col items-center lg:items-start gap-2 min-w-0 ${
+                    i > 0 ? "pl-6 lg:pl-8 border-l border-white/30 lg:border-border/50" : ""
                   }`}
                 >
-                  <span className="grid h-11 w-11 place-items-center rounded-full bg-accent/60 ring-1 ring-border/60">
-                    <Icon className="h-5 w-5 text-foreground/80" aria-hidden />
+                  <span className="grid h-11 w-11 place-items-center rounded-full bg-white/10 ring-1 ring-white/20 lg:bg-accent/60 lg:ring-border/60">
+                    <Icon className="h-5 w-5 text-white lg:text-foreground/80" aria-hidden />
                   </span>
-                  <span className="text-sm font-medium text-foreground whitespace-nowrap">
+                  <span className="text-sm font-medium text-white lg:text-foreground whitespace-nowrap">
                     {label}
                   </span>
                 </motion.li>
@@ -137,35 +154,21 @@ export default function AboutPage() {
             </motion.ul>
           </div>
 
-          <div className="relative order-first lg:order-none min-h-[280px] md:min-h-[360px] lg:min-h-0 overflow-hidden">
-            <img
-              src={heroInterior}
-              alt="Bright condo living room with a Metro Manila skyline view through floor-to-ceiling windows"
-              loading="eager"
-              fetchPriority="high"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div
-              aria-hidden
-              className="absolute inset-0 bg-gradient-to-r from-background via-background/60 to-transparent lg:from-background lg:via-background/50 lg:to-transparent"
-            />
-
-            {/* Floating credibility pill */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.36, ease }}
-              className="absolute bottom-6 right-6 max-w-[260px] rounded-2xl bg-card border border-border/60 px-4 py-3 shadow-[0_20px_60px_-30px_hsl(30_20%_15%/0.45)] flex items-center gap-3"
-            >
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-accent/60 ring-1 ring-border/60 shrink-0">
-                <BadgePercent className="h-5 w-5 text-primary" aria-hidden />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">Quality stays.</p>
-                <p className="text-xs text-muted-foreground">Affordable for everyone.</p>
-              </div>
-            </motion.div>
-          </div>
+          {/* Floating credibility pill — bottom-center over the photo on mobile, bottom-right on desktop */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.36, ease }}
+            className="absolute z-20 bottom-6 left-1/2 -translate-x-1/2 lg:left-auto lg:right-6 lg:translate-x-0 max-w-[260px] rounded-2xl bg-card border border-border/60 px-4 py-3 shadow-[0_20px_60px_-30px_hsl(30_20%_15%/0.45)] flex items-center gap-3"
+          >
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-accent/60 ring-1 ring-border/60 shrink-0">
+              <BadgePercent className="h-5 w-5 text-primary" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">Quality stays.</p>
+              <p className="text-xs text-muted-foreground">Affordable for everyone.</p>
+            </div>
+          </motion.div>
         </div>
       </section>
 
@@ -260,7 +263,7 @@ export default function AboutPage() {
       {/* Where We Are */}
       <section className="container py-10 md:py-12">
         <div className="grid gap-8 lg:grid-cols-[1fr_1.6fr] items-center">
-          <div>
+          <div className="text-center lg:text-left flex flex-col items-center lg:items-start">
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
               Where We Are
             </p>
@@ -322,14 +325,14 @@ export default function AboutPage() {
           className="relative overflow-hidden rounded-3xl bg-muted/60 border border-border/60"
         >
           <div className="grid md:grid-cols-[0.85fr_1.15fr] items-stretch">
-            <div className="p-8 md:p-10 lg:p-12 flex flex-col justify-center">
+            <div className="p-8 md:p-10 lg:p-12 flex flex-col justify-center items-center md:items-start text-center md:text-left">
               <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground leading-tight">
                 Your next stay starts here.
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 Comfortable. Convenient. Affordable.
               </p>
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-wrap justify-center md:justify-start gap-3">
                 <Button
                   asChild
                   size="sm"
