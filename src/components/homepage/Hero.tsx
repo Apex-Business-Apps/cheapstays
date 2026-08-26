@@ -7,21 +7,17 @@ import { ease } from "./constants";
 /**
  * Landing hero — warm marketplace layout.
  *
- * Left column carries the brand strip, display headline, and subtext.
- * Right column bleeds a Metro Manila cityscape photo to the viewport edge.
- * The hero search widget sits at the bottom of the split, overlapping the
- * boundary between hero and the summary strip below.
- *
- * Layout: `min-h-[92dvh]` on desktop keeps the search widget above the fold
- * without pinning to the viewport (which would break scroll anchoring in
- * ways the landing-layout-stability guardrail already burned us on).
+ * Left column carries the brand strip, display headline, subtext, and the
+ * search widget in natural flow. Right column bleeds a Metro Manila
+ * cityscape photo to the viewport edge on desktop and sits above the copy
+ * on mobile.
  */
 export function Hero() {
   return (
     <section className="relative isolate">
       <div className="relative grid lg:grid-cols-[1fr_1fr] lg:min-h-[92dvh]">
         {/* Left copy column */}
-        <div className="relative z-10 flex flex-col justify-center px-6 sm:px-10 lg:px-16 pt-16 pb-40 lg:pt-24 lg:pb-56 max-w-[720px]">
+        <div className="relative z-10 flex flex-col justify-center px-6 sm:px-10 lg:px-16 py-16 lg:py-24 max-w-[720px]">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -62,6 +58,15 @@ export function Hero() {
           >
             Quality condos and short stays in Metro Manila, without the premium price.
           </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.24, ease }}
+            className="mt-8"
+          >
+            <HeroSearchWidget />
+          </motion.div>
         </div>
 
         {/* Right image column — bleeds to viewport edge on desktop, sits above copy on mobile */}
@@ -79,27 +84,7 @@ export function Hero() {
             className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent lg:from-background lg:via-background/60 lg:to-transparent"
           />
         </div>
-
-        {/* Search widget — overlaps the bottom of the hero on desktop */}
-        <div className="col-span-full absolute inset-x-0 bottom-0 translate-y-1/2 hidden lg:block z-20 px-6 lg:px-16">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.24, ease }}
-            className="mx-auto max-w-6xl"
-          >
-            <HeroSearchWidget />
-          </motion.div>
-        </div>
       </div>
-
-      {/* Mobile search widget — inline below the hero */}
-      <div className="lg:hidden px-6 -mt-10 relative z-20">
-        <HeroSearchWidget />
-      </div>
-
-      {/* Spacer to reserve room for the absolute-positioned desktop widget */}
-      <div className="hidden lg:block h-24" aria-hidden />
     </section>
   );
 }
