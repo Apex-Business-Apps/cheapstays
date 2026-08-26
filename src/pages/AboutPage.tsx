@@ -69,7 +69,7 @@ export default function AboutPage() {
       {/* Hero — below md the copy overlays the photo; md+ splits into the
           left-copy / right-photo layout from the mock. */}
       <section className="relative isolate">
-        <div className="relative md:grid md:grid-cols-[1.05fr_1.2fr] md:min-h-[68dvh] lg:min-h-[72dvh]">
+        <div className="relative md:grid md:grid-cols-[0.9fr_1.35fr] md:min-h-[520px] lg:min-h-[560px]">
           {/* Photo layer — full-bleed background below md, right column at md+ */}
           <div className="absolute inset-0 -z-10 overflow-hidden md:static md:z-0 md:col-start-2 md:row-start-1">
             <img
@@ -79,15 +79,16 @@ export default function AboutPage() {
               fetchPriority="high"
               className="absolute inset-0 h-full w-full object-cover"
             />
-            {/* Scrim: dark for overlay legibility below md, warm gradient at md+ */}
+            {/* Scrim: dark for overlay legibility below md, soft cream fade at md+
+                so the copy column blends into the photo without a hard seam. */}
             <div
               aria-hidden
-              className="absolute inset-0 bg-foreground/55 md:bg-gradient-to-r md:from-background md:via-background/50 md:to-transparent"
+              className="absolute inset-0 bg-foreground/55 md:bg-gradient-to-r md:from-background md:via-background/40 md:to-transparent"
             />
           </div>
 
           {/* Copy layer — centered over photo below md, left column at md+ */}
-          <div className="relative z-10 md:col-start-1 md:row-start-1 flex flex-col justify-center items-center md:items-start text-center md:text-left px-6 sm:px-10 lg:px-16 py-20 md:py-20 lg:py-24 min-h-[92dvh] md:min-h-0 mx-auto md:mx-0 w-full max-w-[560px] md:max-w-[640px] lg:max-w-[720px]">
+          <div className="relative z-10 md:col-start-1 md:row-start-1 flex flex-col justify-center items-center md:items-start text-center md:text-left px-6 sm:px-10 md:px-12 lg:px-16 py-20 md:py-14 lg:py-16 min-h-[92dvh] md:min-h-0 mx-auto md:mx-0 w-full max-w-[560px] md:max-w-[560px]">
             <motion.p
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
