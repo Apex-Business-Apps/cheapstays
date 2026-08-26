@@ -1,9 +1,14 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Apple, Facebook, Instagram, Music2, Play, Youtube } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { AiChatBubble } from "@/components/AiChatBubble";
+
+// Routes where the floating AI chat bubble is intentionally hidden.
+// /search already has its own search + filter UI and the bubble competes
+// with the results grid on mobile.
+const HIDE_CHAT_ROUTES = ["/search"];
 import brandMark from "@/assets/brand-mark.png";
 import { LEGAL_CONTACT_EMAIL, legalDocs } from "@/pages/legal/content";
 
@@ -101,6 +106,8 @@ function AppBadge({
 
 export function Layout({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
+  const showChat = !HIDE_CHAT_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
@@ -205,7 +212,7 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
       </footer>
 
-      <AiChatBubble />
+      {showChat && <AiChatBubble />}
     </div>
   );
 }
