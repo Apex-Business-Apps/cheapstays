@@ -66,11 +66,12 @@ export default function AboutPage() {
         path="/about"
       />
 
-      {/* Hero — mobile overlays copy on the photo; desktop keeps the split. */}
+      {/* Hero — below md the copy overlays the photo; md+ splits into the
+          left-copy / right-photo layout from the mock. */}
       <section className="relative isolate">
-        <div className="relative lg:grid lg:grid-cols-[1.05fr_1.2fr] lg:min-h-[72dvh]">
-          {/* Photo layer — full-bleed background on mobile, right column on desktop */}
-          <div className="absolute inset-0 -z-10 overflow-hidden lg:static lg:z-0 lg:col-start-2 lg:row-start-1">
+        <div className="relative md:grid md:grid-cols-[1.05fr_1.2fr] md:min-h-[68dvh] lg:min-h-[72dvh]">
+          {/* Photo layer — full-bleed background below md, right column at md+ */}
+          <div className="absolute inset-0 -z-10 overflow-hidden md:static md:z-0 md:col-start-2 md:row-start-1">
             <img
               src={heroInterior}
               alt="Bright condo living room with a Metro Manila skyline view through floor-to-ceiling windows"
@@ -78,15 +79,15 @@ export default function AboutPage() {
               fetchPriority="high"
               className="absolute inset-0 h-full w-full object-cover"
             />
-            {/* Scrim: dark for text legibility on mobile, warm gradient on desktop */}
+            {/* Scrim: dark for overlay legibility below md, warm gradient at md+ */}
             <div
               aria-hidden
-              className="absolute inset-0 bg-foreground/55 lg:bg-gradient-to-r lg:from-background lg:via-background/50 lg:to-transparent"
+              className="absolute inset-0 bg-foreground/55 md:bg-gradient-to-r md:from-background md:via-background/50 md:to-transparent"
             />
           </div>
 
-          {/* Copy layer — centered over photo on mobile, left column on desktop */}
-          <div className="relative z-10 lg:col-start-1 lg:row-start-1 flex flex-col justify-center items-center lg:items-start text-center lg:text-left px-6 sm:px-10 lg:px-16 py-20 lg:py-24 min-h-[92dvh] lg:min-h-0 mx-auto lg:mx-0 w-full max-w-[560px] lg:max-w-[720px]">
+          {/* Copy layer — centered over photo below md, left column at md+ */}
+          <div className="relative z-10 md:col-start-1 md:row-start-1 flex flex-col justify-center items-center md:items-start text-center md:text-left px-6 sm:px-10 lg:px-16 py-20 md:py-20 lg:py-24 min-h-[92dvh] md:min-h-0 mx-auto md:mx-0 w-full max-w-[560px] md:max-w-[640px] lg:max-w-[720px]">
             <motion.p
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -100,7 +101,7 @@ export default function AboutPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.9, delay: 0.06, ease }}
-              className="mt-4 text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-white lg:text-foreground leading-[1.05]"
+              className="mt-4 text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-white md:text-foreground leading-[1.05]"
             >
               Better stays.<br />
               Better <span className="text-primary">value.</span>
@@ -110,7 +111,7 @@ export default function AboutPage() {
               initial={{ scaleX: 0, opacity: 0 }}
               animate={{ scaleX: 1, opacity: 1 }}
               transition={{ duration: 0.7, delay: 0.24, ease }}
-              className="mt-5 block h-[3px] w-16 bg-primary origin-center lg:origin-left rounded-full"
+              className="mt-5 block h-[3px] w-16 bg-primary origin-center md:origin-left rounded-full"
               aria-hidden
             />
 
@@ -118,7 +119,7 @@ export default function AboutPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.16, ease }}
-              className="mt-6 max-w-md text-base text-white/85 lg:text-muted-foreground"
+              className="mt-6 max-w-md text-base text-white/85 md:text-muted-foreground"
             >
               We make it easy to find quality places to stay without spending more than you need.
             </motion.p>
@@ -130,7 +131,7 @@ export default function AboutPage() {
                 hidden: {},
                 show: { transition: { staggerChildren: 0.08, delayChildren: 0.28 } },
               }}
-              className="mt-10 flex items-start justify-center lg:justify-start gap-6 lg:gap-8"
+              className="mt-10 flex items-start justify-center md:justify-start gap-6 md:gap-8"
             >
               {STAY_TYPES.map(({ icon: Icon, label }, i) => (
                 <motion.li
@@ -139,14 +140,14 @@ export default function AboutPage() {
                     hidden: { opacity: 0, y: 12 },
                     show: { opacity: 1, y: 0, transition: { duration: 0.5, ease } },
                   }}
-                  className={`flex flex-col items-center lg:items-start gap-2 min-w-0 ${
-                    i > 0 ? "pl-6 lg:pl-8 border-l border-white/30 lg:border-border/50" : ""
+                  className={`flex flex-col items-center md:items-start gap-2 min-w-0 ${
+                    i > 0 ? "pl-6 md:pl-8 border-l border-white/30 md:border-border/50" : ""
                   }`}
                 >
-                  <span className="grid h-11 w-11 place-items-center rounded-full bg-white/10 ring-1 ring-white/20 lg:bg-accent/60 lg:ring-border/60">
-                    <Icon className="h-5 w-5 text-white lg:text-foreground/80" aria-hidden />
+                  <span className="grid h-11 w-11 place-items-center rounded-full bg-white/10 ring-1 ring-white/20 md:bg-accent/60 md:ring-border/60">
+                    <Icon className="h-5 w-5 text-white md:text-foreground/80" aria-hidden />
                   </span>
-                  <span className="text-sm font-medium text-white lg:text-foreground whitespace-nowrap">
+                  <span className="text-sm font-medium text-white md:text-foreground whitespace-nowrap">
                     {label}
                   </span>
                 </motion.li>
@@ -154,12 +155,12 @@ export default function AboutPage() {
             </motion.ul>
           </div>
 
-          {/* Floating credibility pill — bottom-center over the photo on mobile, bottom-right on desktop */}
+          {/* Floating credibility pill — bottom-center over the photo below md, bottom-right at md+ */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.36, ease }}
-            className="absolute z-20 bottom-6 left-1/2 -translate-x-1/2 lg:left-auto lg:right-6 lg:translate-x-0 max-w-[260px] rounded-2xl bg-card border border-border/60 px-4 py-3 shadow-[0_20px_60px_-30px_hsl(30_20%_15%/0.45)] flex items-center gap-3"
+            className="absolute z-20 bottom-6 left-1/2 -translate-x-1/2 md:left-auto md:right-6 md:translate-x-0 max-w-[260px] rounded-2xl bg-card border border-border/60 px-4 py-3 shadow-[0_20px_60px_-30px_hsl(30_20%_15%/0.45)] flex items-center gap-3"
           >
             <span className="grid h-10 w-10 place-items-center rounded-full bg-accent/60 ring-1 ring-border/60 shrink-0">
               <BadgePercent className="h-5 w-5 text-primary" aria-hidden />
