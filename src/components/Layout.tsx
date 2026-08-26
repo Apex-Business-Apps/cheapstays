@@ -14,8 +14,8 @@ const FOOTER_COLUMNS: FooterColumn[] = [
   {
     heading: "Explore",
     links: [
-      { label: "Stays",         to: "/types-of-stays?type=condo" },
-      { label: "Motels",        to: "/types-of-stays?type=motel" },
+      { label: "Home",          to: "/" },
+      { label: "Stays",         to: "/types-of-stays" },
       { label: "How It Works",  to: "/how-it-works" },
       { label: "About Us",      to: "/about" },
     ],

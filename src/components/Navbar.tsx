@@ -25,19 +25,18 @@ export function Navbar() {
   }, []);
 
   // /notifications is desktop-only; mobile/tablet use the NotificationsModal bell icon
-  // Marketplace header: Stays / Motels / How It Works / List Your Property.
+  // Marketplace header: Home / Stays / How It Works / List Your Property.
   // Customer Support + About Us live in the footer; hosts still get a direct
   // dashboard entry point in place of the generic List-Your-Property CTA.
   const primaryLinks = [
-    { to: "/types-of-stays?type=condo", label: t("nav.stays", "Stays") },
-    { to: "/types-of-stays?type=motel", label: t("nav.motels", "Motels") },
-    { to: "/how-it-works",              label: t("nav.howItWorks", "How It Works") },
+    { to: "/",              label: t("nav.home", "Home") },
+    { to: "/types-of-stays", label: t("nav.stays", "Stays") },
+    { to: "/how-it-works",  label: t("nav.howItWorks", "How It Works") },
     isHost(roles)
       ? { to: "/host",             label: t("nav.hostDashboard") }
       : { to: "/become-a-partner", label: t("nav.listYourProperty", "List Your Property") },
   ];
   const mobileLinks = [
-    { to: "/", label: t("nav.home") },
     ...primaryLinks,
     ...(user ? [{ to: "/my-bookings", label: t("nav.myBookings") }] : []),
   ];
