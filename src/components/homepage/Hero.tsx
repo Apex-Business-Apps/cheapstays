@@ -15,7 +15,7 @@ import { ease } from "./constants";
 export function Hero() {
   return (
     <section className="relative isolate">
-      <div className="relative grid lg:grid-cols-[1fr_1fr] lg:min-h-[92dvh]">
+      <div className="relative grid lg:grid-cols-[1fr_1fr] lg:min-h-[80dvh]">
         {/* Left copy column */}
         <div className="relative z-10 flex flex-col justify-center px-6 sm:px-10 lg:px-16 py-16 lg:py-24 max-w-[720px]">
           <motion.div
@@ -58,15 +58,6 @@ export function Hero() {
           >
             Quality condos and short stays in Metro Manila, without the premium price.
           </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.24, ease }}
-            className="mt-8"
-          >
-            <HeroSearchWidget />
-          </motion.div>
         </div>
 
         {/* Right image column — bleeds to viewport edge on desktop, sits above copy on mobile */}
@@ -84,6 +75,19 @@ export function Hero() {
             className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent lg:from-background lg:via-background/60 lg:to-transparent"
           />
         </div>
+      </div>
+
+      {/* Search widget — full-width row below the hero split, unconstrained
+          by the left copy column so the UI keeps its native scale. */}
+      <div className="relative z-20 -mt-12 lg:-mt-16 px-6 sm:px-10 lg:px-16 pb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.24, ease }}
+          className="mx-auto max-w-6xl"
+        >
+          <HeroSearchWidget />
+        </motion.div>
       </div>
     </section>
   );
