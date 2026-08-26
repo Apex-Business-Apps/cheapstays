@@ -28,16 +28,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { AtmosphericSection } from "@/components/AtmosphericSection";
 import { toast } from "@/hooks/use-toast";
 import { ease } from "./constants";
-import { FAQS } from "./faq-data";
 
 type ResourceLink = { to: string; icon: typeof FileText; title: string; body: string };
 
@@ -239,25 +232,6 @@ export function CustomerSupport() {
               )}
             </Card>
           </motion.div>
-        </div>
-
-        {/* ── Help Center / FAQs ── */}
-        <div className="mt-20">
-          <div className="max-w-xl">
-            <Badge variant="secondary" className="mb-3 uppercase tracking-wider text-xs">Help Center</Badge>
-            <h3 className="text-2xl md:text-3xl font-semibold tracking-tight">Frequently asked questions</h3>
-            <p className="mt-3 text-muted-foreground">Quick answers and booking guidance for the most common questions.</p>
-          </div>
-          <div className="mt-6 max-w-3xl">
-            <Accordion type="single" collapsible className="w-full">
-              {FAQS.map((f, i) => (
-                <AccordionItem key={f.q} value={`faq-${i}`}>
-                  <AccordionTrigger className="text-left text-sm font-medium">{f.q}</AccordionTrigger>
-                  <AccordionContent className="text-sm text-muted-foreground leading-relaxed">{f.a}</AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
         </div>
 
         {/* ── Booking concerns + Policies ── */}

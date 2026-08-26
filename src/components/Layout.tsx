@@ -47,7 +47,7 @@ const FOOTER_COLUMNS: FooterColumn[] = [
     heading: "Company",
     links: [
       { label: "About Us",      to: "/about" },
-      { label: "Contact Us",    to: `mailto:${LEGAL_CONTACT_EMAIL}`, external: true },
+      { label: "Contact Us",    to: "/customer-support" },
       { label: "Careers",       to: "/about#careers" },
       { label: "News & Updates", to: "/about#news" },
     ],
