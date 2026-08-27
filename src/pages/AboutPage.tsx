@@ -16,11 +16,12 @@ import {
 } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
-import heroInterior from "@/assets/stay-2.jpg";
-import guestInterior from "@/assets/stay-6.jpg";
-import ownerBuilding from "@/assets/city-tagaytay.jpg";
 import ctaSkyline from "@/assets/city-cebu.jpg";
-import metroAerial from "@/assets/city-cebu.jpg";
+
+const heroInterior  = "/wallpapers/aerial-view-photo-2.png";
+const guestInterior = "/wallpapers/condominium-picture.png";
+const ownerBuilding = "/wallpapers/quick-stays-picture.png";
+const metroAerial   = "/wallpapers/aerial-picture.png";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -160,7 +161,7 @@ export default function AboutPage() {
           <div className="hidden md:block md:col-start-2 md:row-start-1 relative overflow-hidden">
             <img
               src={heroInterior}
-              alt="Bright condo living room with a Metro Manila skyline view through floor-to-ceiling windows"
+              alt="Aerial view of Metro Manila high-rise condominiums and dense city skyline"
               loading="eager"
               fetchPriority="high"
               className="absolute inset-0 h-full w-full object-cover"
@@ -263,7 +264,7 @@ export default function AboutPage() {
             title="For Guests"
             body="Discover affordable condos, motels, and other stays in one place."
             image={guestInterior}
-            alt="Bright hotel room with a made bed and warm bedside lamp overlooking the city"
+            alt="Modern condominium living room styled for a short stay"
             to="/types-of-stays"
           />
           <AudienceTile
@@ -271,7 +272,7 @@ export default function AboutPage() {
             title="For Property Owners"
             body="Reach more guests while keeping more of what you earn with lower platform fees."
             image={ownerBuilding}
-            alt="Contemporary Metro Manila condominium building at golden hour"
+            alt="Cozy short-stay bedroom lit for a quick overnight"
             to="/become-a-partner"
           />
         </div>

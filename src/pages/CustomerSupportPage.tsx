@@ -34,7 +34,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { LEGAL_CONTACT_EMAIL } from "@/pages/legal/content";
-import heroInterior from "@/assets/stay-3.jpg";
+const heroInterior = "/wallpapers/condominium-photo-2.png";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 

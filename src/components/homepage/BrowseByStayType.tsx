@@ -1,7 +1,5 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Bed, Building2 } from "lucide-react";
-import s3 from "@/assets/stay-3.jpg";
-import s6 from "@/assets/stay-6.jpg";
 
 const TILES = [
   {
@@ -10,7 +8,7 @@ const TILES = [
     title: "Condo Stays",
     body: "Comfortable condos for work, relaxation, and longer stays.",
     cta: "Explore Condo Stays",
-    image: s3,
+    image: "/wallpapers/condominium-picture.png",
     alt: "Condo living room with a sofa and city view",
   },
   {
@@ -19,7 +17,7 @@ const TILES = [
     title: "Short Stays",
     body: "Motels and other short-term stays for quick getaways.",
     cta: "Explore Short Stays",
-    image: s6,
+    image: "/wallpapers/quick-stays-picture.png",
     alt: "Bright motel bedroom with a made bed and warm lamp",
   },
 ];

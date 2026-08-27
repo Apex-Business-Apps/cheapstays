@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, CalendarDays, PlusCircle, List, BookOpen, Ticket,
   Wallet, Clock, Ban, Users, FileText, DollarSign, Bell, Headphones,
-  ShoppingBag, ClipboardList, LogOut, Gift, Banknote,
+  ShoppingBag, ClipboardList, LogOut, Gift, Banknote, Newspaper,
 } from "lucide-react";
 
 const adminItems = [
@@ -23,6 +23,7 @@ const adminItems = [
   { label: "Payments",        to: "/admin/payments",      icon: Banknote },
   { label: "Disbursements",   to: "/admin/disbursements", icon: DollarSign },
   { label: "Voucher Deals",   to: "/admin/stay-vouchers", icon: Gift },
+  { label: "Articles",        to: "/admin/articles",      icon: Newspaper },
 ];
 
 const hostItems = [
@@ -36,6 +37,7 @@ const hostItems = [
   { label: "Wallet",              to: "/host/wallet",      icon: Wallet },
   { label: "Long-term Requests",  to: "/host/requests",    icon: Clock },
   { label: "Blackout Dates",      to: "/host/blackouts",   icon: Ban },
+  { label: "Articles",            to: "/host/articles",    icon: Newspaper },
 ];
 
 const accountItems = [
