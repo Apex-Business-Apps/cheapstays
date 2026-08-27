@@ -127,6 +127,6 @@ test.describe('product reality booking ops', () => {
 
   test('booking requires renter cancellation and house rule consent', async ({ page }) => {
     await page.goto('/listing/slug/e2e-listing');
-    await expect(page.getByText('Renter rules').or(page.getByText('House rules')).or(page.getByText('Cancellation policy'))).toBeVisible();
+    await expect(page.getByText('Renter rules').or(page.getByText('House rules')).or(page.getByText('Cancellation policy')).first()).toBeVisible();
   });
 });

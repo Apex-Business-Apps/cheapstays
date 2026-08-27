@@ -20,9 +20,9 @@ test.describe("Homepage — layout stability", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     for (const heading of [
-      "Where travelers are booking now",
-      "Promoted & top-rated stays",
-      "Need just a few hours?",
+      "Stay where you need to be.",
+      "Affordable stays you'll love",
+      "Keep more of what you earn.",
     ]) {
       await expect(page.getByRole("heading", { name: heading })).toBeAttached();
     }
