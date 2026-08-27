@@ -187,6 +187,10 @@ function ToolbarButton({
   return (
     <button
       type="button"
+      // Prevent mousedown from stealing focus from the ProseMirror editor —
+      // otherwise the current text selection collapses before onClick fires and
+      // `chain().focus().toggleX().run()` operates on an empty range.
+      onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
