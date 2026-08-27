@@ -17,10 +17,11 @@ import {
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import heroInterior from "@/assets/stay-2.jpg";
-import guestInterior from "@/assets/stay-6.jpg";
-import ownerBuilding from "@/assets/city-tagaytay.jpg";
 import ctaSkyline from "@/assets/city-cebu.jpg";
-import metroAerial from "@/assets/city-cebu.jpg";
+
+const guestInterior = "/wallpapers/condominium-picture.png";
+const ownerBuilding = "/wallpapers/quick-stays-picture.png";
+const metroAerial   = "/wallpapers/aerial-picture.png";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -263,7 +264,7 @@ export default function AboutPage() {
             title="For Guests"
             body="Discover affordable condos, motels, and other stays in one place."
             image={guestInterior}
-            alt="Bright hotel room with a made bed and warm bedside lamp overlooking the city"
+            alt="Modern condominium living room styled for a short stay"
             to="/types-of-stays"
           />
           <AudienceTile
@@ -271,7 +272,7 @@ export default function AboutPage() {
             title="For Property Owners"
             body="Reach more guests while keeping more of what you earn with lower platform fees."
             image={ownerBuilding}
-            alt="Contemporary Metro Manila condominium building at golden hour"
+            alt="Cozy short-stay bedroom lit for a quick overnight"
             to="/become-a-partner"
           />
         </div>
