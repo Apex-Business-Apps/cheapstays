@@ -32,6 +32,7 @@ export function Navbar() {
     { to: "/",              label: t("nav.home", "Home") },
     { to: "/types-of-stays", label: t("nav.stays", "Stays") },
     { to: "/how-it-works",  label: t("nav.howItWorks", "How It Works") },
+    { to: "/articles",      label: t("nav.articles", "Articles") },
     isHost(roles)
       ? { to: "/host",             label: t("nav.hostDashboard") }
       : { to: "/become-a-partner", label: t("nav.listYourProperty", "List Your Property") },

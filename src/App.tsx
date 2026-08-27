@@ -28,6 +28,9 @@ const BecomePartnerPage          = lazy(() => import("./pages/BecomePartnerPage"
 const CustomerSupportPage        = lazy(() => import("./pages/CustomerSupportPage"));
 const AboutPage                  = lazy(() => import("./pages/AboutPage"));
 const HowItWorksPage             = lazy(() => import("./pages/HowItWorksPage"));
+const ArticlesPage               = lazy(() => import("./pages/ArticlesPage"));
+const ArticleDetailPage          = lazy(() => import("./pages/ArticleDetailPage"));
+const ArticleEditorPage          = lazy(() => import("./pages/ArticleEditorPage"));
 const Membership                 = lazy(() => import("./pages/Membership"));
 const HostApply                  = lazy(() => import("./pages/HostApply"));
 const Support                    = lazy(() => import("./pages/Support"));
@@ -124,6 +127,10 @@ const App = () => (
                     <Route path="/customer-support"  element={<CustomerSupportPage />} />
                     <Route path="/about"             element={<AboutPage />} />
                     <Route path="/how-it-works"      element={<HowItWorksPage />} />
+                    <Route path="/articles"                    element={<ArticlesPage />} />
+                    <Route path="/articles/new"                element={<ArticleEditorPage />} />
+                    <Route path="/articles/:articleId"         element={<ArticleDetailPage />} />
+                    <Route path="/articles/:articleId/edit"    element={<ArticleEditorPage />} />
                     <Route path="/membership"        element={<Membership />} />
                     <Route path="/post-login"        element={<PostLoginRedirect />} />
                     <Route path="/host"              element={<HostIndexRedirect />} />
