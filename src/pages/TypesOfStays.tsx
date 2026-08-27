@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -180,8 +180,22 @@ export default function TypesOfStays() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  const [tab, setTab] = useState("all");
-  const [city, setCity] = useState("");
+  // Seed initial tab + city from URL. Homepage "Browse by stay type" and the
+  // header nav send users here with `?type=condo|motel|hostel|pool` and an
+  // optional `?city=`; we translate those into the local tab id so users land
+  // on the right filtered view without clicking through the tab strip.
+  const [searchParams] = useSearchParams();
+  const typeParam = (searchParams.get("type") ?? "").toLowerCase();
+  const cityParam = searchParams.get("city") ?? "";
+  const initialTab =
+    typeParam === "condo" ? "overnight" :
+    typeParam === "motel" ? "quick" :
+    typeParam === "hostel" ? "hostels" :
+    typeParam === "pool" ? "pools" :
+    "all";
+
+  const [tab, setTab] = useState(initialTab);
+  const [city, setCity] = useState(cityParam);
   const [maxPrice, setMaxPrice] = useState(0);
   const [minGuests, setMinGuests] = useState(0);
   const [amenities, setAmenities] = useState<string[]>([]);

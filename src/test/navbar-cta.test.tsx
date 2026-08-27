@@ -70,7 +70,7 @@ describe("Navbar CTAs", () => {
     mockAuth.user = { id: "u3", email: "member@test.com" };
     mockAuth.roles = ["user"];
     render(<MemoryRouter><Navbar /></MemoryRouter>);
-    const partnerLinks = screen.getAllByRole("link", { name: "nav.becomePartner" });
+    const partnerLinks = screen.getAllByRole("link", { name: "nav.listYourProperty" });
     expect(partnerLinks).toHaveLength(1);
     expect(partnerLinks[0]).toHaveAttribute("href", "/become-a-partner");
     expect(screen.queryByRole("link", { name: "nav.hostDashboard" })).not.toBeInTheDocument();

@@ -1,7 +1,8 @@
 import { Seo } from "@/components/Seo";
 import {
   Hero,
-  VoucherDealsSection,
+  SummaryStrip,
+  BrowseByStayType,
   PopularCitiesSection,
   FeaturedStaysSection,
   QuickStaysSection,
@@ -18,15 +19,16 @@ import {
 
 export default function Index() {
   return (
-    <div>
+    <div className="landing-warm bg-background text-foreground">
       <Seo
         title="CheapStays"
         description="Short-term rentals across the Philippines with owner-direct pricing and no platform markup."
         path="/"
       />
       <Hero />
-      <VoucherDealsSection />
+      <SummaryStrip />
       <PopularCitiesSection />
+      <BrowseByStayType />
       <FeaturedStaysSection />
       <QuickStaysSection />
       <BecomeHost />

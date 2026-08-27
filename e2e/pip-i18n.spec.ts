@@ -43,10 +43,31 @@ test.describe("Pip i18n — locale rendering", () => {
       );
       await page.reload();
 
-      // 1. A nav link is translated (may be hidden on mobile/tablet behind hamburger —
-      //    we only assert the translated text exists in the nav DOM, not that it's visible)
-      const navLink = page.locator("nav a, nav button").filter({ hasText: lang.nav }).first();
-      await expect(navLink).toHaveCount(1, { timeout: 8000 });
+      // 1. Verify the locale is active in i18next by resolving nav.customerSupport
+      //    through the exposed i18next store. This replaces a DOM check that broke
+      //    after Customer Support moved from the header nav to the footer (which
+      //    uses a hardcoded "Help Center" label, not this translation key).
+      const translated = await page.evaluate(() => {
+        const i18n = (
+          window as unknown as {
+            __cheapstays_i18n__?: {
+              language?: string;
+              store?: {
+                data?: Record<
+                  string,
+                  { translation?: { nav?: { customerSupport?: string } } }
+                >;
+              };
+            };
+          }
+        ).__cheapstays_i18n__;
+        const lang = i18n?.language ?? "";
+        const value =
+          i18n?.store?.data?.[lang]?.translation?.nav?.customerSupport ?? null;
+        return { lang, value };
+      });
+      expect(translated.lang.startsWith(lang.code)).toBe(true);
+      expect(translated.value).toBe(lang.nav);
 
       // 2. Open Pip chat widget
       const pipTrigger = page.locator("button[aria-label]").filter({ hasText: "" }).last();

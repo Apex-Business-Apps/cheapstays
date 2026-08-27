@@ -1,4 +1,6 @@
 export { Hero } from "./Hero";
+export { SummaryStrip } from "./SummaryStrip";
+export { BrowseByStayType } from "./BrowseByStayType";
 export { WhyCheapStays } from "./WhyCheapStays";
 export { StatsStrip } from "./StatsStrip";
 export { Destinations } from "./Destinations";

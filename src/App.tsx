@@ -27,6 +27,7 @@ const TypesOfStays               = lazy(() => import("./pages/TypesOfStays"));
 const BecomePartnerPage          = lazy(() => import("./pages/BecomePartnerPage"));
 const CustomerSupportPage        = lazy(() => import("./pages/CustomerSupportPage"));
 const AboutPage                  = lazy(() => import("./pages/AboutPage"));
+const HowItWorksPage             = lazy(() => import("./pages/HowItWorksPage"));
 const Membership                 = lazy(() => import("./pages/Membership"));
 const HostApply                  = lazy(() => import("./pages/HostApply"));
 const Support                    = lazy(() => import("./pages/Support"));
@@ -122,6 +123,7 @@ const App = () => (
                     <Route path="/become-a-partner"  element={<BecomePartnerPage />} />
                     <Route path="/customer-support"  element={<CustomerSupportPage />} />
                     <Route path="/about"             element={<AboutPage />} />
+                    <Route path="/how-it-works"      element={<HowItWorksPage />} />
                     <Route path="/membership"        element={<Membership />} />
                     <Route path="/post-login"        element={<PostLoginRedirect />} />
                     <Route path="/host"              element={<HostIndexRedirect />} />

@@ -25,22 +25,22 @@ export function Navbar() {
   }, []);
 
   // /notifications is desktop-only; mobile/tablet use the NotificationsModal bell icon
-  const mobileLinks = [
-    { to: "/",                  label: t("nav.home") },
-    { to: "/types-of-stays",    label: t("nav.typesOfStays") },
-    { to: "/stay-vouchers",     label: t("nav.vouchers", "Vouchers") },
-    // Hosts get a direct link to their dashboard; everyone else sees the
-    // partner-onboarding entry point.
+  // Marketplace header: Home / Stays / How It Works / List Your Property.
+  // Customer Support + About Us live in the footer; hosts still get a direct
+  // dashboard entry point in place of the generic List-Your-Property CTA.
+  const primaryLinks = [
+    { to: "/",              label: t("nav.home", "Home") },
+    { to: "/types-of-stays", label: t("nav.stays", "Stays") },
+    { to: "/how-it-works",  label: t("nav.howItWorks", "How It Works") },
     isHost(roles)
       ? { to: "/host",             label: t("nav.hostDashboard") }
-      : { to: "/become-a-partner", label: t("nav.becomePartner") },
-    { to: "/customer-support",  label: t("nav.customerSupport") },
-    { to: "/about",             label: t("nav.aboutUs") },
+      : { to: "/become-a-partner", label: t("nav.listYourProperty", "List Your Property") },
+  ];
+  const mobileLinks = [
+    ...primaryLinks,
     ...(user ? [{ to: "/my-bookings", label: t("nav.myBookings") }] : []),
   ];
-  const desktopLinks = [
-    ...mobileLinks,
-  ];
+  const desktopLinks = primaryLinks;
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `rounded-md px-3 py-1.5 text-sm transition-colors ${
