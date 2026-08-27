@@ -154,7 +154,7 @@ export default function ArticleDetailPage() {
         )}
 
         <div className="mt-8">
-          <ArticleBody markdown={article.body_markdown} />
+          <ArticleBody html={article.body_html} />
         </div>
       </article>
 

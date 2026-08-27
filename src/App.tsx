@@ -31,6 +31,7 @@ const HowItWorksPage             = lazy(() => import("./pages/HowItWorksPage"));
 const ArticlesPage               = lazy(() => import("./pages/ArticlesPage"));
 const ArticleDetailPage          = lazy(() => import("./pages/ArticleDetailPage"));
 const ArticleEditorPage          = lazy(() => import("./pages/ArticleEditorPage"));
+const MyArticlesPage             = lazy(() => import("./pages/MyArticlesPage"));
 const Membership                 = lazy(() => import("./pages/Membership"));
 const HostApply                  = lazy(() => import("./pages/HostApply"));
 const Support                    = lazy(() => import("./pages/Support"));
@@ -165,6 +166,7 @@ const App = () => (
                     <Route path="/host/vouchers"    element={<HostVouchersPage />} />
                     <Route path="/host/redeem-stay-voucher" element={<HostRedeemStayVoucherPage />} />
                     <Route path="/host/wallet"      element={<HostWalletPage />} />
+                    <Route path="/host/articles"    element={<MyArticlesPage />} />
                   </Route>
 
                   {/* ── Admin dashboard layout ── */}
@@ -180,6 +182,7 @@ const App = () => (
                     <Route path="/admin/payments/wallet-health" element={<AdminWalletHealthPage />} />
                     <Route path="/admin/disbursements"   element={<AdminDisbursementsPage />} />
                     <Route path="/admin/stay-vouchers"      element={<AdminStayVouchersPage />} />
+                    <Route path="/admin/articles"           element={<MyArticlesPage />} />
                   </Route>
 
                   <Route path="*" element={<NotFound />} />

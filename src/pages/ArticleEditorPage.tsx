@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ArticleEditor } from "@/components/articles/ArticleEditor";
 import {
   Select,
   SelectContent,
@@ -75,7 +76,7 @@ export default function ArticleEditorPage() {
         setTitle(a.title);
         setCategory(a.category);
         setExcerpt(a.excerpt);
-        setBody(a.body_markdown);
+        setBody(a.body_html);
         setReadMinutes(a.read_minutes);
         setCoverPath(a.cover_path);
       } finally {
@@ -111,7 +112,9 @@ export default function ArticleEditorPage() {
   }
 
   function isValid(): boolean {
-    return title.trim().length > 2 && excerpt.trim().length > 0 && body.trim().length > 0;
+    // TipTap emits `<p></p>` for empty content — strip tags before checking.
+    const bodyText = body.replace(/<[^>]+>/g, "").trim();
+    return title.trim().length > 2 && excerpt.trim().length > 0 && bodyText.length > 0;
   }
 
   async function save(publish: boolean) {
@@ -122,7 +125,7 @@ export default function ArticleEditorPage() {
       const payload = {
         title: title.trim(),
         excerpt: excerpt.trim(),
-        body_markdown: body,
+        body_html: body,
         cover_path: coverPath,
         category,
         read_minutes: readMinutes,
@@ -234,8 +237,7 @@ export default function ArticleEditorPage() {
             {isEdit ? "Edit article" : "Write an article"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Markdown supported: <code>#</code> and <code>##</code> for headings, <code>-</code> for bullet lists,{" "}
-            <code>**bold**</code>, and <code>[link](url)</code>.
+            Use the toolbar to format headings, bold, lists, quotes, and links.
           </p>
         </div>
 
@@ -325,14 +327,11 @@ export default function ArticleEditorPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="article-body">Body</Label>
-            <Textarea
-              id="article-body"
+            <Label>Body</Label>
+            <ArticleEditor
               value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={16}
-              placeholder={"# A heading\n\nYour first paragraph...\n\n## A sub-heading\n\n- A bullet point\n- Another one"}
-              className="font-mono text-sm leading-relaxed"
+              onChange={setBody}
+              placeholder="Start writing your guide..."
             />
           </div>
 

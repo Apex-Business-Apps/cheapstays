@@ -23,7 +23,7 @@ export type Article = {
   author_id: string;
   title: string;
   excerpt: string;
-  body_markdown: string;
+  body_html: string;
   cover_path: string | null;
   category: ArticleCategory;
   read_minutes: number;
