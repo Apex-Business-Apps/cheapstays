@@ -16,9 +16,9 @@ import {
 } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
-import heroInterior from "@/assets/stay-2.jpg";
 import ctaSkyline from "@/assets/city-cebu.jpg";
 
+const heroInterior  = "/wallpapers/aerial-view-photo-2.png";
 const guestInterior = "/wallpapers/condominium-picture.png";
 const ownerBuilding = "/wallpapers/quick-stays-picture.png";
 const metroAerial   = "/wallpapers/aerial-picture.png";
@@ -161,7 +161,7 @@ export default function AboutPage() {
           <div className="hidden md:block md:col-start-2 md:row-start-1 relative overflow-hidden">
             <img
               src={heroInterior}
-              alt="Bright condo living room with a Metro Manila skyline view through floor-to-ceiling windows"
+              alt="Aerial view of Metro Manila high-rise condominiums and dense city skyline"
               loading="eager"
               fetchPriority="high"
               className="absolute inset-0 h-full w-full object-cover"
