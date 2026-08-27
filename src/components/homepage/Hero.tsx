@@ -15,9 +15,23 @@ import { ease } from "./constants";
 export function Hero() {
   return (
     <section className="relative isolate">
-      <div className="relative grid lg:grid-cols-[1fr_1fr] lg:min-h-[80dvh]">
-        {/* Left copy column */}
-        <div className="relative z-10 flex flex-col justify-center px-6 sm:px-10 lg:px-16 py-16 lg:py-24 max-w-[720px]">
+      {/* Mobile / tablet full-bleed photo behind the entire hero (copy + search
+          widget). Hidden at lg+ where the photo lives in the right grid cell. */}
+      <div className="absolute inset-0 -z-10 overflow-hidden lg:hidden">
+        <img
+          src={heroCity}
+          alt=""
+          aria-hidden
+          loading="eager"
+          fetchPriority="high"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div aria-hidden className="absolute inset-0 bg-black/55" />
+      </div>
+
+      <div className="relative lg:grid lg:grid-cols-[1fr_1fr] lg:min-h-[80dvh]">
+        {/* Left copy column — centered overlay on mobile, left-aligned at lg+ */}
+        <div className="relative z-10 flex flex-col justify-center items-center lg:items-start text-center lg:text-left px-6 sm:px-10 lg:px-16 pt-20 pb-10 lg:py-24 mx-auto lg:mx-0 w-full max-w-[720px]">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -31,11 +45,11 @@ export function Hero() {
               height={40}
               className="h-10 w-10 object-contain"
             />
-            <div className="leading-tight">
-              <p className="text-sm font-semibold tracking-[0.24em] uppercase text-foreground">
+            <div className="leading-tight text-left">
+              <p className="text-sm font-semibold tracking-[0.24em] uppercase text-white lg:text-foreground">
                 Cheap<span className="text-primary">Stays</span>
               </p>
-              <p className="text-xs text-muted-foreground">Stay more. Pay less.</p>
+              <p className="text-xs text-white/85 lg:text-muted-foreground">Stay more. Pay less.</p>
             </div>
           </motion.div>
 
@@ -43,7 +57,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.08, ease }}
-            className="font-semibold tracking-tight text-foreground text-5xl md:text-6xl lg:text-7xl leading-[1.02]"
+            className="font-semibold tracking-tight text-white lg:text-foreground text-5xl md:text-6xl lg:text-7xl leading-[1.02]"
           >
             Stay more.
             <br />
@@ -54,14 +68,14 @@ export function Hero() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.16, ease }}
-            className="mt-6 max-w-lg text-base md:text-lg text-muted-foreground"
+            className="mt-6 max-w-lg text-base md:text-lg text-white/85 lg:text-muted-foreground"
           >
             Quality condos and short stays in Metro Manila, without the premium price.
           </motion.p>
         </div>
 
-        {/* Right image column — bleeds to viewport edge on desktop, sits above copy on mobile */}
-        <div className="relative order-first lg:order-none min-h-[280px] md:min-h-[360px] lg:min-h-0 overflow-hidden">
+        {/* Right image column — lg+ only. Own grid cell with the soft cream fade. */}
+        <div className="hidden lg:block relative overflow-hidden">
           <img
             src={heroCity}
             alt="Metro Manila skyline seen from a condo balcony"
@@ -69,17 +83,16 @@ export function Hero() {
             fetchPriority="high"
             className="absolute inset-0 h-full w-full object-cover"
           />
-          {/* Soft warm gradient so the copy column blends into the photo on desktop */}
           <div
             aria-hidden
-            className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent lg:from-background lg:via-background/60 lg:to-transparent"
+            className="absolute inset-0 bg-gradient-to-r from-background via-background/60 to-transparent"
           />
         </div>
       </div>
 
-      {/* Search widget — full-width row below the hero split, unconstrained
-          by the left copy column so the UI keeps its native scale. */}
-      <div className="relative z-20 -mt-12 lg:-mt-16 px-6 sm:px-10 lg:px-16 pb-6">
+      {/* Search widget — overlays the hero photo on mobile (centered), sits as
+          a full-width row below the split at lg+. */}
+      <div className="relative z-20 lg:-mt-16 px-6 sm:px-10 lg:px-16 pb-10 lg:pb-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

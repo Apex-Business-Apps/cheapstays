@@ -148,10 +148,10 @@ export function PopularCitiesSection() {
                       ) : null}
                       <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/10 to-transparent" />
                       <div className="absolute inset-x-0 bottom-0 p-4">
-                        <h3 className="text-lg font-semibold text-background leading-tight">
+                        <h3 className="text-lg font-semibold text-white leading-tight">
                           {c.city}
                         </h3>
-                        <p className="text-xs text-background/80 mt-0.5">
+                        <p className="text-xs text-white/80 mt-0.5">
                           {c.count.toLocaleString()} {c.count === 1 ? "stay" : "stays"}
                         </p>
                       </div>

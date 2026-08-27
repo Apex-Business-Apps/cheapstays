@@ -66,25 +66,23 @@ export default function AboutPage() {
         path="/about"
       />
 
-      {/* Hero — below md the copy overlays the photo; md+ splits into the
-          left-copy / right-photo layout from the mock. */}
+      {/* Hero — below md the copy overlays the photo; md+ splits into a
+          left-copy / right-photo layout with a soft cream fade blending the
+          two halves (mirrors the /customer-support hero pattern). */}
       <section className="relative isolate">
-        <div className="relative md:grid md:grid-cols-[0.9fr_1.35fr] md:min-h-[520px] lg:min-h-[560px]">
-          {/* Photo layer — full-bleed background below md, right column at md+ */}
-          <div className="absolute inset-0 -z-10 overflow-hidden md:static md:z-0 md:col-start-2 md:row-start-1">
+        <div className="relative md:grid md:grid-cols-[1.05fr_1fr] md:min-h-[560px] lg:min-h-[600px]">
+          {/* Mobile-only full-bleed photo behind the copy. Hidden at md+ where
+              the photo lives in its own grid cell on the right. */}
+          <div className="absolute inset-0 -z-10 overflow-hidden md:hidden">
             <img
               src={heroInterior}
-              alt="Bright condo living room with a Metro Manila skyline view through floor-to-ceiling windows"
+              alt=""
+              aria-hidden
               loading="eager"
               fetchPriority="high"
               className="absolute inset-0 h-full w-full object-cover"
             />
-            {/* Scrim: dark for overlay legibility below md, soft cream fade at md+
-                so the copy column blends into the photo without a hard seam. */}
-            <div
-              aria-hidden
-              className="absolute inset-0 bg-foreground/55 md:bg-gradient-to-r md:from-background md:via-background/40 md:to-transparent"
-            />
+            <div aria-hidden className="absolute inset-0 bg-black/55" />
           </div>
 
           {/* Copy layer — centered over photo below md, left column at md+ */}
@@ -154,6 +152,23 @@ export default function AboutPage() {
                 </motion.li>
               ))}
             </motion.ul>
+          </div>
+
+          {/* Photo column — md+ only. Its own grid cell (no absolute
+              positioning) with a left-edge cream gradient so it fades cleanly
+              into the copy column. */}
+          <div className="hidden md:block md:col-start-2 md:row-start-1 relative overflow-hidden">
+            <img
+              src={heroInterior}
+              alt="Bright condo living room with a Metro Manila skyline view through floor-to-ceiling windows"
+              loading="eager"
+              fetchPriority="high"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-r from-background via-background/50 to-transparent"
+            />
           </div>
 
           {/* Floating credibility pill — bottom-center over the photo below md, bottom-right at md+ */}

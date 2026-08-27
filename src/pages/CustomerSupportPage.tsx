@@ -145,15 +145,31 @@ export default function CustomerSupportPage() {
         path="/customer-support"
       />
 
-      {/* Hero */}
+      {/* Hero — below lg the photo is full-bleed behind centered copy (same
+          overlay pattern as the /about hero); at lg+ splits into left copy /
+          right photo with a soft cream fade. */}
       <section className="relative isolate">
-        <div className="relative grid lg:grid-cols-[1.05fr_1fr] lg:min-h-[68dvh]">
-          <div className="relative z-10 flex flex-col justify-center px-6 sm:px-10 lg:px-16 py-16 lg:py-24 max-w-[720px]">
+        <div className="relative lg:grid lg:grid-cols-[1.05fr_1fr] lg:min-h-[68dvh]">
+          {/* Mobile / tablet full-bleed photo behind the copy. Hidden at lg+
+              where the photo lives in its own grid cell on the right. */}
+          <div className="absolute inset-0 -z-10 overflow-hidden lg:hidden">
+            <img
+              src={heroInterior}
+              alt=""
+              aria-hidden
+              loading="eager"
+              fetchPriority="high"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div aria-hidden className="absolute inset-0 bg-black/55" />
+          </div>
+
+          <div className="relative z-10 flex flex-col justify-center items-center lg:items-start text-center lg:text-left px-6 sm:px-10 lg:px-16 py-20 lg:py-24 min-h-[92dvh] lg:min-h-0 mx-auto lg:mx-0 w-full max-w-[720px]">
             <motion.h1
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.9, ease }}
-              className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground leading-[1.05]"
+              className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-white lg:text-foreground leading-[1.05]"
             >
               How can<br />we help?
             </motion.h1>
@@ -161,7 +177,7 @@ export default function CustomerSupportPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.9, delay: 0.1, ease }}
-              className="mt-5 max-w-md text-base text-muted-foreground"
+              className="mt-5 max-w-md text-base text-white/85 lg:text-muted-foreground"
             >
               Find quick answers about bookings, payments, vouchers, stays, and your account.
             </motion.p>
@@ -175,7 +191,7 @@ export default function CustomerSupportPage() {
                 const target = document.getElementById("faq");
                 if (target) target.scrollIntoView({ behavior: "smooth" });
               }}
-              className="mt-8 flex items-center gap-2 rounded-2xl border border-border/70 bg-card px-4 py-2.5 shadow-[0_20px_60px_-30px_hsl(30_20%_15%/0.35)] max-w-lg"
+              className="mt-8 flex items-center gap-2 rounded-2xl border border-border/70 bg-card px-4 py-2.5 shadow-[0_20px_60px_-30px_hsl(30_20%_15%/0.35)] w-full max-w-lg"
               role="search"
               aria-label="Search help topics"
             >
@@ -189,7 +205,9 @@ export default function CustomerSupportPage() {
             </motion.form>
           </div>
 
-          <div className="relative order-first lg:order-none min-h-[240px] md:min-h-[320px] lg:min-h-0 overflow-hidden">
+          {/* Photo column — lg+ only. Own grid cell with a left-edge cream
+              gradient so it fades cleanly into the copy column. */}
+          <div className="hidden lg:block relative overflow-hidden">
             <img
               src={heroInterior}
               alt="Condo living room with a warm sofa and a Metro Manila skyline view"
@@ -199,7 +217,7 @@ export default function CustomerSupportPage() {
             />
             <div
               aria-hidden
-              className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent lg:from-background lg:via-background/50 lg:to-transparent"
+              className="absolute inset-0 bg-gradient-to-r from-background via-background/50 to-transparent"
             />
           </div>
         </div>

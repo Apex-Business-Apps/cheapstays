@@ -53,7 +53,7 @@ export function BrowseByStayType() {
                     {title}
                   </h3>
                   <p className="mt-2 text-sm text-muted-foreground max-w-xs">{body}</p>
-                  <span className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary/80 group-hover:bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition-colors">
+                  <span className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary/80 group-hover:bg-primary px-3.5 py-2 text-sm font-medium text-white transition-colors">
                     {cta} <ArrowRight className="h-4 w-4" />
                   </span>
                 </div>
