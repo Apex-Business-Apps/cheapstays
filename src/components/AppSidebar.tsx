@@ -37,7 +37,7 @@ const hostItems = [
   { label: "Wallet",              to: "/host/wallet",      icon: Wallet },
   { label: "Long-term Requests",  to: "/host/requests",    icon: Clock },
   { label: "Blackout Dates",      to: "/host/blackouts",   icon: Ban },
-  { label: "Articles",            to: "/host/articles",    icon: Newspaper },
+  // { label: "Articles",            to: "/host/articles",    icon: Newspaper },
 ];
 
 const accountItems = [
