@@ -13,7 +13,7 @@ import {
   listPublishedArticles,
 } from "@/lib/articles";
 import { useAuth } from "@/hooks/useAuth";
-import { isHost, isAdmin } from "@/lib/rbac";
+import { isAdmin } from "@/lib/rbac";
 import heroSkyline from "@/assets/city-cebu.jpg";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -37,7 +37,8 @@ export default function ArticlesPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const { roles } = useAuth();
-  const canWrite = isHost(roles) || isAdmin(roles);
+  // Host article generation is disabled — admins only.
+  const canWrite = isAdmin(roles); // isHost(roles) || isAdmin(roles);
 
   const activeSearch = params.get("search") ?? "";
 
