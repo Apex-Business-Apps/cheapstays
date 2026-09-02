@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Facebook, Instagram, Music2, Youtube } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { AiChatBubble } from "@/components/AiChatBubble";
 
@@ -48,13 +47,6 @@ const FOOTER_COLUMNS: FooterColumn[] = [
       { label: "News & Updates", to: "/articles" },
     ],
   },
-];
-
-const SOCIALS: { label: string; href: string; icon: typeof Facebook }[] = [
-  { label: "Facebook",  href: "https://facebook.com/",  icon: Facebook },
-  { label: "Instagram", href: "https://instagram.com/", icon: Instagram },
-  { label: "TikTok",    href: "https://tiktok.com/",    icon: Music2 },
-  { label: "YouTube",   href: "https://youtube.com/",   icon: Youtube },
 ];
 
 function FooterLinkItem({ link }: { link: FooterLink }) {
@@ -106,20 +98,6 @@ export function Layout({ children }: { children: ReactNode }) {
               <p className="mt-4 max-w-xs text-sm text-muted-foreground">
                 {t("footer.desc", "Affordable condos and short stays in Metro Manila. Quality stays. Better prices.")}
               </p>
-              <div className="mt-5 flex items-center gap-2">
-                {SOCIALS.map(({ label, href, icon: Icon }) => (
-                  <a
-                    key={label}
-                    href={href}
-                    aria-label={label}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="grid h-9 w-9 place-items-center rounded-full border border-border/70 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
-                  >
-                    <Icon className="h-4 w-4" />
-                  </a>
-                ))}
-              </div>
             </div>
 
             {/* Link columns */}
