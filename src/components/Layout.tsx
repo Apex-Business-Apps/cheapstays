@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Apple, Facebook, Instagram, Music2, Play, Youtube } from "lucide-react";
+import { Facebook, Instagram, Music2, Youtube } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { AiChatBubble } from "@/components/AiChatBubble";
 
@@ -9,7 +9,6 @@ import { AiChatBubble } from "@/components/AiChatBubble";
 // /search already has its own search + filter UI and the bubble competes
 // with the results grid on mobile.
 const HIDE_CHAT_ROUTES = ["/search"];
-import brandMark from "@/assets/brand-mark.png";
 import { LEGAL_CONTACT_EMAIL, legalDocs } from "@/pages/legal/content";
 
 type FooterLink = { label: string; to: string; external?: boolean };
@@ -39,17 +38,14 @@ const FOOTER_COLUMNS: FooterColumn[] = [
     links: [
       { label: "List Your Property", to: "/become-a-partner" },
       { label: "Host Resources",     to: "/customer-support" },
-      { label: "Pricing",            to: "/become-a-partner#pricing" },
-      { label: "Success Stories",    to: "/about#stories" },
     ],
   },
   {
     heading: "Company",
     links: [
-      { label: "About Us",      to: "/about" },
-      { label: "Contact Us",    to: "/customer-support" },
-      { label: "Careers",       to: "/about#careers" },
-      { label: "News & Updates", to: "/about#news" },
+      { label: "About Us",       to: "/about" },
+      { label: "Contact Us",     to: "/customer-support" },
+      { label: "News & Updates", to: "/articles" },
     ],
   },
 ];
@@ -77,33 +73,6 @@ function FooterLinkItem({ link }: { link: FooterLink }) {
   );
 }
 
-function AppBadge({
-  icon: Icon,
-  primary,
-  secondary,
-  href,
-}: {
-  icon: typeof Apple;
-  primary: string;
-  secondary: string;
-  href: string;
-}) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="flex items-center gap-3 rounded-xl bg-foreground text-background px-4 py-2.5 hover:bg-foreground/90 transition-colors"
-    >
-      <Icon className="h-6 w-6" aria-hidden />
-      <span className="flex flex-col leading-tight">
-        <span className="text-[10px] uppercase tracking-wide opacity-75">{primary}</span>
-        <span className="text-sm font-semibold">{secondary}</span>
-      </span>
-    </a>
-  );
-}
-
 export function Layout({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
@@ -120,7 +89,7 @@ export function Layout({ children }: { children: ReactNode }) {
             <div className="lg:col-span-2">
               <div className="flex items-center gap-3">
                 <img
-                  src={brandMark}
+                  src="/favicon.png"
                   alt="CheapStays emblem"
                   width={40}
                   height={40}
@@ -166,18 +135,6 @@ export function Layout({ children }: { children: ReactNode }) {
                 </ul>
               </nav>
             ))}
-          </div>
-
-          {/* App download row */}
-          <div className="mt-10 pt-8 border-t border-border/50 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-            <div>
-              <p className="text-sm font-semibold text-foreground">Download the app</p>
-              <p className="mt-1 text-xs text-muted-foreground">Book stays and manage trips on the go.</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <AppBadge icon={Play}  primary="Get it on"     secondary="Google Play" href="#" />
-              <AppBadge icon={Apple} primary="Download on the" secondary="App Store"   href="#" />
-            </div>
           </div>
 
           {/* Compliance strip — full legalDocs list, kept as a flat row so
