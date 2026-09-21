@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
-import { encrypt } from "../_shared/encryption.ts";
 
 const PAYOUT_METHODS = ["GCASH", "MAYA", "PH_BANK"] as const;
 
@@ -57,8 +56,8 @@ Deno.serve(async (req) => {
     return json({ error: "account_number must be 6-34 digits" }, 400);
   }
 
-  const encryptedNumber = await encrypt(normalizedNumber);
-
+  // Encryption disabled for now — store the normalized plaintext directly.
+  // The column name `account_number_enc` is legacy; treat it as plaintext.
   const serviceClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -73,7 +72,7 @@ Deno.serve(async (req) => {
         host_id: user.id,
         payout_method,
         account_holder_name: holderName,
-        account_number_enc: encryptedNumber,
+        account_number_enc: normalizedNumber,
         is_verified: false,
         verified_by: null,
         verified_at: null,

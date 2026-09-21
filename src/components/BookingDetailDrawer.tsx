@@ -156,7 +156,17 @@ function DrawerContent({ detail }: { detail: BookingDetail }) {
             {detail.status}
           </Badge>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">Booked {fmt(detail.created_at)}</p>
+        <div className="flex items-center justify-between gap-2 mt-2">
+          <p className="text-xs text-muted-foreground">Booked {fmt(detail.created_at)}</p>
+          <Link
+            to={`/listing/${detail.listing_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+          >
+            View listing <ExternalLink className="h-3 w-3" />
+          </Link>
+        </div>
       </div>
 
       {/* Stay timeline */}
@@ -184,14 +194,10 @@ function DrawerContent({ detail }: { detail: BookingDetail }) {
             <p className="text-[10px] text-muted-foreground">{format(parseISO(detail.check_out), "yyyy")}</p>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
+        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
           <div className="text-center">
             <p className="text-[10px] text-muted-foreground">Guests</p>
             <p className="text-sm font-semibold">{detail.guests}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-[10px] text-muted-foreground">Nightly</p>
-            <p className="text-sm font-semibold">₱{detail.nightlyPhp.toLocaleString()}</p>
           </div>
           <div className="text-center">
             <p className="text-[10px] text-muted-foreground">Total</p>
@@ -205,8 +211,8 @@ function DrawerContent({ detail }: { detail: BookingDetail }) {
 
       {/* Guest + Host */}
       <div className="grid grid-cols-2 gap-3">
-        <PersonCard label="Guest" name={detail.guestName} userId={detail.guest_id} />
-        <PersonCard label="Host"  name={detail.hostName}  userId={detail.host_id} />
+        <PersonCard label="Guest" name={detail.guestName} />
+        <PersonCard label="Host"  name={detail.hostName} />
       </div>
 
       {/* Payment */}
@@ -262,7 +268,8 @@ function DrawerContent({ detail }: { detail: BookingDetail }) {
   );
 }
 
-function PersonCard({ label, name, userId }: { label: string; name: string; userId: string }) {
+function PersonCard({ label, name }: { label: string; name: string }) {
+  const display = /^[^\s@]+$/.test(name) ? `${name}@gmail.com` : name;
   return (
     <div className="rounded-xl border border-border bg-card p-3 flex flex-col items-center text-center gap-2">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground self-start">
@@ -271,13 +278,7 @@ function PersonCard({ label, name, userId }: { label: string; name: string; user
       <Avatar className="h-10 w-10">
         <AvatarFallback className="text-sm font-medium">{initials(name)}</AvatarFallback>
       </Avatar>
-      <p className="text-xs font-medium leading-tight line-clamp-2">{name}</p>
-      <Link
-        to={`/admin/users?highlight=${userId}`}
-        className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline min-h-[44px]"
-      >
-        View in Users <ExternalLink className="h-2.5 w-2.5" />
-      </Link>
+      <p className="text-xs font-medium leading-tight break-all">{display}</p>
     </div>
   );
 }

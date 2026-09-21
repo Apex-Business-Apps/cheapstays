@@ -68,12 +68,14 @@ serve(async (req) => {
     .maybeSingle();
   if (!account) return json(404, { error: "Host has no payout account on file" });
 
-  let accountNumber = "";
+  // Encryption is disabled for now — account numbers are stored as plaintext
+  // in `account_number_enc`. Legacy rows may still be AES-GCM ciphertext, so
+  // we try to decrypt first and fall back to the raw stored value.
+  let accountNumber = account.account_number_enc ?? "";
   try {
     accountNumber = await decrypt(account.account_number_enc);
-  } catch (err) {
-    console.error("decrypt failed:", err);
-    return json(500, { error: "Failed to decrypt account number" });
+  } catch {
+    accountNumber = account.account_number_enc ?? "";
   }
 
   return json(200, {

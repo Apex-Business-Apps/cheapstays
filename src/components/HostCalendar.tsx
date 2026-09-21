@@ -75,6 +75,16 @@ const FLOW_STYLES: Record<string, string> = {
 
 const BLACKOUT_STYLE = "bg-gray-300 dark:bg-gray-700 stripe";
 
+function LegendStat({ color, label, count }: { color: string; label: string; count: number }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={cn("h-2.5 w-2.5 rounded-sm", color)} />
+      <span>{label}</span>
+      <span className="font-semibold text-foreground tabular-nums">{count}</span>
+    </span>
+  );
+}
+
 type ViewMode = "day" | "week" | "month";
 
 export function HostCalendar({ hostId }: Props) {
@@ -89,18 +99,22 @@ export function HostCalendar({ hostId }: Props) {
   const [blackoutFormOpen, setBlackoutFormOpen] = useState(false);
   const [blackoutInitialDate, setBlackoutInitialDate] = useState<string | undefined>(undefined);
   const [reloadKey, setReloadKey] = useState(0);
+  const [totalListings, setTotalListings] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
 
-      // Fetch host's listings first to scope blackout lookups.
+      // Fetch host's listings first to scope blackout lookups and to know how
+      // many are bookable (used for the per-day booked/vacant count).
       const { data: listings } = await sb
         .from("listings")
-        .select("id")
+        .select("id,status")
         .eq("host_id", hostId);
-      const listingIds = (listings ?? []).map((l: { id: string }) => l.id);
+      const listingRows = (listings ?? []) as { id: string; status: string | null }[];
+      const listingIds = listingRows.map((l) => l.id);
+      const activeCount = listingRows.filter((l) => l.status === "active").length;
 
       const [bRes, blRes] = await Promise.all([
         sb.from("bookings")
@@ -122,6 +136,7 @@ export function HostCalendar({ hostId }: Props) {
         listings: Array.isArray(b.listings) ? (b.listings[0] ?? null) : b.listings,
       })) as BookingRow[]);
       setBlackouts((blRes.data ?? []) as BlackoutRow[]);
+      setTotalListings(activeCount);
       setLoading(false);
     }
     load();
@@ -151,6 +166,39 @@ export function HostCalendar({ hostId }: Props) {
   }
 
   const startDow = startOfMonth(month).getDay();
+
+  // Visible date range depends on the view mode.
+  const rangeDays = useMemo<Date[]>(() => {
+    if (viewMode === "month") return days;
+    if (viewMode === "week") {
+      return eachDayOfInterval({
+        start: startOfWeek(anchorDate, { weekStartsOn: 0 }),
+        end: endOfWeek(anchorDate, { weekStartsOn: 0 }),
+      });
+    }
+    return [anchorDate];
+  }, [viewMode, days, anchorDate]);
+
+  // Per-category day counts for the visible range. A day can fall into
+  // multiple categories (e.g. hourly booking + overnight blackout) — the
+  // "vacant" count is exclusive: no bookings, no blackouts on that day.
+  const categoryCounts = useMemo(() => {
+    let overnight = 0, hourly = 0, voucher = 0, pending = 0, blackout = 0, vacant = 0;
+    for (const day of rangeDays) {
+      const bs = bookingsOnDay(day);
+      const bls = blackoutsOnDay(day);
+      if (bs.length === 0 && bls.length === 0) { vacant++; continue; }
+      if (bs.some((b) => b.stay_type === "overnight" && b.flow_state !== "requested")) overnight++;
+      if (bs.some((b) => b.stay_type === "hourly" && b.flow_state !== "requested")) hourly++;
+      if (bs.some((b) => b.stay_type === "voucher")) voucher++;
+      const hasPending = bs.some((b) => b.flow_state === "requested");
+      const hasHourlyBlackout = bls.some((bl) => bl.stay_type === "hourly" || !!bl.start_time);
+      if (hasPending || hasHourlyBlackout) pending++;
+      if (bls.some((bl) => bl.stay_type === "both" || bl.stay_type === "overnight")) blackout++;
+    }
+    return { overnight, hourly, voucher, pending, blackout, vacant };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rangeDays, bookings, blackouts]);
 
   if (loading) {
     return (
@@ -221,13 +269,14 @@ export function HostCalendar({ hostId }: Props) {
         </div>
       </div>
 
-      {/* Legend — shown in every view so hosts always know the color code */}
-      <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-emerald-400" /> Overnight</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-sky-400" /> Hourly / quick stay</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-primary" /> Voucher</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-amber-400" /> Pending / hourly blackout</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-slate-400" /> Full-day blackout</span>
+      {/* Category counts for the visible range — day-level tallies. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
+        <LegendStat color="bg-emerald-400" label="Overnight" count={categoryCounts.overnight} />
+        <LegendStat color="bg-sky-400" label="Hourly / quick stay" count={categoryCounts.hourly} />
+        <LegendStat color="bg-primary" label="Voucher" count={categoryCounts.voucher} />
+        <LegendStat color="bg-amber-400" label="Pending / hourly blackout" count={categoryCounts.pending} />
+        <LegendStat color="bg-slate-400" label="Full-day blackout" count={categoryCounts.blackout} />
+        <LegendStat color="bg-muted-foreground/40" label="Vacant" count={categoryCounts.vacant} />
       </div>
 
       {viewMode !== "month" && (
@@ -259,11 +308,16 @@ export function HostCalendar({ hostId }: Props) {
         {days.map((day) => {
           const bs = bookingsOnDay(day);
           const bls = blackoutsOnDay(day);
+          const bookedListingIds = new Set(bs.map((b) => b.listing_id));
+          const blockedListingIds = new Set(bls.map((bl) => bl.listing_id));
+          const bookedCount = bookedListingIds.size;
+          const vacantCount = Math.max(totalListings - bookedCount - blockedListingIds.size, 0);
           const primary = bs[0]?.flow_state;
           const tooltipParts: string[] = [];
           if (bs.length > 0) tooltipParts.push(`${bs.length} booking${bs.length>1?"s":""}`);
           if (bls.length > 0) tooltipParts.push(`${bls.length} blackout${bls.length>1?"s":""}`);
           const tooltip = tooltipParts.join(" · ") || "Available";
+          const isToday = isSameDay(day, new Date());
 
           return (
             <button
@@ -272,39 +326,40 @@ export function HostCalendar({ hostId }: Props) {
               title={tooltip}
               onClick={() => setOpenDay({ date: day, bookings: bs, blackouts: bls })}
               className={cn(
-                "aspect-square rounded-md text-xs flex flex-col items-center justify-start p-1 border border-border/40 transition-colors",
+                "min-h-[79px] rounded-md text-xs flex flex-col items-start p-1.5 border border-border/40 transition-colors text-left",
                 "hover:border-primary/60",
                 primary ? FLOW_STYLES[primary] : bls.length > 0 ? BLACKOUT_STYLE : "bg-background",
-                isSameDay(day, new Date()) && "ring-1 ring-primary",
+                isToday && "ring-1 ring-primary",
               )}
             >
-              <span className="font-medium">{format(day, "d")}</span>
-              {(bs.length > 0 || bls.length > 0) && (
-                <span className="text-[9px] text-muted-foreground mt-auto">
-                  {bs.length + bls.length}
-                </span>
+              <span className={cn("font-semibold", isToday ? "text-primary" : "text-foreground")}>
+                {format(day, "d")}
+              </span>
+              {totalListings > 0 && (
+                <div className="mt-auto space-y-0.5 w-full">
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="text-muted-foreground">
+                      <span className="font-semibold text-foreground tabular-nums">{bookedCount}</span> booked
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
+                    <span className="text-muted-foreground">
+                      <span className="font-semibold text-foreground tabular-nums">{vacantCount}</span> vacant
+                    </span>
+                  </div>
+                </div>
               )}
             </button>
           );
         })}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-[10px] pt-2 border-t border-border/40">
-        {[
-          ["Requested", "requested"], ["Approved", "approved"],
-          ["Active", "active"], ["Replacement", "replacement_offered"],
-          ["Completed", "completed"], ["Refunded/Expired", "refunded"],
-        ].map(([label, key]) => (
-          <span key={key} className="flex items-center gap-1">
-            <span className={cn("h-2.5 w-2.5 rounded", FLOW_STYLES[key])} />
-            {label}
-          </span>
-        ))}
-        <span className="flex items-center gap-1">
-          <span className={cn("h-2.5 w-2.5 rounded", BLACKOUT_STYLE)} />
-          Blackout
-        </span>
-      </div>
+      <p className="text-[11px] text-muted-foreground pt-1">
+        Total active listings: <span className="font-semibold text-foreground tabular-nums">{totalListings}</span>
+      </p>
+
       </>
       )}
 
