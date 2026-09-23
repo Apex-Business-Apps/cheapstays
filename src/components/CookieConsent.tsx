@@ -44,7 +44,7 @@ export function CookieConsent() {
     <AnimatePresence>
       {visible && (
         <motion.div
-          role="dialog"
+          role="region"
           aria-live="polite"
           aria-label="Cookie preferences"
           initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16 }}
