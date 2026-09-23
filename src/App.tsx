@@ -9,6 +9,8 @@ import { fetchRoles, isAdmin, isHost, type AppRole } from "@/lib/rbac";
 import { PublicLayout } from "@/components/PublicLayout";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ConsentGate } from "@/components/ConsentGate";
+import { Analytics } from "@/components/Analytics";
+import { CookieConsent } from "@/components/CookieConsent";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LegalDocumentPage } from "@/pages/legal/LegalDocumentPage";
 
@@ -40,6 +42,7 @@ const MyBookings                 = lazy(() => import("./pages/MyBookings"));
 const LegalAcceptance            = lazy(() => import("./pages/LegalAcceptance"));
 const BookingConfirmationSuccess = lazy(() => import("./pages/BookingConfirmationSuccess"));
 const ListingDetail              = lazy(() => import("./pages/ListingDetail"));
+const GuestReviewPage            = lazy(() => import("./pages/review/GuestReviewPage"));
 
 // Host dashboard pages
 const HostRedeemStayVoucherPage = lazy(() => import("./pages/host/RedeemStayVoucherPage"));
@@ -59,7 +62,7 @@ const AdminOverviewPage       = lazy(() => import("./pages/admin/OverviewPage"))
 const AdminBookingsPage       = lazy(() => import("./pages/admin/BookingsPage"));
 const AdminApplicationsPage   = lazy(() => import("./pages/admin/ApplicationsPage"));
 const AdminTicketsPage        = lazy(() => import("./pages/admin/TicketsPage"));
-const AdminUsersPage          = lazy(() => import("./pages/admin/UsersPage"));
+const AdminUsersPage          = lazy(() => import("./pages/admin/users/UsersPage"));
 const AdminAuditPage          = lazy(() => import("./pages/admin/AuditPage"));
 const AdminDisbursementsPage  = lazy(() => import("./pages/admin/DisbursementsPage"));
 const AdminPaymentsPage       = lazy(() => import("./pages/admin/PaymentsPage"));
@@ -108,6 +111,8 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <Analytics />
+          <CookieConsent />
           <RouteAwareErrorBoundary>
             <ConsentGate>
               <Suspense fallback={spinner}>
@@ -152,6 +157,7 @@ const App = () => (
                     <Route path="/booking-success"   element={<BookingConfirmationSuccess />} />
                     <Route path="/listing/:id"       element={<ListingDetail />} />
                     <Route path="/listing/slug/:slug" element={<ListingDetail />} />
+                    <Route path="/review/:token"     element={<GuestReviewPage />} />
                   </Route>
 
                   {/* ── Host dashboard layout ── */}
