@@ -9,6 +9,8 @@ import { fetchRoles, isAdmin, isHost, type AppRole } from "@/lib/rbac";
 import { PublicLayout } from "@/components/PublicLayout";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ConsentGate } from "@/components/ConsentGate";
+import { Analytics } from "@/components/Analytics";
+import { CookieConsent } from "@/components/CookieConsent";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LegalDocumentPage } from "@/pages/legal/LegalDocumentPage";
 
@@ -109,6 +111,8 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <Analytics />
+          <CookieConsent />
           <RouteAwareErrorBoundary>
             <ConsentGate>
               <Suspense fallback={spinner}>

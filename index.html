@@ -15,6 +15,43 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
 
+    <script>
+      (function () {
+        var host = location.hostname;
+        var isProd = host === 'cheapstays.me';
+        var isLocal = host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local');
+        if (!isProd && !isLocal) return;
+
+        var GA_ID = 'G-N76LQQN2WM';
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { window.dataLayer.push(arguments); };
+
+        var stored = null;
+        try { stored = localStorage.getItem('cs_cookie_consent'); } catch (e) {}
+        var granted = stored === 'granted';
+
+        window.gtag('consent', 'default', {
+          ad_storage: 'denied',
+          ad_user_data: 'denied',
+          ad_personalization: 'denied',
+          analytics_storage: granted ? 'granted' : 'denied',
+          functionality_storage: 'granted',
+          security_storage: 'granted',
+          wait_for_update: 500,
+        });
+
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+        document.head.appendChild(s);
+        window.gtag('js', new Date());
+        window.gtag('config', GA_ID, {
+          send_page_view: false,
+          debug_mode: isLocal,
+        });
+      })();
+    </script>
+
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://cheapstays.me/favicon.png">
 
