@@ -23,12 +23,11 @@ export function CookieConsent() {
     try {
       stored = localStorage.getItem(STORAGE_KEY);
     } catch {
-      return;
+      return undefined;
     }
-    if (stored !== "granted" && stored !== "denied") {
-      const t = setTimeout(() => setVisible(true), 600);
-      return () => clearTimeout(t);
-    }
+    if (stored === "granted" || stored === "denied") return undefined;
+    const t = setTimeout(() => setVisible(true), 600);
+    return () => clearTimeout(t);
   }, []);
 
   const decide = (value: ConsentValue) => {
