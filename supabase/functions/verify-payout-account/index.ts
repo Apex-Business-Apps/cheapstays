@@ -45,9 +45,21 @@ Deno.serve(async (req) => {
     const profileMap: Record<string, string> = {};
     for (const p of profiles ?? []) profileMap[p.user_id] = p.display_name;
 
+    // Flag hosts who have ever had a verified account — used by the admin UI
+    // to distinguish "first-time approval" from "re-approval after an edit".
+    const { data: verifyEvents } = hostIds.length
+      ? await serviceClient
+          .from("host_payout_account_audit")
+          .select("host_id")
+          .eq("change_kind", "verify")
+          .in("host_id", hostIds)
+      : { data: [] };
+    const previouslyVerified = new Set<string>((verifyEvents ?? []).map((v: { host_id: string }) => v.host_id));
+
     const rows = (data ?? []).map((r: Record<string, unknown>) => ({
       ...r,
       display_name: profileMap[r.host_id as string] ?? "Unknown host",
+      previously_verified: previouslyVerified.has(r.host_id as string),
     }));
 
     return json({ data: rows });
@@ -63,6 +75,7 @@ Deno.serve(async (req) => {
         is_verified: true,
         verified_by: user.id,
         verified_at: new Date().toISOString(),
+        last_actor_id: user.id,
       })
       .eq("host_id", host_id);
 

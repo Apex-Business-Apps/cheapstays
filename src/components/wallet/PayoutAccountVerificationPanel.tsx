@@ -10,6 +10,9 @@ type PayoutAccountRow = {
   account_holder_name: string;
   is_verified: boolean;
   created_at: string;
+  updated_at: string;
+  verified_at: string | null;
+  previously_verified: boolean;
 };
 
 const METHOD_LABEL: Record<string, string> = {
@@ -146,6 +149,12 @@ export function PayoutAccountVerificationPanel() {
                   {METHOD_LABEL[account.payout_method] ?? account.payout_method} · {account.account_holder_name}
                 </p>
                 <p className="text-xs text-muted-foreground font-mono truncate">{account.host_id}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Last edited {new Date(account.updated_at).toLocaleString()}
+                  {!account.is_verified && account.previously_verified && (
+                    <span className="ml-1 text-yellow-600">· changed since last verification — re-approval</span>
+                  )}
+                </p>
               </div>
 
               {!account.is_verified && (
