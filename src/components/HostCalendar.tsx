@@ -14,6 +14,11 @@ import { cn } from "@/lib/utils";
 import { BookingDetailDrawer } from "@/components/BookingDetailDrawer";
 import { HostBlackoutDialog } from "@/components/host/HostBlackoutDialog";
 import { HostCalendarTimeline } from "@/components/host/HostCalendarTimeline";
+import {
+  AdminBookingsMonthGrid,
+  AdminBookingsWeekRow,
+  type CalendarBooking,
+} from "@/components/admin/AdminBookingsMonthGrid";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -31,6 +36,7 @@ type BookingRow = {
   payment_status: string;
   total_php: number;
   guest_id: string | null;
+  guest_name_snapshot: string | null;
   listings: { title: string } | null;
 };
 
@@ -87,8 +93,11 @@ function LegendStat({ color, label, count }: { color: string; label: string; cou
 
 type ViewMode = "day" | "week" | "month";
 
+type ViewLayout = "overview" | "bookings";
+
 export function HostCalendar({ hostId }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>("month");
+  const [viewLayout, setViewLayout] = useState<ViewLayout>("overview");
   const [anchorDate, setAnchorDate] = useState<Date>(() => new Date());
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [loading, setLoading] = useState(true);
@@ -118,7 +127,7 @@ export function HostCalendar({ hostId }: Props) {
 
       const [bRes, blRes] = await Promise.all([
         sb.from("bookings")
-          .select("id,listing_id,check_in,check_out,starts_at,ends_at,stay_type,flow_state,status,payment_status,total_php,guest_id,listings(title)")
+          .select("id,listing_id,check_in,check_out,starts_at,ends_at,stay_type,flow_state,status,payment_status,total_php,guest_id,guest_name_snapshot,listings(title)")
           .eq("host_id", hostId)
           .eq("payment_status", "paid")
           .neq("status", "cancelled")
@@ -237,12 +246,20 @@ export function HostCalendar({ hostId }: Props) {
         <div>
           <h3 className="text-base font-semibold">{headerLabel}</h3>
           <p className="text-[11px] text-muted-foreground">
-            {viewMode === "month"
-              ? "Click a day to open booking details and edit blackouts."
-              : "Time-blocked view. Click a booking chip to open its details."}
+            {viewLayout === "bookings"
+              ? "Bars are colored by listing. Click a bar to open booking details."
+              : viewMode === "month"
+                ? "Click a day to open booking details and edit blackouts."
+                : "Time-blocked view. Click a booking chip to open its details."}
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Tabs value={viewLayout} onValueChange={(v) => setViewLayout(v as ViewLayout)}>
+            <TabsList className="h-8">
+              <TabsTrigger value="overview" className="px-3 text-xs">Overview</TabsTrigger>
+              <TabsTrigger value="bookings" className="px-3 text-xs">Bookings</TabsTrigger>
+            </TabsList>
+          </Tabs>
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
             <TabsList className="h-8">
               <TabsTrigger value="day" className="px-3 text-xs">Day</TabsTrigger>
@@ -269,7 +286,7 @@ export function HostCalendar({ hostId }: Props) {
         </div>
       </div>
 
-      {/* Category counts for the visible range — day-level tallies. */}
+      {viewLayout === "overview" && (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
         <LegendStat color="bg-emerald-400" label="Overnight" count={categoryCounts.overnight} />
         <LegendStat color="bg-sky-400" label="Hourly / quick stay" count={categoryCounts.hourly} />
@@ -278,8 +295,9 @@ export function HostCalendar({ hostId }: Props) {
         <LegendStat color="bg-slate-400" label="Full-day blackout" count={categoryCounts.blackout} />
         <LegendStat color="bg-muted-foreground/40" label="Vacant" count={categoryCounts.vacant} />
       </div>
+      )}
 
-      {viewMode !== "month" && (
+      {viewLayout === "overview" && viewMode !== "month" && (
         <HostCalendarTimeline
           bookings={bookings}
           blackouts={blackouts}
@@ -289,7 +307,18 @@ export function HostCalendar({ hostId }: Props) {
         />
       )}
 
-      {viewMode === "month" && (
+      {viewLayout === "bookings" && (
+        <HostBookingsBarView
+          bookings={bookings}
+          viewMode={viewMode}
+          month={month}
+          anchorDate={anchorDate}
+          onSelectBooking={setSelectedBookingId}
+          onOpenDay={(day) => setOpenDay({ date: day, bookings: bookingsOnDay(day), blackouts: blackoutsOnDay(day) })}
+        />
+      )}
+
+      {viewLayout === "overview" && viewMode === "month" && (
       <>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <div className="opacity-0 select-none pointer-events-none">.</div>
@@ -462,5 +491,95 @@ export function HostCalendar({ hostId }: Props) {
         onSaved={() => setReloadKey((k) => k + 1)}
       />
     </Card>
+  );
+}
+
+function toCalendarBookings(rows: BookingRow[]): CalendarBooking[] {
+  return rows.map((b) => ({
+    id: b.id,
+    listing_id: b.listing_id,
+    check_in: b.check_in,
+    check_out: b.check_out,
+    status: b.status,
+    total_php: b.total_php,
+    listings: b.listings,
+    guest_name_snapshot: b.guest_name_snapshot,
+  }));
+}
+
+function HostBookingsBarView({
+  bookings,
+  viewMode,
+  month,
+  anchorDate,
+  onSelectBooking,
+  onOpenDay,
+}: {
+  bookings: BookingRow[];
+  viewMode: ViewMode;
+  month: Date;
+  anchorDate: Date;
+  onSelectBooking: (id: string) => void;
+  onOpenDay: (day: Date) => void;
+}) {
+  const cal = useMemo(() => toCalendarBookings(bookings), [bookings]);
+  const today = new Date();
+
+  if (viewMode === "month") {
+    return (
+      <AdminBookingsMonthGrid
+        month={month}
+        bookings={cal}
+        onSelectBooking={onSelectBooking}
+        onOpenDay={onOpenDay}
+      />
+    );
+  }
+
+  if (viewMode === "week") {
+    const ws = startOfWeek(anchorDate, { weekStartsOn: 0 });
+    return (
+      <AdminBookingsWeekRow
+        weekStart={ws}
+        bookings={cal}
+        today={today}
+        showDayName
+        onSelectBooking={onSelectBooking}
+        onOpenDay={onOpenDay}
+      />
+    );
+  }
+
+  const ci = format(anchorDate, "yyyy-MM-dd");
+  const dayBookings = cal.filter((b) => {
+    const start = parseISO(b.check_in);
+    const end = parseISO(b.check_out);
+    return anchorDate >= start && anchorDate < end;
+  });
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs text-muted-foreground">
+        {dayBookings.length} booking{dayBookings.length === 1 ? "" : "s"} on {ci}
+      </p>
+      {dayBookings.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-6 text-center">
+          No bookings on this day.
+        </p>
+      ) : (
+        dayBookings.map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            onClick={() => onSelectBooking(b.id)}
+            className="w-full flex items-center justify-between text-sm py-2 border-b border-border/40 hover:bg-secondary/40 rounded px-2 transition-colors text-left"
+          >
+            <span className="truncate font-medium">{b.listings?.title ?? "Listing"}</span>
+            <span className="text-xs text-muted-foreground shrink-0 ml-2">
+              {format(parseISO(b.check_in), "MMM d")} → {format(parseISO(b.check_out), "MMM d")}
+            </span>
+          </button>
+        ))
+      )}
+    </div>
   );
 }

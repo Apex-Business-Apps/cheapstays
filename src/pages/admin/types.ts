@@ -3,6 +3,8 @@ import type { AppRole } from "@/lib/rbac";
 export type Booking = {
   id: string; listing_id: string; guest_id: string; host_id: string;
   check_in: string; check_out: string; status: string; total_php: number; created_at: string;
+  listings?: { title: string } | null;
+  guest_name_snapshot?: string | null;
 };
 
 export type BookingDetail = {

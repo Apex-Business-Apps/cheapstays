@@ -3,22 +3,43 @@ import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, Clock, ChevronRight, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 type CalendarState = "pending_payment" | "confirmed" | "cancelled" | "checkout_pending_review" | "dispute_hold" | "pending";
-type DashboardEvent = { id: string; listing: string; start: string; end: string; status: CalendarState; amount: number; payout: string };
+type DashboardEvent = {
+  id: string; listing: string; start: string; end: string; status: CalendarState;
+  amount: number; payout: string; createdAt: string;
+};
+
+const STATUS_LABEL: Record<CalendarState, string> = {
+  pending: "Pending",
+  pending_payment: "Pending payment",
+  confirmed: "Confirmed",
+  cancelled: "Cancelled",
+  checkout_pending_review: "Checkout pending review",
+  dispute_hold: "Dispute hold",
+};
+
+const STATUS_DOT: Record<CalendarState, string> = {
+  pending: "bg-amber-500",
+  pending_payment: "bg-amber-500",
+  confirmed: "bg-sky-500",
+  cancelled: "bg-rose-500",
+  checkout_pending_review: "bg-violet-500",
+  dispute_hold: "bg-red-500",
+};
 
 type Props = { hostId: string };
 
-const statusStyle: Record<CalendarState, string> = {
-  pending: "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300",
-  pending_payment: "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300",
-  confirmed: "bg-sky-100 text-sky-900 dark:bg-sky-900/30 dark:text-sky-300",
-  cancelled: "bg-rose-100 text-rose-900 dark:bg-rose-900/30 dark:text-rose-300",
-  checkout_pending_review: "bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300",
-  dispute_hold: "bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-300",
+const STATUS_BADGE: Record<CalendarState, string> = {
+  pending: "bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-800",
+  pending_payment: "bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-800",
+  confirmed: "bg-sky-100 text-sky-900 border-sky-200 dark:bg-sky-900/30 dark:text-sky-200 dark:border-sky-800",
+  cancelled: "bg-rose-100 text-rose-900 border-rose-200 dark:bg-rose-900/30 dark:text-rose-200 dark:border-rose-800",
+  checkout_pending_review: "bg-violet-100 text-violet-900 border-violet-200 dark:bg-violet-900/30 dark:text-violet-200 dark:border-violet-800",
+  dispute_hold: "bg-red-100 text-red-900 border-red-200 dark:bg-red-900/30 dark:text-red-200 dark:border-red-800",
 };
 
 const payoutByPayment: Record<string, string> = {
@@ -49,7 +70,6 @@ const VERIFICATION_CONFIG: Record<string, { label: string; variant: "default" | 
 export function HostDashboard({ hostId }: Props) {
   const navigate = useNavigate();
   const [events, setEvents] = useState<DashboardEvent[]>([]);
-  const [selected, setSelected] = useState<DashboardEvent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [listingCount, setListingCount] = useState(0);
@@ -64,9 +84,9 @@ export function HostDashboard({ hostId }: Props) {
         supabase.from("host_profiles").select("verification_status").eq("user_id", hostId).maybeSingle(),
         supabase
           .from("bookings")
-          .select("id,check_in,check_out,status,payment_status,total_php,listings(title)")
+          .select("id,check_in,check_out,status,payment_status,total_php,created_at,listings(title)")
           .eq("host_id", hostId)
-          .order("check_in", { ascending: true })
+          .order("created_at", { ascending: false })
           .limit(60),
         supabase.from("listings").select("id", { count: "exact", head: true }).eq("host_id", hostId).eq("status", "active"),
       ]);
@@ -90,11 +110,11 @@ export function HostDashboard({ hostId }: Props) {
           status: toCalendarState(b.status, b.payment_status),
           amount: b.total_php,
           payout: payoutByPayment[b.payment_status] ?? "Pending",
+          createdAt: (b as { created_at?: string }).created_at ?? b.check_in,
         } as DashboardEvent;
       });
 
       setEvents(mapped);
-      setSelected(mapped[0] ?? null);
       setLoading(false);
 
       if (profileRes.data?.verification_status === "rejected") {
@@ -158,65 +178,85 @@ export function HostDashboard({ hostId }: Props) {
         </Card>
       </div>
 
-      {/* Booking list */}
-      <Card className="p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Recent bookings</h3>
-          <Button size="sm" variant="ghost" onClick={() => navigate("/host/bookings")} className="text-xs text-muted-foreground">
-            View all →
-          </Button>
-        </div>
-
-        {/* Status legend */}
-        <div className="flex flex-wrap gap-2 text-xs">
-          {(Object.entries(statusStyle) as [CalendarState, string][]).map(([k, v]) => (
-            <span key={k} className={`px-2 py-1 rounded-full ${v}`}>{k.replace(/_/g, " ")}</span>
-          ))}
+      {/* Recent bookings */}
+      <Card className="p-0 overflow-hidden">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+          <div>
+            <h3 className="font-semibold">Recent bookings</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {events.length === 0
+                ? "Your latest bookings will appear here."
+                : `Latest ${Math.min(4, events.length)} of ${events.length}`}
+            </p>
+          </div>
         </div>
 
         {loading && (
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center py-10">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         )}
-        {!loading && error && <p className="text-sm text-destructive">{error}</p>}
-        {!loading && !error && events.length === 0 && (
-          <p className="text-sm text-muted-foreground">No bookings yet. Once guests book your listings they appear here.</p>
-        )}
-        {!loading && events.length > 0 && (
-          <div className="grid gap-2 md:grid-cols-2">
-            {events.map((event) => (
-              <button
-                key={event.id}
-                onClick={() => setSelected(event)}
-                className={`text-left border rounded-lg p-3 hover:border-primary transition-colors ${
-                  selected?.id === event.id ? "border-primary" : "border-border"
-                }`}
-              >
-                <p className="font-medium text-sm">{event.listing}</p>
-                <p className="text-xs text-muted-foreground">
-                  {format(parseISO(event.start), "MMM d")} → {format(parseISO(event.end), "MMM d")}
-                </p>
-                <span className={`inline-block mt-2 text-xs px-2 py-0.5 rounded-full ${statusStyle[event.status]}`}>
-                  {event.status.replace(/_/g, " ")}
-                </span>
-              </button>
-            ))}
-          </div>
+
+        {!loading && error && (
+          <p className="text-sm text-destructive px-5 pb-5">{error}</p>
         )}
 
-        {selected && !loading && (
-          <Card className="p-4 bg-secondary/40" data-testid="booking-details">
-            <p className="font-medium text-sm">Booking details</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {format(parseISO(selected.start), "PPP")} → {format(parseISO(selected.end), "PPP")}
-            </p>
-            <p className="text-sm">Total: ₱{selected.amount.toLocaleString()}</p>
-            <p className="text-sm text-muted-foreground">Payout: {selected.payout}</p>
-            <Button size="sm" variant="outline" className="mt-3" onClick={() => navigate("/host/bookings")}>
-              Manage this booking →
-            </Button>
-          </Card>
+        {!loading && !error && events.length === 0 && (
+          <p className="text-sm text-muted-foreground px-5 pb-5">
+            No bookings yet. Once guests book your listings they appear here.
+          </p>
+        )}
+
+        {!loading && !error && events.length > 0 && (
+          <>
+            <ul className="divide-y divide-border border-y border-border">
+              {events.slice(0, 4).map((event) => (
+                <li key={event.id}>
+                  <Link
+                    to="/host/bookings"
+                    className="group flex items-center gap-4 px-5 py-4 hover:bg-secondary/40 transition-colors"
+                  >
+                    <span
+                      className={`h-2 w-2 rounded-full shrink-0 ${STATUS_DOT[event.status]}`}
+                      aria-hidden
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="font-medium text-sm truncate">{event.listing}</p>
+                        <span
+                          className={`text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0 ${STATUS_BADGE[event.status]}`}
+                        >
+                          {STATUS_LABEL[event.status]}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {format(parseISO(event.start), "MMM d")} → {format(parseISO(event.end), "MMM d, yyyy")}
+                        <span className="mx-1.5 text-border">·</span>
+                        {event.payout}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-semibold tabular-nums">
+                        ₱{event.amount.toLocaleString()}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/60 group-hover:text-foreground shrink-0 transition-colors" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <div className="px-5 py-3 flex justify-end">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => navigate("/host/bookings")}
+                className="text-xs"
+              >
+                View all bookings
+                <ArrowRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </div>
+          </>
         )}
       </Card>
 

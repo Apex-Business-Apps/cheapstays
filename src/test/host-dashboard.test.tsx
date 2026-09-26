@@ -10,6 +10,7 @@ const mockBooking = {
   status: "confirmed",
   payment_status: "pending",
   total_php: 9800,
+  created_at: "2026-05-20T10:00:00Z",
   listings: { title: "Beach Hut" },
 };
 
@@ -47,24 +48,25 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 describe("HostDashboard", () => {
-  it("renders status legend labels", async () => {
+  it("renders a recent booking row with capitalized status label and amount", async () => {
     render(<MemoryRouter><HostDashboard hostId="host-1" /></MemoryRouter>);
-    await waitFor(() => expect(screen.getAllByText(/confirmed/i).length).toBeGreaterThan(0));
-    expect(screen.getAllByText(/pending payment/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/checkout pending review/i).length).toBeGreaterThan(0);
+    await waitFor(() => expect(screen.getByText("Beach Hut")).toBeInTheDocument());
+    // Capitalized, human-readable status — not the raw enum
+    expect(screen.getByText("Pending payment")).toBeInTheDocument();
+    expect(screen.getByText(/₱9,800/)).toBeInTheDocument();
   });
 
-  it("shows booking details when an event is clicked", async () => {
+  it("links each row and a footer button to the bookings page", async () => {
     render(<MemoryRouter><HostDashboard hostId="host-1" /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByRole("button", { name: /beach hut/i })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: /beach hut/i }));
-    expect(screen.getByTestId("booking-details")).toHaveTextContent(/₱9,800/);
+    await waitFor(() => expect(screen.getByText("Beach Hut")).toBeInTheDocument());
+    const rowLink = screen.getByRole("link", { name: /beach hut/i });
+    expect(rowLink).toHaveAttribute("href", "/host/bookings");
+    expect(screen.getByRole("button", { name: /view all bookings/i })).toBeInTheDocument();
   });
 
   it("navigates to bookings page when a stat card button is clicked", async () => {
     render(<MemoryRouter><HostDashboard hostId="host-1" /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText("Review requests")).toBeInTheDocument());
     fireEvent.click(screen.getByText("Review requests"));
-    // Navigation is now handled internally via useNavigate — no onTabChange prop
   });
 });
