@@ -76,6 +76,7 @@ Deno.serve(async (req) => {
         is_verified: false,
         verified_by: null,
         verified_at: null,
+        last_actor_id: user.id,
       },
       { onConflict: "host_id" }
     );
