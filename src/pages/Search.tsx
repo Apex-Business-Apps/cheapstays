@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { isMember } from "@/lib/rbac";
 import { getListingPrimaryImage, getListingImageAlt } from "@/lib/listings";
+import { DUMMY_LISTINGS } from "@/data/dummyListings";
 
 type Listing = {
   id: string;
@@ -338,8 +339,43 @@ export default function Search() {
         const { data } = await q.order("created_at", { ascending: false }).limit(24);
         if (!cancelled) {
           const listings = ((data ?? []) as Record<string, unknown>[]).map((l) => ({ ...l, why_its_a_deal: "", score: 0 })) as Listing[];
-          setBrowseListings(listings);
-          fetchHostRatings(listings);
+          // Fill the tail with demo listings that match the active filters so
+          // the browse grid looks populated even when the DB is sparse. Demo
+          // listings are non-bookable (see BookingPanel / ListingDetail).
+          const demos: Listing[] = DUMMY_LISTINGS
+            .filter((d) => {
+              if (categoryParam && d.stay_category !== categoryParam) return false;
+              if (availabilityParam === "hourly") {
+                if (d.stay_availability_type !== "hourly" && d.stay_availability_type !== "both") return false;
+              } else if (availabilityParam && d.stay_availability_type !== availabilityParam) return false;
+              return true;
+            })
+            .map((d) => ({
+              id: d.id,
+              slug: d.slug,
+              host_id: d.host_id,
+              title: d.title,
+              city: d.city,
+              province: d.province,
+              type: d.type,
+              bedrooms: d.bedrooms,
+              bathrooms: d.bathrooms,
+              max_guests: d.max_guests,
+              nightly_php: d.nightly_php,
+              min_nights: d.min_nights,
+              amenities: d.amenities,
+              images: d.images,
+              is_owner_direct: d.is_owner_direct,
+              short_term_enabled: d.short_term_enabled ?? true,
+              long_term_enabled: d.long_term_enabled ?? false,
+              avg_rating: d.avg_rating,
+              review_count: d.review_count,
+              why_its_a_deal: "",
+              score: 0,
+            }));
+          const merged = [...listings, ...demos].slice(0, 40);
+          setBrowseListings(merged);
+          fetchHostRatings(merged);
         }
       } catch (err) {
         if (!cancelled) setBrowseError((err as Error).message ?? "Failed to load listings");
