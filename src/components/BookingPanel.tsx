@@ -28,6 +28,7 @@ import { toast } from "@/hooks/use-toast";
 import { CalendarDays, ChevronDown, CreditCard, Loader2, Smartphone, Users, Wallet, Zap, CheckCircle2, Clock } from "lucide-react";
 import { LegalScrollGate } from "@/components/LegalScrollGate";
 import { legalDocs } from "@/pages/legal/content";
+import { isDemoListingKey } from "@/data/dummyListings";
 
 // Canonical stay-length boundary — must match book-listing edge function.
 const SHORT_TERM_MAX_NIGHTS = 30;
@@ -104,6 +105,10 @@ export function BookingPanel({ listing }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  // Demo listings live only in the client bundle — they have no host, no
+  // availability, and no listing_id the server would accept. Every network
+  // side-effect and the Book CTA are short-circuited below.
+  const isDemo = isDemoListingKey(listing.id);
 
   const defaultMode = listing.booking_mode === "voucher"
     ? "voucher"
@@ -178,6 +183,7 @@ export function BookingPanel({ listing }: Props) {
   }
 
   useEffect(() => {
+    if (isDemoListingKey(listing.id)) return;
     // bookings RLS hides other users' rows, so read availability through a
     // SECURITY DEFINER RPC that returns only booked time ranges (no PII).
     sb.rpc("get_listing_booked_slots", { p_listing_id: listing.id })
@@ -202,6 +208,7 @@ export function BookingPanel({ listing }: Props) {
   }, [listing.id]);
 
   useEffect(() => {
+    if (isDemoListingKey(listing.id)) return;
     sb.from("listing_house_rules")
       .select("current_version,current_hash,rules_json")
       .eq("listing_id", listing.id)
@@ -434,6 +441,31 @@ export function BookingPanel({ listing }: Props) {
     } finally {
       setGuestSubmitting(false);
     }
+  }
+
+  if (isDemo) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border/60 bg-card p-5 space-y-4 shadow-sm">
+        <div className="flex items-baseline justify-between">
+          <div>
+            <span className="text-2xl font-bold">₱{listing.nightly_php.toLocaleString()}</span>
+            <span className="text-sm text-muted-foreground"> / night</span>
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Sample
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          This is a sample listing used to showcase the site experience. Bookings are disabled — no charge and no reservation will be created.
+        </p>
+        <Button className="w-full" disabled aria-label="Preview only — sample listing">
+          Preview only — sample listing
+        </Button>
+        <p className="text-xs text-center text-muted-foreground">
+          Browse real stays to book with a live host.
+        </p>
+      </div>
+    );
   }
 
   if (step === "pay") {

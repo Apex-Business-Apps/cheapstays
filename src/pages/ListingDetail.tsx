@@ -17,6 +17,7 @@ import { GuestRatingBadge } from "@/components/GuestRatingBadge";
 const sb = supabase as any;
 
 import { AMENITY_LABELS, TYPE_LABELS, type Listing } from "@/lib/listing-display";
+import { findDummyListing, isDemoListingKey } from "@/data/dummyListings";
 
 export default function ListingDetail() {
   const { id, slug } = useParams<{ id?: string; slug?: string }>();
@@ -45,6 +46,16 @@ export default function ListingDetail() {
     const lookupKey = slug ?? id;
     const lookupField = slug ? "slug" : "id";
     if (!lookupKey) return;
+    // Demo listings live in a client-side module — bypass Supabase entirely so
+    // a fake id/slug never 404s and no book-listing call can ever fire against
+    // it (see BookingPanel's isDemo gate).
+    if (isDemoListingKey(lookupKey)) {
+      const demo = findDummyListing(lookupKey);
+      if (demo) setListing(demo as Listing);
+      else setNotFound(true);
+      setLoading(false);
+      return;
+    }
     supabase
       .from("listings")
       .select("*")
@@ -61,6 +72,7 @@ export default function ListingDetail() {
   // House rules are stored separately (listing_house_rules) and are public-read.
   useEffect(() => {
     if (!listing?.id) return;
+    if (isDemoListingKey(listing.id)) return;
     let cancelled = false;
     sb.from("listing_house_rules")
       .select("rules_json")

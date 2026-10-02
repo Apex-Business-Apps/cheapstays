@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { DUMMY_LISTINGS, toDiscoveryListing } from "@/data/dummyListings";
 
 export type DiscoveryListing = {
   id: string;
@@ -71,6 +72,20 @@ export function isPromoted(l: DiscoveryListing): boolean {
   return l.promo_price != null && l.promo_price > 0 && l.promo_price < l.nightly_php;
 }
 
+// Demo listings materialised once as the discovery shape; real DB rows always
+// take priority — dummies just fill the tail so the site looks populated in
+// dev/preview and never displaces a live listing.
+const DEMO_DISCOVERY: DiscoveryListing[] = DUMMY_LISTINGS.map(toDiscoveryListing);
+
+type DemoFilter = (l: DiscoveryListing) => boolean;
+
+function mergeWithDemos(real: DiscoveryListing[], limit: number, filter?: DemoFilter): DiscoveryListing[] {
+  if (real.length >= limit) return real;
+  const seen = new Set(real.map((r) => r.id));
+  const demos = DEMO_DISCOVERY.filter((d) => !seen.has(d.id) && (!filter || filter(d)));
+  return [...real, ...demos].slice(0, limit);
+}
+
 /** All active listings (newest first), for the Types of Stays browse page. */
 export async function fetchActiveListings(limit = 200): Promise<DiscoveryListing[]> {
   const { data, error } = await sb
@@ -80,7 +95,8 @@ export async function fetchActiveListings(limit = 200): Promise<DiscoveryListing
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw new Error(error.message);
-  return ((data ?? []) as Record<string, unknown>[]).map(mapRow);
+  const rows = ((data ?? []) as Record<string, unknown>[]).map(mapRow);
+  return mergeWithDemos(rows, limit);
 }
 
 /** Newest active listings, for the Hero carousel ("fresh" arrivals). */
@@ -92,7 +108,8 @@ export async function fetchLatestListings(limit = 10): Promise<DiscoveryListing[
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw new Error(error.message);
-  return ((data ?? []) as Record<string, unknown>[]).map(mapRow);
+  const rows = ((data ?? []) as Record<string, unknown>[]).map(mapRow);
+  return mergeWithDemos(rows, limit);
 }
 
 /**
@@ -121,8 +138,9 @@ export async function fetchFeaturedStays(limit = 9): Promise<DiscoveryListing[]>
   if (error) throw new Error(error.message);
 
   const rows = ((data ?? []) as Record<string, unknown>[]).map(mapRow);
+  const merged = mergeWithDemos(rows, Math.max(limit * 3, 24));
   // Stable sort: promoted listings first, otherwise preserve the quality order.
-  return rows
+  return merged
     .map((l, i) => ({ l, i }))
     .sort((a, b) => Number(isPromoted(b.l)) - Number(isPromoted(a.l)) || a.i - b.i)
     .map((x) => x.l)
@@ -139,7 +157,10 @@ export async function fetchQuickStays(limit = 9): Promise<DiscoveryListing[]> {
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw new Error(error.message);
-  return ((data ?? []) as Record<string, unknown>[]).map(mapRow);
+  const rows = ((data ?? []) as Record<string, unknown>[]).map(mapRow);
+  return mergeWithDemos(rows, limit, (d) =>
+    d.stay_availability_type === "hourly" || d.stay_availability_type === "both",
+  );
 }
 
 /** Aggregates active listings by city to surface the most popular destinations. */
@@ -153,7 +174,19 @@ export async function fetchPopularCities(limit = 8): Promise<PopularCity[]> {
   if (error) throw new Error(error.message);
 
   const groups = new Map<string, PopularCity>();
-  for (const raw of (data ?? []) as Record<string, unknown>[]) {
+  const combined: Record<string, unknown>[] = [
+    ...((data ?? []) as Record<string, unknown>[]),
+    ...DUMMY_LISTINGS.map((l) => ({
+      city: l.city,
+      province: l.province,
+      nightly_php: l.nightly_php,
+      title: l.title,
+      slug: l.slug,
+      images: l.images,
+      type: l.type,
+    })),
+  ];
+  for (const raw of combined) {
     const city = String(raw.city ?? "").trim();
     if (!city) continue;
     const key = city.toLowerCase();
