@@ -34,10 +34,12 @@ export default function BookingConfirmationSuccess() {
   const amount = Number(searchParams.get("amount")) || 0;
   const title = searchParams.get("title") ?? "";
   const city = searchParams.get("city") ?? "";
+  const name = (searchParams.get("name") ?? "").trim();
   // Guests arrive without a session — show account/sign-in guidance for them.
   const isGuest = searchParams.get("guest") === "1" || !user;
 
   const confirmationRef = bookingId ? `#${bookingId.slice(0, 8).toUpperCase()}` : "—";
+  const firstName = name ? name.split(/\s+/)[0] : "";
 
   return (
     <div className="container py-16 max-w-3xl">
@@ -46,7 +48,7 @@ export default function BookingConfirmationSuccess() {
       <div className="text-center mb-8">
         <CheckCircle2 className="mx-auto h-16 w-16 text-green-500 mb-4" />
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          Booking Confirmed!
+          {firstName ? `Booking Confirmed, ${firstName}!` : "Booking Confirmed!"}
         </h1>
         <p className="mt-2 text-muted-foreground">
           Thank you for choosing CheapStays. Your payment was received successfully.
@@ -94,6 +96,12 @@ export default function BookingConfirmationSuccess() {
           <span className="text-muted-foreground">Confirmation ID</span>
           <span className="font-medium">{confirmationRef}</span>
         </div>
+        {name && (
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-muted-foreground">Guest</span>
+            <span className="font-medium text-right">{name}</span>
+          </div>
+        )}
         {title && (
           <div className="flex justify-between items-center mb-2">
             <span className="text-muted-foreground">Property</span>

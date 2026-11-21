@@ -305,6 +305,29 @@ export function BookingPanel({ listing }: Props) {
   // requests still need an account, so guests are sent to sign in for those.
   const guestEligible = stayMode !== "voucher" && !isLongTermStay;
 
+  // Hourly pricing may not be fully configured by the host. Catch it BEFORE
+  // opening the legal gate / guest form so the user doesn't fill out a form
+  // only to have the edge function reject it.
+  const hourlyPricingMissing =
+    (stayMode === "hourly" || stayMode === "voucher") && priceToUse <= 0;
+
+  function attemptBook(after: () => void) {
+    if (hourlyPricingMissing) {
+      const label =
+        hourlyBlock === "base" ? "the base hour" :
+        hourlyBlock === "3h"   ? "the 3-hour block" :
+        hourlyBlock === "6h"   ? "the 6-hour block" :
+        hourlyBlock === "12h"  ? "the 12-hour block" : "this duration";
+      toast({
+        title: "Pricing not set",
+        description: `The host hasn't configured a price for ${label} on this listing yet. Try a different duration or contact the host.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    after();
+  }
+
   async function book() {
     if (!user) { goToAuth(); return; }
     if (!canBook) return;
@@ -789,13 +812,15 @@ export function BookingPanel({ listing }: Props) {
         <Button
           className="w-full"
           disabled={!canBook || submitting}
-          onClick={
-            user
-              ? () => setShowLegalGate(true)
-              : guestEligible
-                ? () => setShowGuestDialog(true)
-                : () => goToAuth()
-          }
+          onClick={() => {
+            if (user) {
+              attemptBook(() => setShowLegalGate(true));
+            } else if (guestEligible) {
+              attemptBook(() => setShowGuestDialog(true));
+            } else {
+              goToAuth();
+            }
+          }}
           aria-label={stayMode === "voucher" ? "Buy Voucher" : isShortTermStay ? "Book now" : "Request to book"}
         >
           {submitting ? (

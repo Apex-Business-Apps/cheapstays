@@ -12,6 +12,11 @@ import { supabase } from "@/integrations/supabase/client";
 import type { BookingDetail } from "@/pages/admin/types";
 import { STATUS_COLORS } from "@/pages/admin/types";
 
+// Generated supabase types don't yet include bookings.guest_name_snapshot and
+// still mark guest_id as non-null. Mirror the HostBookings cast until types regen.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sb = supabase as any;
+
 const STATUS_STYLES: Record<string, { border: string; bg: string }> = {
   confirmed:       { border: "border-l-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
   pending:         { border: "border-l-amber-400",   bg: "bg-amber-50 dark:bg-amber-950/30" },
@@ -39,7 +44,7 @@ export function BookingDetailDrawer({ bookingId, onClose }: Props) {
     setDetail(null);
 
     (async () => {
-      const { data: bk, error: bkErr } = await supabase
+      const { data: bk, error: bkErr } = await sb
         .from("bookings")
         .select(`
           id, listing_id, guest_id, host_id,
@@ -47,7 +52,7 @@ export function BookingDetailDrawer({ bookingId, onClose }: Props) {
           payment_status, payment_method, payment_ref,
           refundable_until, payout_release_on,
           guest_message, cancellation_reason, cancelled_at,
-          confirmed_at, created_at
+          confirmed_at, created_at, guest_name_snapshot, stay_type
         `)
         .eq("id", bookingId)
         .single();
@@ -62,7 +67,9 @@ export function BookingDetailDrawer({ bookingId, onClose }: Props) {
         { data: hostProfile },
         { data: listing },
       ] = await Promise.all([
-        supabase.from("profiles").select("display_name").eq("user_id", bk.guest_id).maybeSingle(),
+        bk.guest_id
+          ? supabase.from("profiles").select("display_name").eq("user_id", bk.guest_id).maybeSingle()
+          : Promise.resolve({ data: null }),
         supabase.from("profiles").select("display_name").eq("user_id", bk.host_id).maybeSingle(),
         supabase.from("listings").select("title, city, province, address, type, nightly_php").eq("id", bk.listing_id).maybeSingle(),
       ]);
@@ -80,7 +87,10 @@ export function BookingDetailDrawer({ bookingId, onClose }: Props) {
         cancellation_reason: bk.cancellation_reason ?? null,
         cancelled_at: bk.cancelled_at ?? null,
         confirmed_at: bk.confirmed_at ?? null,
-        guestName: guestProfile?.display_name ?? (bk.guest_id?.slice(0, 8) ?? "voucher"),
+        guestName: guestProfile?.display_name
+          ?? bk.guest_name_snapshot
+          ?? (bk.guest_id ? bk.guest_id.slice(0, 8) : "Voucher guest"),
+        stay_type: bk.stay_type ?? null,
         hostName: hostProfile?.display_name ?? bk.host_id.slice(0, 8),
         listingTitle: listing?.title ?? "Unknown listing",
         listingCity: listing?.city ?? "",
@@ -211,7 +221,12 @@ function DrawerContent({ detail }: { detail: BookingDetail }) {
 
       {/* Guest + Host */}
       <div className="grid grid-cols-2 gap-3">
-        <PersonCard label="Guest" name={detail.guestName} />
+        <PersonCard
+          label="Guest"
+          name={detail.guestName}
+          sublabel={detail.stay_type === "voucher" ? "Voucher buyer" : null}
+          isVoucher={detail.stay_type === "voucher"}
+        />
         <PersonCard label="Host"  name={detail.hostName} />
       </div>
 
@@ -268,8 +283,13 @@ function DrawerContent({ detail }: { detail: BookingDetail }) {
   );
 }
 
-function PersonCard({ label, name }: { label: string; name: string }) {
-  const display = /^[^\s@]+$/.test(name) ? `${name}@gmail.com` : name;
+function PersonCard({
+  label, name, sublabel, isVoucher,
+}: { label: string; name: string; sublabel?: string | null; isVoucher?: boolean }) {
+  // Only UUID-slice placeholders (lowercase hex, no spaces) get the decorative
+  // @gmail.com suffix — real names and voucher buyer names render as-is.
+  const isUuidSlice = /^[a-f0-9]{8}$/.test(name);
+  const display = !isVoucher && isUuidSlice ? `${name}@gmail.com` : name;
   return (
     <div className="rounded-xl border border-border bg-card p-3 flex flex-col items-center text-center gap-2">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground self-start">
@@ -279,6 +299,9 @@ function PersonCard({ label, name }: { label: string; name: string }) {
         <AvatarFallback className="text-sm font-medium">{initials(name)}</AvatarFallback>
       </Avatar>
       <p className="text-xs font-medium leading-tight break-all">{display}</p>
+      {sublabel && (
+        <p className="text-[10px] text-muted-foreground leading-tight">{sublabel}</p>
+      )}
     </div>
   );
 }

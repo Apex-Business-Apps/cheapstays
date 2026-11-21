@@ -330,7 +330,8 @@ Deno.serve(async (req) => {
           success_url: `${siteUrl}/booking-success?booking=${bookingId}` +
             `&email=${encodeURIComponent(email)}&amount=${totalPhp}` +
             `&title=${encodeURIComponent(listing.title ?? "")}` +
-            `&city=${encodeURIComponent(listing.city ?? "")}&guest=1`,
+            `&city=${encodeURIComponent(listing.city ?? "")}` +
+            `&name=${encodeURIComponent(contact.full_name.trim())}&guest=1`,
           cancel_url: `${siteUrl}/listing/${listing_id}?payment=cancelled`,
           metadata: { booking_id: bookingId, user_id: guestUserId, guest_checkout: "true" },
         },
