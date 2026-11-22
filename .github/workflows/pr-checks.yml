@@ -62,7 +62,10 @@ jobs:
 
   e2e:
     name: E2E Tests (responsive)
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest rolled to 26.04, which Playwright 1.60 refuses to
+    # install chromium deps on. Unpin once @playwright/test is upgraded to a
+    # version that recognises the newer Ubuntu release.
+    runs-on: ubuntu-24.04
     needs: build
     timeout-minutes: 20
     steps:
