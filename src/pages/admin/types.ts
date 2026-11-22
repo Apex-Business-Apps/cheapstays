@@ -29,6 +29,7 @@ export type BookingDetail = {
   cancelled_at: string | null;
   confirmed_at: string | null;
   created_at: string;
+  stay_type: string | null;
   // joined
   guestName: string;
   hostName: string;
